@@ -514,5 +514,30 @@
         </div>
     </main>
 
+    <!-- Scripts -->
+    <script type="module">
+        window.Echo.channel('emergencies')
+            .listen('EmergencyReported', (e) => {
+                if (e.incident.emergency_type === 'Critical Emergency') {
+                    console.log('CRITICAL Emergency:', e);
+                    
+                    // Play Alarm Sound
+                    const audio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
+                    audio.play().catch(e => console.log("Audio play failed: ", e));
+
+                    // Show Flashing Banner/Alert
+                    const alertHtml = `
+                    <div class="bg-brand-red text-white p-4 rounded-xl mb-4 animate-pulse flex justify-between items-center shadow-[0_0_20px_rgba(239,68,68,0.6)]">
+                        <div>
+                            <div class="font-bold text-lg">CRITICAL EMERGENCY INCOMING</div>
+                            <div class="text-sm">${e.incident.device.building} • Device: ${e.incident.device.device_code}</div>
+                        </div>
+                        <button onclick="this.parentElement.remove(); audio.pause();" class="bg-white text-brand-red font-bold px-4 py-2 rounded">ACKNOWLEDGE</button>
+                    </div>
+                    `;
+                    document.querySelector('main .flex-1').insertAdjacentHTML('afterbegin', alertHtml);
+                }
+            });
+    </script>
 </body>
 </html>

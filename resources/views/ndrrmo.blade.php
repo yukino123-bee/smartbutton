@@ -242,78 +242,58 @@
                     <div class="px-5 py-4 border-b border-brand-border">
                         <h2 class="text-xs font-bold text-white uppercase tracking-wider">CAMPUS INCIDENT MAP</h2>
                     </div>
-                    <div class="relative flex-1 min-h-[360px] bg-[#C5E1A5]">
-                        <!-- Pseudo map background pattern (representing map tiles) -->
-                        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cartographer.png')] opacity-20"></div>
-                        
-                        <!-- Map controls -->
-                        <div class="absolute top-4 left-4 bg-white rounded-md shadow flex flex-col text-slate-700">
-                            <button class="w-8 h-8 flex items-center justify-center border-b border-slate-200 hover:bg-slate-50"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>
-                            <button class="w-8 h-8 flex items-center justify-center hover:bg-slate-50"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg></button>
-                        </div>
-                        <div class="absolute top-24 left-4 bg-white rounded-md shadow flex flex-col text-slate-700">
-                            <button class="w-8 h-8 flex items-center justify-center hover:bg-slate-50"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg></button>
-                        </div>
-
-                        <!-- Text Map overlay -->
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div class="text-center transform -rotate-12">
-                                <div class="text-2xl font-black text-slate-600/50">JHCSC</div>
-                                <div class="text-sm font-bold text-slate-600/50">MAIN CAMPUS</div>
-                            </div>
-                        </div>
-
-                        <!-- Pins -->
-                        <!-- Pin 1: Gymnasium -->
-                        <div class="absolute top-[40%] left-[25%] flex flex-col items-center">
-                            <div class="bg-white rounded-lg shadow-lg p-2.5 flex items-center mb-1">
-                                <div class="w-8 h-8 rounded-full bg-brand-red/10 flex items-center justify-center mr-2">
-                                    <svg class="w-4 h-4 text-brand-red" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-                                </div>
-                                <div>
-                                    <div class="text-xs font-bold text-slate-800 leading-tight">Gymnasium</div>
-                                    <div class="text-[9px] text-slate-500">Device ID: GYM-001</div>
-                                    <div class="text-[9px] font-semibold text-brand-red mt-0.5">Status: ACTIVE</div>
-                                </div>
-                            </div>
-                            <div class="w-3 h-3 bg-brand-red rounded-full shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse"></div>
-                        </div>
-
-                        <!-- Pin 2: Library -->
-                        <div class="absolute top-[20%] right-[35%] flex flex-col items-center">
-                            <div class="bg-white rounded-lg shadow-lg p-2.5 flex items-center mb-1">
-                                <div class="w-8 h-8 rounded-full bg-brand-orange/10 flex items-center justify-center mr-2">
-                                    <svg class="w-4 h-4 text-brand-orange" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-                                </div>
-                                <div>
-                                    <div class="text-xs font-bold text-slate-800 leading-tight">Library</div>
-                                    <div class="text-[9px] text-slate-500">Device ID: LIB-001</div>
-                                    <div class="text-[9px] font-semibold text-brand-green mt-0.5">Status: Normal</div>
-                                </div>
-                            </div>
-                            <div class="w-3 h-3 bg-brand-orange rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
-                        </div>
-
-                        <!-- Pin 3: Engineering -->
-                        <div class="absolute bottom-[25%] right-[20%] flex flex-col items-center">
-                            <div class="bg-white rounded-lg shadow-lg p-2.5 flex items-center mb-1">
-                                <div class="w-8 h-8 rounded-full bg-brand-green/10 flex items-center justify-center mr-2">
-                                    <svg class="w-4 h-4 text-brand-green" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-                                </div>
-                                <div>
-                                    <div class="text-xs font-bold text-slate-800 leading-tight">Engineering Building</div>
-                                    <div class="text-[9px] text-slate-500">Device ID: ENG-001</div>
-                                    <div class="text-[9px] font-semibold text-brand-green mt-0.5">Status: Normal</div>
-                                </div>
-                            </div>
-                            <div class="w-3 h-3 bg-brand-green rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                        </div>
-
-                        <!-- Map Attribution -->
-                        <div class="absolute bottom-1 right-2 text-[9px] text-slate-600 bg-white/70 px-1 rounded">
-                            © OpenStreetMap contributors
-                        </div>
+                    <div id="campus-map" class="relative flex-1 min-h-[360px] bg-[#C5E1A5] z-0">
+                        <!-- Leaflet Map will be injected here -->
                     </div>
+                </div>
+
+                <!-- Leaflet CSS & JS -->
+                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Initialize Map
+                        const map = L.map('campus-map').setView([8.1234567, 123.1234567], 18);
+                        
+                        // Add OpenStreetMap tiles
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '© OpenStreetMap contributors'
+                        }).addTo(map);
+
+                        // Store markers to update them later
+                        window.deviceMarkers = {};
+
+                        // Define Marker Icons
+                        const iconNormal = L.divIcon({ className: 'custom-div-icon', html: "<div class='w-4 h-4 bg-brand-green rounded-full border-2 border-white shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse'></div>", iconSize: [16, 16], iconAnchor: [8, 8] });
+                        const iconCritical = L.divIcon({ className: 'custom-div-icon', html: "<div class='w-4 h-4 bg-brand-red rounded-full border-2 border-white shadow-[0_0_15px_rgba(239,68,68,1)] animate-ping'></div>", iconSize: [16, 16], iconAnchor: [8, 8] });
+                        const iconWarning = L.divIcon({ className: 'custom-div-icon', html: "<div class='w-4 h-4 bg-brand-orange rounded-full border-2 border-white shadow-[0_0_10px_rgba(245,158,11,0.8)] animate-pulse'></div>", iconSize: [16, 16], iconAnchor: [8, 8] });
+
+                        // Mock Seeded Devices
+                        const devices = [
+                            { id: 'GYM-001', name: 'Gymnasium', lat: 8.1234567, lng: 123.1234567, status: 'normal' },
+                            { id: 'ENG-001', name: 'Engineering', lat: 8.1235567, lng: 123.1236567, status: 'normal' },
+                            { id: 'LIB-001', name: 'Library', lat: 8.1233567, lng: 123.1232567, status: 'normal' }
+                        ];
+
+                        // Add markers to map
+                        devices.forEach(device => {
+                            const marker = L.marker([device.lat, device.lng], { icon: iconNormal })
+                                .addTo(map)
+                                .bindPopup(`<b>${device.name}</b><br>ID: ${device.id}`);
+                            
+                            window.deviceMarkers[device.id] = marker;
+                        });
+
+                        // Function to update marker color via WebSockets
+                        window.updateMarkerStatus = function(deviceId, type) {
+                            if (window.deviceMarkers[deviceId]) {
+                                let newIcon = iconWarning;
+                                if (type === 'Critical Emergency') newIcon = iconCritical;
+                                window.deviceMarkers[deviceId].setIcon(newIcon);
+                            }
+                        };
+                    });
+                </script>
                 </div>
 
                 <!-- Active Alerts & Actions -->
@@ -563,5 +543,42 @@
         </div>
     </main>
 
+    <!-- Scripts -->
+    <script type="module">
+        window.Echo.channel('emergencies')
+            .listen('EmergencyReported', (e) => {
+                console.log('New Emergency:', e);
+                // Here we dynamically add the row to the active alerts and table
+                const alertHtml = `
+                    <div class="border border-brand-red/30 bg-brand-red/5 rounded-lg p-3 relative overflow-hidden group mb-3 animate-pulse">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-brand-red"></div>
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start">
+                                <div class="mt-1 mr-3 text-brand-red">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+                                </div>
+                                <div>
+                                    <div class="text-white font-bold text-sm leading-tight mb-1">${e.incident.device.building}</div>
+                                    <div class="text-brand-text text-[11px] mb-2">${e.incident.emergency_type}</div>
+                                    <div class="text-[10px] text-slate-500">Just now • Device ID: ${e.incident.device.device_code}</div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                <span class="bg-brand-red text-white text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2">NEW ALARM</span>
+                                <span class="text-brand-red text-[10px] font-bold uppercase tracking-wider mb-2">ACTIVE</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                // Just a basic prepending for visual effect
+                document.querySelector('.custom-scrollbar').insertAdjacentHTML('afterbegin', alertHtml);
+                alert('New Emergency Alert Received: ' + e.incident.emergency_type);
+                
+                // Update Map Marker
+                if (window.updateMarkerStatus) {
+                    window.updateMarkerStatus(e.incident.device.device_code, e.incident.emergency_type);
+                }
+            });
+    </script>
 </body>
 </html>
