@@ -4,7 +4,15 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
-    return view('welcome');
+    if (auth()->check()) {
+        $role = auth()->user()->role;
+        if ($role === 'NDRRMO') {
+            return redirect('/ndrrmo');
+        } elseif ($role === 'Clinic') {
+            return redirect('/clinic');
+        }
+    }
+    return redirect('/login');
 });
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login')->middleware('guest');
