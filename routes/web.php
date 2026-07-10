@@ -25,10 +25,11 @@ Route::middleware(['auth', 'role:NDRRMO'])->prefix('ndrrmo')->name('ndrrmo.')->g
     Route::get('/logs', [\App\Http\Controllers\NdrrmoController::class, 'logs'])->name('logs');
     Route::get('/map', [\App\Http\Controllers\NdrrmoController::class, 'map'])->name('map');
     Route::get('/devices', [\App\Http\Controllers\NdrrmoController::class, 'devices'])->name('devices');
+    Route::post('/devices', [\App\Http\Controllers\NdrrmoController::class, 'storeDevice'])->name('devices.store');
+    Route::put('/devices/{device}', [\App\Http\Controllers\NdrrmoController::class, 'updateDevice'])->name('devices.update');
+    Route::delete('/devices/{device}', [\App\Http\Controllers\NdrrmoController::class, 'destroyDevice'])->name('devices.destroy');
     Route::get('/sms', [\App\Http\Controllers\NdrrmoController::class, 'sms'])->name('sms');
     Route::get('/reports', [\App\Http\Controllers\NdrrmoController::class, 'reports'])->name('reports');
-    Route::get('/users', [\App\Http\Controllers\NdrrmoController::class, 'users'])->name('users');
-    Route::get('/settings', [\App\Http\Controllers\NdrrmoController::class, 'settings'])->name('settings');
 });
 
 Route::middleware(['auth', 'role:Clinic'])->prefix('clinic')->name('clinic.')->group(function () {
@@ -37,8 +38,5 @@ Route::middleware(['auth', 'role:Clinic'])->prefix('clinic')->name('clinic.')->g
     Route::get('/incoming', [\App\Http\Controllers\ClinicController::class, 'incoming'])->name('incoming');
     Route::get('/logs', [\App\Http\Controllers\ClinicController::class, 'logs'])->name('logs');
     Route::get('/patients', [\App\Http\Controllers\ClinicController::class, 'patients'])->name('patients');
-    Route::get('/equipment', [\App\Http\Controllers\ClinicController::class, 'equipment'])->name('equipment');
     Route::get('/reports', [\App\Http\Controllers\ClinicController::class, 'reports'])->name('reports');
-    Route::get('/users', [\App\Http\Controllers\ClinicController::class, 'users'])->name('users');
-    Route::get('/settings', [\App\Http\Controllers\ClinicController::class, 'settings'])->name('settings');
 });

@@ -54,52 +54,63 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <!-- Map Section -->
                 <div class="lg:col-span-2 bg-brand-card border border-brand-border rounded-xl flex flex-col overflow-hidden">
-                    <div class="px-5 py-4 border-b border-brand-border">
-                        <h2 class="text-xs font-bold text-white uppercase tracking-wider">CAMPUS INCIDENT MAP</h2>
+                    <div class="px-5 py-4 border-b border-brand-border flex justify-between items-center bg-black/20">
+                        <h2 class="text-xs font-bold text-white uppercase tracking-wider flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                            CAMPUS INCIDENT MAP
+                        </h2>
+                        <a href="{{ route('ndrrmo.map') }}" class="text-[10px] text-brand-blue hover:text-blue-400 font-medium">Full Map</a>
                     </div>
-                    <div id="campus-map" class="relative flex-1 min-h-[360px] bg-[#C5E1A5] z-0">
+                    <div id="campus-map" class="relative flex-1 min-h-[360px] bg-[#0f1011] z-0 rounded-b-xl">
                         <!-- Leaflet Map will be injected here -->
                     </div>
                 </div>
 
                 <!-- Leaflet CSS & JS -->
-                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+                
+                <style>
+                    /* Custom Leaflet Map styling for Dark Mode */
+                    .leaflet-container { background-color: #0f1011; }
+                    .leaflet-popup-content-wrapper, .leaflet-popup-tip { background-color: #1a1a1a; color: #fff; border: 1px solid #333; }
+                    .pulse-marker-critical { background-color: #ef4444; border-radius: 50%; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); animation: pulse-red 1.5s infinite; border: 2px solid white; }
+                    .pulse-marker-safety { background-color: #f97316; border-radius: 50%; box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); animation: pulse-orange 1.5s infinite; border: 2px solid white; }
+                    .pulse-marker-hazard { background-color: #eab308; border-radius: 50%; box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); animation: pulse-yellow 1.5s infinite; border: 2px solid white; }
+                    .marker-idle { background-color: #10b981; border-radius: 50%; border: 2px solid white; opacity: 0.8; }
+                    @keyframes pulse-red { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+                    @keyframes pulse-orange { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(249, 115, 22, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); } }
+                    @keyframes pulse-yellow { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); } }
+                </style>
+                
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
-                        // Initialize Map
-                        const map = L.map('campus-map').setView([8.1234567, 123.1234567], 18);
-                        
-                        // Add OpenStreetMap tiles
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            attribution: '© OpenStreetMap contributors'
+                        const map = L.map('campus-map').setView([14.5995, 120.9842], 18);
+                        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                            subdomains: 'abcd', maxZoom: 20
                         }).addTo(map);
 
-                        // Store markers to update them later
                         window.deviceMarkers = {};
 
-                        // Define Marker Icons
-                        const iconNormal = L.divIcon({ className: 'custom-div-icon', html: "<div class='w-4 h-4 bg-brand-green rounded-full border-2 border-white shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse'></div>", iconSize: [16, 16], iconAnchor: [8, 8] });
-                        const iconCritical = L.divIcon({ className: 'custom-div-icon', html: "<div class='w-4 h-4 bg-brand-red rounded-full border-2 border-white shadow-[0_0_15px_rgba(239,68,68,1)] animate-ping'></div>", iconSize: [16, 16], iconAnchor: [8, 8] });
-                        const iconWarning = L.divIcon({ className: 'custom-div-icon', html: "<div class='w-4 h-4 bg-brand-orange rounded-full border-2 border-white shadow-[0_0_10px_rgba(245,158,11,0.8)] animate-pulse'></div>", iconSize: [16, 16], iconAnchor: [8, 8] });
+                        const iconNormal = L.divIcon({ className: 'marker-idle', iconSize: [16, 16], iconAnchor: [8, 8] });
+                        const iconCritical = L.divIcon({ className: 'pulse-marker-critical', iconSize: [24, 24], iconAnchor: [12, 12] });
+                        const iconWarning = L.divIcon({ className: 'pulse-marker-safety', iconSize: [24, 24], iconAnchor: [12, 12] });
 
                         // Mock Seeded Devices
                         const devices = [
-                            { id: 'GYM-001', name: 'Gymnasium', lat: 8.1234567, lng: 123.1234567, status: 'normal' },
-                            { id: 'ENG-001', name: 'Engineering', lat: 8.1235567, lng: 123.1236567, status: 'normal' },
-                            { id: 'LIB-001', name: 'Library', lat: 8.1233567, lng: 123.1232567, status: 'normal' }
+                            { id: 'GYM-001', name: 'Gymnasium', lat: 14.5995, lng: 120.9842, status: 'normal' },
+                            { id: 'ENG-001', name: 'Engineering', lat: 14.5997, lng: 120.9845, status: 'normal' },
+                            { id: 'LIB-001', name: 'Library', lat: 14.5993, lng: 120.9840, status: 'normal' }
                         ];
 
-                        // Add markers to map
                         devices.forEach(device => {
                             const marker = L.marker([device.lat, device.lng], { icon: iconNormal })
                                 .addTo(map)
                                 .bindPopup(`<b>${device.name}</b><br>ID: ${device.id}`);
-                            
                             window.deviceMarkers[device.id] = marker;
                         });
 
-                        // Function to update marker color via WebSockets
                         window.updateMarkerStatus = function(deviceId, type) {
                             if (window.deviceMarkers[deviceId]) {
                                 let newIcon = iconWarning;
@@ -109,7 +120,6 @@
                         };
                     });
                 </script>
-                </div>
 
                 <!-- Active Alerts & Actions -->
                 <div class="flex flex-col gap-6">

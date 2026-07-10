@@ -12,16 +12,11 @@ class ClinicController extends Controller
             ->whereIn('status', ['pending', 'acknowledged'])
             ->get();
             
-        $equipment = \App\Models\Equipment::all();
-        
-        return view('clinic', compact('criticalIncidents', 'equipment'));
+        return view('clinic', compact('criticalIncidents'));
     }
     public function alerts() { return view('clinic.alerts'); }
     public function incoming() { return view('clinic.incoming'); }
     public function logs() { return view('clinic.logs'); }
     public function patients() { return view('clinic.patients'); }
-    public function equipment() { return view('clinic.equipment'); }
     public function reports() { return view('clinic.reports'); }
-    public function users() { return view('clinic.users'); }
-    public function settings() { return view('clinic.settings'); }
 }
