@@ -11,7 +11,7 @@
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-brand-text uppercase tracking-wider mb-1">ACTIVE ALERTS</div>
-                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">2</div>
+                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">{{ $activeIncidents->count() }}</div>
                         <div class="text-[10px] text-brand-text">Require immediate attention</div>
                     </div>
                 </div>
@@ -22,7 +22,7 @@
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-brand-text uppercase tracking-wider mb-1">TOTAL INCIDENTS</div>
-                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">15</div>
+                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">{{ $totalIncidents }}</div>
                         <div class="text-[10px] text-brand-text">This month</div>
                     </div>
                 </div>
@@ -33,7 +33,7 @@
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-brand-text uppercase tracking-wider mb-1">RESOLVED INCIDENTS</div>
-                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">12</div>
+                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">{{ $resolvedIncidents }}</div>
                         <div class="text-[10px] text-brand-text">This month</div>
                     </div>
                 </div>
@@ -44,7 +44,7 @@
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-brand-text uppercase tracking-wider mb-1">DEVICES ONLINE</div>
-                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">3 / 3</div>
+                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">{{ $devicesCount }} / {{ $devicesCount }}</div>
                         <div class="text-[10px] text-brand-text">All devices operational</div>
                     </div>
                 </div>
@@ -110,31 +110,64 @@
                         const iconCritical = createMarkerIcon('text-brand-red', 'animate-ping bg-brand-red');
                         const iconWarning = createMarkerIcon('text-brand-orange', 'animate-ping bg-brand-orange');
 
-                        // Mock Seeded Devices
-                        const devices = [
-                            { id: 'GYM-001', name: 'Gymnasium', lat: 7.7115556, lng: 123.2931667, status: 'normal' },
-                            { id: 'ENG-001', name: 'Engineering', lat: 7.710675, lng: 123.291948, status: 'normal' },
-                            { id: 'LIB-001', name: 'Library', lat: 7.708561, lng: 123.292544, status: 'normal' }
-                        ];
+                        const devicesData = @json($devicesList);
+                        const activeIncidentsData = @json($activeIncidents);
 
-                        devices.forEach(device => {
-                            const marker = L.marker([device.lat, device.lng], { icon: iconNormal }).addTo(map);
+                        devicesData.forEach(device => {
+                            if (!device.latitude || !device.longitude) return;
+                            
+                            const incident = activeIncidentsData.find(i => i.device_id === device.id);
+                            
+                            let markerIcon;
+                            let popupTitle = 'Device Status: Normal';
+                            let popupColor = 'text-brand-green';
+                            let statusText = 'Online';
+                            let pulseClass = null;
+                            let colorClass = 'text-brand-blue';
+                            let svgIcon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>';
+                            
+                            if (incident) {
+                                statusText = 'EMERGENCY ACTIVE';
+                                svgIcon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>';
+                                if (incident.emergency_type && incident.emergency_type.includes('Public Safety')) {
+                                    pulseClass = 'animate-ping bg-brand-orange';
+                                    colorClass = 'text-brand-orange';
+                                    popupTitle = 'EMERGENCY: ' + incident.emergency_type;
+                                    popupColor = 'text-brand-orange';
+                                } else if (incident.emergency_type && (incident.emergency_type.includes('Facility') || incident.emergency_type.includes('Hazard'))) {
+                                    pulseClass = 'animate-ping bg-yellow-500';
+                                    colorClass = 'text-yellow-500';
+                                    popupTitle = 'EMERGENCY: ' + incident.emergency_type;
+                                    popupColor = 'text-yellow-500';
+                                } else {
+                                    pulseClass = 'animate-ping bg-brand-red';
+                                    colorClass = 'text-brand-red';
+                                    popupTitle = 'EMERGENCY: ' + (incident.emergency_type || 'General');
+                                    popupColor = 'text-brand-red';
+                                }
+                            }
+
+                            markerIcon = createMarkerIcon(colorClass, pulseClass);
+                            const marker = L.marker([device.latitude, device.longitude], { icon: markerIcon }).addTo(map);
                             
                             const popupContent = `
                                 <div class="p-3 min-w-[200px]">
                                     <div class="flex items-center gap-3 mb-3">
                                         <div class="w-10 h-10 rounded-full bg-brand-green/10 flex items-center justify-center shrink-0">
-                                            <svg class="w-5 h-5 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                            <svg class="w-5 h-5 ${popupColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">${svgIcon}</svg>
                                         </div>
                                         <div>
-                                            <h3 class="font-bold text-brand-dark text-sm leading-tight">${device.name}</h3>
-                                            <div class="text-[10px] text-slate-500 font-medium">Device ID: ${device.id}</div>
+                                            <h3 class="font-bold text-brand-dark text-sm leading-tight">${device.building}</h3>
+                                            <div class="text-[10px] text-slate-500 font-medium">Device ID: ${device.device_code}</div>
                                         </div>
                                     </div>
                                     <div class="border-t border-slate-100 pt-3">
+                                        <div class="text-[10px] font-bold uppercase tracking-wider ${popupColor} mb-1">
+                                            ${popupTitle}
+                                        </div>
                                         <div class="flex justify-between items-center text-xs">
                                             <span class="text-slate-500 font-medium">Status</span>
-                                            <span class="font-bold text-brand-green flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-brand-green mr-1.5"></span>Online</span>
+                                            <span class="font-bold ${popupColor} flex items-center"><span class="w-1.5 h-1.5 rounded-full ${incident ? 'bg-brand-red animate-pulse' : 'bg-brand-green'} mr-1.5"></span>${statusText}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -163,49 +196,53 @@
                             <a href="#" class="text-[10px] text-brand-blue hover:text-blue-400">View All</a>
                         </div>
                         <div class="flex-1 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
-                            <!-- Alert 1 -->
-                            <div class="border border-brand-red/30 bg-brand-red/5 rounded-lg p-3 relative overflow-hidden group">
-                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-brand-red"></div>
-                                <div class="flex items-start justify-between">
-                                    <div class="flex items-start">
-                                        <div class="mt-1 mr-3 text-brand-red animate-pulse">
-                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+                            @forelse($activeIncidents as $incident)
+                                @php
+                                    $borderColor = 'border-brand-red/30';
+                                    $bgColor = 'bg-brand-red/5';
+                                    $stripeColor = 'bg-brand-red';
+                                    $textColor = 'text-brand-red';
+                                    $tagClass = 'bg-brand-red';
+                                    if(str_contains($incident->emergency_type, 'Medical') || str_contains($incident->emergency_type, 'Safety')) {
+                                        $borderColor = 'border-brand-orange/30';
+                                        $bgColor = 'bg-brand-orange/5';
+                                        $stripeColor = 'bg-brand-orange';
+                                        $textColor = 'text-brand-orange';
+                                        $tagClass = 'bg-brand-orange';
+                                    } elseif(str_contains($incident->emergency_type, 'Facility') || str_contains($incident->emergency_type, 'Hazard')) {
+                                        $borderColor = 'border-yellow-500/30';
+                                        $bgColor = 'bg-yellow-500/5';
+                                        $stripeColor = 'bg-yellow-500';
+                                        $textColor = 'text-yellow-500';
+                                        $tagClass = 'bg-yellow-500';
+                                    }
+                                @endphp
+                                <div class="border {{ $borderColor }} {{ $bgColor }} rounded-lg p-3 relative overflow-hidden group">
+                                    <div class="absolute left-0 top-0 bottom-0 w-1 {{ $stripeColor }}"></div>
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex items-start">
+                                            <div class="mt-1 mr-3 {{ $textColor }} animate-pulse">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
+                                            </div>
+                                            <div>
+                                                <div class="text-brand-dark font-bold text-sm leading-tight mb-1">{{ $incident->device->building ?? 'Unknown Location' }}</div>
+                                                <div class="text-brand-text text-[11px] mb-2">{{ $incident->emergency_type }}</div>
+                                                <div class="text-[10px] text-slate-500">{{ $incident->created_at->format('M d, g:i A') }} • Device ID: {{ $incident->device->device_code ?? 'N/A' }}</div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div class="text-brand-dark font-bold text-sm leading-tight mb-1">Gymnasium</div>
-                                            <div class="text-brand-text text-[11px] mb-2">General Emergency</div>
-                                            <div class="text-[10px] text-slate-500">Today, 10:28 AM • Device ID: GYM-001</div>
+                                        <div class="flex flex-col items-end">
+                                            <span class="{{ $tagClass }} text-white text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2">{{ $incident->emergency_type }}</span>
+                                            <span class="{{ $textColor }} text-[10px] font-bold uppercase tracking-wider mb-2">{{ $incident->status }}</span>
+                                            <a href="{{ route('ndrrmo.alerts') }}" class="border border-brand-border text-brand-text text-[10px] hover:text-brand-dark hover:bg-brand-hover px-2 py-1 rounded transition-colors">View Details</a>
                                         </div>
-                                    </div>
-                                    <div class="flex flex-col items-end">
-                                        <span class="bg-brand-red text-white text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2">CRITICAL EMERGENCY</span>
-                                        <span class="text-brand-red text-[10px] font-bold uppercase tracking-wider mb-2">ACTIVE</span>
-                                        <button class="border border-brand-border text-brand-text text-[10px] hover:text-brand-dark hover:bg-brand-hover px-2 py-1 rounded transition-colors">View Details</button>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <!-- Alert 2 -->
-                            <div class="border border-brand-orange/30 bg-brand-orange/5 rounded-lg p-3 relative overflow-hidden">
-                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-brand-orange"></div>
-                                <div class="flex items-start justify-between">
-                                    <div class="flex items-start">
-                                        <div class="mt-1 mr-3 text-brand-orange">
-                                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
-                                        </div>
-                                        <div>
-                                            <div class="text-brand-dark font-bold text-sm leading-tight mb-1">Engineering Building</div>
-                                            <div class="text-brand-text text-[11px] mb-2">Medical Emergency</div>
-                                            <div class="text-[10px] text-slate-500">Today, 10:15 AM • Device ID: ENG-001</div>
-                                        </div>
-                                    </div>
-                                    <div class="flex flex-col items-end">
-                                        <span class="bg-brand-orange text-white text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2">MEDICAL EMERGENCY</span>
-                                        <span class="text-brand-orange text-[10px] font-bold uppercase tracking-wider mb-2">ACTIVE</span>
-                                        <button class="border border-brand-border text-brand-text text-[10px] hover:text-brand-dark hover:bg-brand-hover px-2 py-1 rounded transition-colors">View Details</button>
-                                    </div>
+                            @empty
+                                <div class="flex flex-col items-center justify-center h-full text-brand-text">
+                                    <svg class="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <p class="text-sm font-medium">No active alerts</p>
                                 </div>
-                            </div>
+                            @endforelse
                     </div>
                 </div>
             </div>
@@ -234,62 +271,42 @@
                                 </tr>
                             </thead>
                             <tbody class="text-xs text-brand-dark">
-                                <tr class="border-b border-brand-border/50 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
-                                    <td class="px-5 py-3 text-brand-text">1</td>
-                                    <td class="px-5 py-3">May 15, 2025 10:28 AM</td>
-                                    <td class="px-5 py-3"><span class="bg-brand-red text-white text-[9px] font-bold px-2 py-0.5 rounded">General Emergency</span></td>
-                                    <td class="px-5 py-3 text-brand-text">Gymnasium</td>
-                                    <td class="px-5 py-3 text-brand-text">GYM-001</td>
-                                    <td class="px-5 py-3 text-brand-red font-medium">Active</td>
-                                    <td class="px-5 py-3 text-brand-text">-</td>
-                                    <td class="px-5 py-3 text-center"><button class="text-brand-blue hover:text-blue-400"><svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button></td>
-                                </tr>
-                                <tr class="border-b border-brand-border/50 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
-                                    <td class="px-5 py-3 text-brand-text">2</td>
-                                    <td class="px-5 py-3">May 15, 2025 10:15 AM</td>
-                                    <td class="px-5 py-3"><span class="bg-brand-orange text-white text-[9px] font-bold px-2 py-0.5 rounded">Medical Emergency</span></td>
-                                    <td class="px-5 py-3 text-brand-text">Engineering Building</td>
-                                    <td class="px-5 py-3 text-brand-text">ENG-001</td>
-                                    <td class="px-5 py-3 text-brand-red font-medium">Active</td>
-                                    <td class="px-5 py-3 text-brand-text">-</td>
-                                    <td class="px-5 py-3 text-center"><button class="text-brand-blue hover:text-blue-400"><svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button></td>
-                                </tr>
-                                <tr class="border-b border-brand-border/50 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
-                                    <td class="px-5 py-3 text-brand-text">3</td>
-                                    <td class="px-5 py-3">May 15, 2025 09:42 AM</td>
-                                    <td class="px-5 py-3"><span class="bg-brand-red text-white text-[9px] font-bold px-2 py-0.5 rounded">General Emergency</span></td>
-                                    <td class="px-5 py-3 text-brand-text">Library</td>
-                                    <td class="px-5 py-3 text-brand-text">LIB-001</td>
-                                    <td class="px-5 py-3 text-brand-green font-medium">Resolved</td>
-                                    <td class="px-5 py-3 text-brand-text">NDRRMO Staff 1</td>
-                                    <td class="px-5 py-3 text-center"><button class="text-brand-blue hover:text-blue-400"><svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button></td>
-                                </tr>
-                                <tr class="border-b border-brand-border/50 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
-                                    <td class="px-5 py-3 text-brand-text">4</td>
-                                    <td class="px-5 py-3">May 15, 2025 08:31 AM</td>
-                                    <td class="px-5 py-3"><span class="bg-brand-green text-white text-[9px] font-bold px-2 py-0.5 rounded">Medical Emergency</span></td>
-                                    <td class="px-5 py-3 text-brand-text">Engineering Building</td>
-                                    <td class="px-5 py-3 text-brand-text">ENG-001</td>
-                                    <td class="px-5 py-3 text-brand-green font-medium">Resolved</td>
-                                    <td class="px-5 py-3 text-brand-text">NDRRMO Staff 2</td>
-                                    <td class="px-5 py-3 text-center"><button class="text-brand-blue hover:text-blue-400"><svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button></td>
-                                </tr>
-                                <tr class="hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
-                                    <td class="px-5 py-3 text-brand-text">5</td>
-                                    <td class="px-5 py-3">May 15, 2025 07:54 AM</td>
-                                    <td class="px-5 py-3"><span class="bg-brand-red text-white text-[9px] font-bold px-2 py-0.5 rounded">Security Threat</span></td>
-                                    <td class="px-5 py-3 text-brand-text">Gymnasium</td>
-                                    <td class="px-5 py-3 text-brand-text">GYM-001</td>
-                                    <td class="px-5 py-3 text-brand-green font-medium">Resolved</td>
-                                    <td class="px-5 py-3 text-brand-text">NDRRMO Staff 1</td>
-                                    <td class="px-5 py-3 text-center"><button class="text-brand-blue hover:text-blue-400"><svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button></td>
-                                </tr>
+                                @forelse($recentLogs as $index => $log)
+                                    @php
+                                        $tagClass = 'bg-brand-red';
+                                        $statusClass = 'text-brand-red';
+                                        
+                                        if(str_contains($log->emergency_type, 'Medical') || str_contains($log->emergency_type, 'Safety')) {
+                                            $tagClass = 'bg-brand-orange';
+                                        } elseif(str_contains($log->emergency_type, 'Facility') || str_contains($log->emergency_type, 'Hazard')) {
+                                            $tagClass = 'bg-yellow-500';
+                                        }
+                                        
+                                        if($log->status === 'resolved') {
+                                            $statusClass = 'text-brand-green';
+                                        }
+                                    @endphp
+                                    <tr class="border-b border-brand-border/50 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer" onclick="window.location.href='{{ route('ndrrmo.logs') }}'">
+                                        <td class="px-5 py-3 text-brand-text">{{ $index + 1 }}</td>
+                                        <td class="px-5 py-3">{{ $log->created_at->format('M d, Y h:i A') }}</td>
+                                        <td class="px-5 py-3"><span class="{{ $tagClass }} text-white text-[9px] font-bold px-2 py-0.5 rounded">{{ $log->emergency_type }}</span></td>
+                                        <td class="px-5 py-3 text-brand-text">{{ $log->device->building ?? 'N/A' }}</td>
+                                        <td class="px-5 py-3 text-brand-text">{{ $log->device->device_code ?? 'N/A' }}</td>
+                                        <td class="px-5 py-3 {{ $statusClass }} font-medium capitalize">{{ $log->status }}</td>
+                                        <td class="px-5 py-3 text-brand-text">{{ $log->responded_by ?? '-' }}</td>
+                                        <td class="px-5 py-3 text-center"><button class="text-brand-blue hover:text-blue-400"><svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button></td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="8" class="px-5 py-8 text-center text-brand-text">No recent incident logs found.</td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
                     <!-- Pagination Footer -->
                     <div class="px-5 py-3 border-t border-brand-border flex items-center justify-between text-xs text-brand-text mt-auto">
-                        <div>Showing 1 to 5 of 15 entries</div>
+                        <div>Showing 1 to {{ $recentLogs->count() }} of {{ $totalIncidents }} entries</div>
                         <div class="flex items-center space-x-1">
                             <button class="w-6 h-6 rounded flex items-center justify-center hover:bg-brand-hover text-brand-text">&lt;</button>
                             <button class="w-6 h-6 rounded flex items-center justify-center bg-brand-blue text-white">1</button>
@@ -306,13 +323,30 @@
                         <h2 class="text-xs font-bold text-brand-dark uppercase tracking-wider">INCIDENT SUMMARY (TODAY)</h2>
                     </div>
                     <div class="p-5 flex items-center justify-between border-b border-brand-border border-dashed">
+                        @php
+                            $cCount = $stats['Critical'] ?? 0;
+                            $mCount = $stats['Medical'] ?? 0;
+                            $pCount = $stats['Public Safety'] ?? 0;
+                            $fCount = $stats['Facility & Hazard'] ?? 0;
+                            $totalStats = $cCount + $mCount + $pCount + $fCount;
+                            $totalStats = $totalStats > 0 ? $totalStats : 1; // avoid division by zero
+                            
+                            $cPct = ($cCount / $totalStats) * 100;
+                            $mPct = ($mCount / $totalStats) * 100;
+                            $fPct = ($fCount / $totalStats) * 100;
+                            $pPct = ($pCount / $totalStats) * 100;
+                            
+                            $cEnd = $cPct;
+                            $mEnd = $cEnd + $mPct;
+                            $fEnd = $mEnd + $fPct;
+                        @endphp
                         <!-- Donut Chart -->
                         <div class="relative w-24 h-24 shrink-0">
                             <!-- CSS pure donut chart hack using conic-gradient -->
-                            <div class="w-full h-full rounded-full" style="background: conic-gradient(#EF4444 0% 25%, #F59E0B 25% 62.5%, #10B981 62.5% 87.5%, #EAB308 87.5% 100%);"></div>
+                            <div class="w-full h-full rounded-full" style="background: conic-gradient(#EF4444 0% {{ $cEnd }}%, #F59E0B {{ $cEnd }}% {{ $mEnd }}%, #10B981 {{ $mEnd }}% {{ $fEnd }}%, #EAB308 {{ $fEnd }}% 100%);"></div>
                             <!-- Inner circle for donut -->
                             <div class="absolute inset-2 bg-brand-card rounded-full flex flex-col items-center justify-center">
-                                <span class="text-xl font-bold text-brand-dark leading-none">8</span>
+                                <span class="text-xl font-bold text-brand-dark leading-none">{{ $totalIncidents }}</span>
                                 <span class="text-[10px] text-brand-text mt-1">Total</span>
                             </div>
                         </div>
@@ -321,24 +355,29 @@
                         <div class="ml-4 flex-1 text-[11px]">
                             <div class="flex justify-between items-center mb-2">
                                 <div class="flex items-center"><span class="w-2 h-2 rounded-full bg-brand-red mr-2"></span><span class="text-brand-text">Critical Emergency</span></div>
-                                <div class="text-brand-dark font-medium">2 (25%)</div>
+                                <div class="text-brand-dark font-medium">{{ $cCount }} ({{ round($cPct, 1) }}%)</div>
                             </div>
                             <div class="flex justify-between items-center mb-2">
                                 <div class="flex items-center"><span class="w-2 h-2 rounded-full bg-brand-orange mr-2"></span><span class="text-brand-text">Medical Emergency</span></div>
-                                <div class="text-brand-dark font-medium">3 (37.5%)</div>
+                                <div class="text-brand-dark font-medium">{{ $mCount }} ({{ round($mPct, 1) }}%)</div>
                             </div>
                             <div class="flex justify-between items-center mb-2">
-                                <div class="flex items-center"><span class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span><span class="text-brand-text">Public Safety Emergency</span></div>
-                                <div class="text-brand-dark font-medium">1 (12.5%)</div>
+                                <div class="flex items-center"><span class="w-2 h-2 rounded-full bg-brand-green mr-2"></span><span class="text-brand-text">Facility & Hazard</span></div>
+                                <div class="text-brand-dark font-medium">{{ $fCount }} ({{ round($fPct, 1) }}%)</div>
                             </div>
                             <div class="flex justify-between items-center">
-                                <div class="flex items-center"><span class="w-2 h-2 rounded-full bg-brand-green mr-2"></span><span class="text-brand-text">Facility & Hazard Emergency</span></div>
-                                <div class="text-brand-dark font-medium">2 (25%)</div>
+                                <div class="flex items-center"><span class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span><span class="text-brand-text">Public Safety</span></div>
+                                <div class="text-brand-dark font-medium">{{ $pCount }} ({{ round($pPct, 1) }}%)</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Response Status -->
+                    @php
+                        $pending = \App\Models\Incident::where('status', 'pending')->count();
+                        $responding = \App\Models\Incident::where('status', 'responding')->count();
+                        $resolved = \App\Models\Incident::where('status', 'resolved')->count();
+                    @endphp
                     <div class="p-5 flex-1 flex flex-col">
                         <h3 class="text-[10px] font-bold text-brand-text uppercase tracking-wider mb-4">RESPONSE STATUS</h3>
                         <div class="flex justify-between items-center mb-3">
@@ -346,21 +385,21 @@
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                                 <span class="text-brand-text text-xs">Pending</span>
                             </div>
-                            <span class="text-brand-orange font-bold">2</span>
+                            <span class="text-brand-orange font-bold">{{ $pending }}</span>
                         </div>
                         <div class="flex justify-between items-center mb-3">
                             <div class="flex items-center text-brand-blue">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                                 <span class="text-brand-text text-xs">Responding</span>
                             </div>
-                            <span class="text-brand-blue font-bold">2</span>
+                            <span class="text-brand-blue font-bold">{{ $responding }}</span>
                         </div>
                         <div class="flex justify-between items-center mb-3">
                             <div class="flex items-center text-brand-green">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                 <span class="text-brand-text text-xs">Resolved</span>
                             </div>
-                            <span class="text-brand-green font-bold">3</span>
+                            <span class="text-brand-green font-bold">{{ $resolved }}</span>
                         </div>
                         <div class="flex justify-between items-center">
                             <div class="flex items-center text-slate-500">

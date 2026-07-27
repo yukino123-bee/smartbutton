@@ -104,9 +104,9 @@
 </div>
 
 <!-- Add Device Modal -->
-<div id="addDeviceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity">
-    <div class="bg-[#1a1a1a] border border-brand-border rounded-xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
-        <div class="p-4 border-b border-brand-border flex justify-between items-center bg-black/40">
+<div id="addDeviceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/50 backdrop-blur-sm transition-opacity">
+    <div class="bg-brand-card border border-brand-border rounded-xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
+        <div class="p-4 border-b border-brand-border flex justify-between items-center bg-brand-bg">
             <h3 class="text-lg font-bold text-brand-dark flex items-center">
                 <svg class="w-5 h-5 mr-2 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                 Register New Device
@@ -120,20 +120,20 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Device Code</label>
-                    <input type="text" name="device_code" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. ENG-001">
+                    <input type="text" name="device_code" required class="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. ENG-001">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Building</label>
-                    <input type="text" name="building" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. Engineering Building">
+                    <input type="text" name="building" required class="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. Engineering Building">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Floor</label>
-                        <input type="text" name="floor" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. 2nd Floor">
+                        <input type="text" name="floor" required class="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. 2nd Floor">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Room</label>
-                        <input type="text" name="room" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. Room 203">
+                        <input type="text" name="room" required class="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. Room 203">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
@@ -148,7 +148,7 @@
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Initial Status</label>
-                    <select name="status" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all appearance-none">
+                    <select name="status" class="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all appearance-none">
                         <option value="active">Active (Ready)</option>
                         <option value="maintenance">Maintenance</option>
                         <option value="inactive">Inactive</option>
@@ -164,9 +164,9 @@
 </div>
 
 <!-- Edit Device Modal -->
-<div id="editDeviceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity">
-    <div class="bg-[#1a1a1a] border border-brand-border rounded-xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
-        <div class="p-4 border-b border-brand-border flex justify-between items-center bg-black/40">
+<div id="editDeviceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/50 backdrop-blur-sm transition-opacity">
+    <div class="bg-brand-card border border-brand-border rounded-xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
+        <div class="p-4 border-b border-brand-border flex justify-between items-center bg-brand-bg">
             <h3 class="text-lg font-bold text-brand-dark flex items-center">
                 <svg class="w-5 h-5 mr-2 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 Edit Device
@@ -181,20 +181,20 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Device Code</label>
-                    <input type="text" name="device_code" id="edit_device_code" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
+                    <input type="text" name="device_code" id="edit_device_code" required class="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Building</label>
-                    <input type="text" name="building" id="edit_building" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
+                    <input type="text" name="building" id="edit_building" required class="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Floor</label>
-                        <input type="text" name="floor" id="edit_floor" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
+                        <input type="text" name="floor" id="edit_floor" required class="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Room</label>
-                        <input type="text" name="room" id="edit_room" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
+                        <input type="text" name="room" id="edit_room" required class="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
@@ -209,7 +209,7 @@
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Status</label>
-                    <select name="status" id="edit_status" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all appearance-none">
+                    <select name="status" id="edit_status" class="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all appearance-none">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                         <option value="maintenance">Maintenance</option>

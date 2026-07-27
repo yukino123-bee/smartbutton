@@ -10,9 +10,18 @@ class NdrrmoController extends Controller
         $activeIncidents = \App\Models\Incident::with('device')->whereIn('status', ['pending', 'acknowledged'])->get();
         $totalIncidents = \App\Models\Incident::count();
         $resolvedIncidents = \App\Models\Incident::where('status', 'resolved')->count();
-        $devices = \App\Models\Device::count();
+        $devicesCount = \App\Models\Device::count();
+        $devicesList = \App\Models\Device::all();
+        $recentLogs = \App\Models\Incident::with('device')->latest()->take(5)->get();
         
-        return view('ndrrmo', compact('activeIncidents', 'totalIncidents', 'resolvedIncidents', 'devices'));
+        $stats = [
+            'Critical' => \App\Models\Incident::where('emergency_type', 'like', '%Critical%')->count(),
+            'Medical' => \App\Models\Incident::where('emergency_type', 'like', '%Medical%')->count(),
+            'Public Safety' => \App\Models\Incident::where('emergency_type', 'like', '%Public Safety%')->count(),
+            'Facility & Hazard' => \App\Models\Incident::where('emergency_type', 'like', '%Facility%')->orWhere('emergency_type', 'like', '%Hazard%')->count(),
+        ];
+        
+        return view('ndrrmo', compact('activeIncidents', 'totalIncidents', 'resolvedIncidents', 'devicesCount', 'devicesList', 'recentLogs', 'stats'));
     }
     public function alerts() { 
         $alerts = \App\Models\Incident::with('device')
