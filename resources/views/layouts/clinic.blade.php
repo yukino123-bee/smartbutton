@@ -230,6 +230,46 @@
                         btn.setAttribute('onclick', `resolveActiveEmergency(${e.incident.id})`);
                     }
 
+                    // Prepend to Active Critical Alerts table in real time
+                    const activeTbody = document.getElementById('active-alerts-tbody');
+                    if (activeTbody) {
+                        document.getElementById('no-active-alerts-row')?.remove();
+                        const timeNow = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                        const rowHtml = `
+                        <tr class="bg-red-50/60 hover:bg-red-100/50 transition-colors" id="incident-row-${e.incident.id}">
+                            <td class="px-5 py-4 text-black font-bold">1</td>
+                            <td class="px-5 py-4 font-black text-black">${timeNow}</td>
+                            <td class="px-5 py-4 font-bold text-black">${e.incident.device?.building || 'Campus Building'}</td>
+                            <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">${e.incident.device?.device_code || 'DEV-001'}</td>
+                            <td class="px-5 py-4"><span class="inline-flex items-center bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full">Critical Emergency</span></td>
+                            <td class="px-5 py-4"><span class="inline-flex items-center gap-1.5 text-brand-red font-black"><span class="w-2 h-2 rounded-full bg-brand-red animate-pulse"></span>Pending</span></td>
+                            <td class="px-5 py-4 text-center">
+                                <button onclick="resolveActiveEmergency(${e.incident.id})" class="bg-brand-blue hover:bg-blue-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm">
+                                    Acknowledge
+                                </button>
+                            </td>
+                        </tr>`;
+                        activeTbody.insertAdjacentHTML('afterbegin', rowHtml);
+                    }
+
+                    // Prepend to Alert History table in real time
+                    const historyTbody = document.getElementById('alert-history-tbody');
+                    if (historyTbody) {
+                        document.getElementById('no-history-row')?.remove();
+                        const timeNow = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                        const histHtml = `
+                        <tr class="hover:bg-slate-100/70 transition-colors" id="history-row-${e.incident.id}">
+                            <td class="px-5 py-4 text-black font-bold">1</td>
+                            <td class="px-5 py-4 font-black text-black">${timeNow}</td>
+                            <td class="px-5 py-4 font-bold text-black">${e.incident.device?.building || 'Campus Building'}</td>
+                            <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">${e.incident.device?.device_code || 'DEV-001'}</td>
+                            <td class="px-5 py-4"><span class="inline-flex items-center bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full">Critical Emergency</span></td>
+                            <td class="px-5 py-4 status-cell"><span class="inline-flex items-center gap-1.5 text-black font-bold"><span class="w-2 h-2 rounded-full bg-slate-600"></span>Pending</span></td>
+                            <td class="px-5 py-4 text-center"><span class="text-xs font-bold text-slate-700">Recorded</span></td>
+                        </tr>`;
+                        historyTbody.insertAdjacentHTML('afterbegin', histHtml);
+                    }
+
                     // Reveal Active Emergency Banner & Hide Standby Banner
                     document.getElementById('no-emergency-banner')?.classList.add('hidden');
                     document.getElementById('active-emergency-banner')?.classList.remove('hidden');

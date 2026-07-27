@@ -156,20 +156,28 @@
                         <th class="px-5 py-3.5 text-center">Action</th>
                     </tr>
                 </thead>
-                <tbody class="text-xs divide-y divide-slate-200">
-                    <tr class="bg-red-50/60 hover:bg-red-100/50 transition-colors">
-                        <td class="px-5 py-4 text-black font-bold">1</td>
-                        <td class="px-5 py-4 font-black text-black">10:28 AM</td>
-                        <td class="px-5 py-4 font-bold text-black">Engineering Building</td>
-                        <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">GYM-001</td>
+                <tbody id="active-alerts-tbody" class="text-xs divide-y divide-slate-200">
+                    @forelse($criticalIncidents as $index => $incident)
+                    <tr class="bg-red-50/60 hover:bg-red-100/50 transition-colors" id="incident-row-{{ $incident->id }}">
+                        <td class="px-5 py-4 text-black font-bold row-no">{{ $index + 1 }}</td>
+                        <td class="px-5 py-4 font-black text-black">{{ $incident->created_at->format('h:i A') }}</td>
+                        <td class="px-5 py-4 font-bold text-black">{{ $incident->device->building ?? 'Campus Building' }}</td>
+                        <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">{{ $incident->device->device_code ?? 'N/A' }}</td>
                         <td class="px-5 py-4"><span class="inline-flex items-center bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full">Critical Emergency</span></td>
-                        <td class="px-5 py-4"><span class="inline-flex items-center gap-1.5 text-brand-red font-black"><span class="w-2 h-2 rounded-full bg-brand-red animate-pulse"></span>Incoming</span></td>
+                        <td class="px-5 py-4"><span class="inline-flex items-center gap-1.5 text-brand-red font-black"><span class="w-2 h-2 rounded-full bg-brand-red animate-pulse"></span>{{ ucfirst($incident->status) }}</span></td>
                         <td class="px-5 py-4 text-center">
-                            <button class="text-brand-blue hover:text-blue-900 transition-colors p-1.5 rounded-lg hover:bg-blue-100">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <button onclick="resolveActiveEmergency({{ $incident->id }})" class="bg-brand-blue hover:bg-blue-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm">
+                                Acknowledge
                             </button>
                         </td>
                     </tr>
+                    @empty
+                    <tr id="no-active-alerts-row">
+                        <td colspan="7" class="px-5 py-8 text-center text-slate-700 font-bold">
+                            No active critical alerts right now.
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -194,33 +202,32 @@
                         <th class="px-5 py-3.5 text-center">Action</th>
                     </tr>
                 </thead>
-                <tbody class="text-xs divide-y divide-slate-200">
-                    @foreach([
-                        ['1', '09:15 AM', 'Gymnasium', 'GYM-001', 'Resolved'],
-                        ['2', '08:42 AM', 'Library', 'LIB-001', 'Resolved'],
-                        ['3', '07:55 AM', 'Engineering Building', 'ENG-001', 'Resolved'],
-                        ['4', '06:30 AM', 'Gymnasium', 'GYM-001', 'Cancelled'],
-                    ] as [$no, $time, $loc, $dev, $status])
-                    <tr class="hover:bg-slate-100/70 transition-colors">
-                        <td class="px-5 py-4 text-black font-bold">{{ $no }}</td>
-                        <td class="px-5 py-4 font-black text-black">{{ $time }}</td>
-                        <td class="px-5 py-4 font-bold text-black">{{ $loc }}</td>
-                        <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">{{ $dev }}</td>
-                        <td class="px-5 py-4"><span class="inline-flex items-center bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full">Critical</span></td>
-                        <td class="px-5 py-4">
-                            @if($status === 'Resolved')
-                                <span class="inline-flex items-center gap-1.5 text-brand-green font-black"><span class="w-2 h-2 rounded-full bg-brand-green"></span>{{ $status }}</span>
+                <tbody id="alert-history-tbody" class="text-xs divide-y divide-slate-200">
+                    @forelse($recentHistory as $index => $incident)
+                    <tr class="hover:bg-slate-100/70 transition-colors" id="history-row-{{ $incident->id }}">
+                        <td class="px-5 py-4 text-black font-bold row-no">{{ $index + 1 }}</td>
+                        <td class="px-5 py-4 font-black text-black">{{ $incident->created_at->format('h:i A') }}</td>
+                        <td class="px-5 py-4 font-bold text-black">{{ $incident->device->building ?? 'Campus Building' }}</td>
+                        <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">{{ $incident->device->device_code ?? 'N/A' }}</td>
+                        <td class="px-5 py-4"><span class="inline-flex items-center bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full">{{ $incident->emergency_type }}</span></td>
+                        <td class="px-5 py-4 status-cell">
+                            @if($incident->status === 'resolved')
+                                <span class="inline-flex items-center gap-1.5 text-brand-green font-black"><span class="w-2 h-2 rounded-full bg-brand-green"></span>Resolved</span>
                             @else
-                                <span class="inline-flex items-center gap-1.5 text-black font-bold"><span class="w-2 h-2 rounded-full bg-slate-600"></span>{{ $status }}</span>
+                                <span class="inline-flex items-center gap-1.5 text-black font-bold"><span class="w-2 h-2 rounded-full bg-slate-600"></span>{{ ucfirst($incident->status) }}</span>
                             @endif
                         </td>
                         <td class="px-5 py-4 text-center">
-                            <button class="text-brand-blue hover:text-blue-900 transition-colors p-1.5 rounded-lg hover:bg-blue-100">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                            </button>
+                            <span class="text-xs font-bold text-slate-700">Recorded</span>
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr id="no-history-row">
+                        <td colspan="7" class="px-5 py-8 text-center text-slate-700 font-bold">
+                            No alert history recorded today.
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -246,6 +253,30 @@
             .then(res => res.json())
             .then(data => console.log('Resolved:', data))
             .catch(err => console.error(err));
+
+            // Remove row from Active Critical Alerts table
+            const row = document.getElementById('incident-row-' + incidentId);
+            if (row) row.remove();
+
+            // Check if active alerts table is empty
+            const tbody = document.getElementById('active-alerts-tbody');
+            if (tbody && tbody.querySelectorAll('tr[id^="incident-row-"]').length === 0) {
+                tbody.innerHTML = `
+                <tr id="no-active-alerts-row">
+                    <td colspan="7" class="px-5 py-8 text-center text-slate-700 font-bold">
+                        No active critical alerts right now.
+                    </td>
+                </tr>`;
+            }
+
+            // Update status in history table
+            const histRow = document.getElementById('history-row-' + incidentId);
+            if (histRow) {
+                const statusCell = histRow.querySelector('.status-cell');
+                if (statusCell) {
+                    statusCell.innerHTML = `<span class="inline-flex items-center gap-1.5 text-brand-green font-black"><span class="w-2 h-2 rounded-full bg-brand-green"></span>Resolved</span>`;
+                }
+            }
         }
 
         // Hide active banner, show standby banner
