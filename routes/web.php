@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 
+use App\Http\Controllers\ProfileController;
+
 Route::get('/', function () {
     if (auth()->check()) {
         $role = auth()->user()->role;
@@ -38,6 +40,9 @@ Route::middleware(['auth', 'role:NDRRMO'])->prefix('ndrrmo')->name('ndrrmo.')->g
     Route::post('/incidents/{incident}/acknowledge', [\App\Http\Controllers\NdrrmoController::class, 'acknowledgeIncident'])->name('incidents.acknowledge');
     Route::post('/incidents/{incident}/dispatch', [\App\Http\Controllers\NdrrmoController::class, 'dispatchIncident'])->name('incidents.dispatch');
     Route::post('/incidents/{incident}/resolve', [\App\Http\Controllers\NdrrmoController::class, 'resolveIncident'])->name('incidents.resolve');
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 });
 
 Route::middleware(['auth', 'role:Clinic'])->prefix('clinic')->name('clinic.')->group(function () {
@@ -47,6 +52,13 @@ Route::middleware(['auth', 'role:Clinic'])->prefix('clinic')->name('clinic.')->g
     Route::get('/logs', [\App\Http\Controllers\ClinicController::class, 'logs'])->name('logs');
     Route::get('/patients', [\App\Http\Controllers\ClinicController::class, 'patients'])->name('patients');
     Route::get('/reports', [\App\Http\Controllers\ClinicController::class, 'reports'])->name('reports');
+    Route::get('/reports/export-excel', [\App\Http\Controllers\ClinicController::class, 'exportExcel'])->name('reports.export-excel');
     Route::get('/stats-json', [\App\Http\Controllers\ClinicController::class, 'statsJson'])->name('stats-json');
+    Route::post('/alerts/bulk-delete', [\App\Http\Controllers\ClinicController::class, 'bulkDeleteAlerts'])->name('alerts.bulk-delete');
+    Route::delete('/alerts/{incident}', [\App\Http\Controllers\ClinicController::class, 'destroyAlert'])->name('alerts.destroy');
+    Route::post('/incidents/{incident}/acknowledge', [\App\Http\Controllers\ClinicController::class, 'acknowledgeIncident'])->name('incidents.acknowledge');
     Route::post('/incidents/{incident}/resolve', [\App\Http\Controllers\ClinicController::class, 'resolveIncident'])->name('incidents.resolve');
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 });

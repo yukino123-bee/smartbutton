@@ -47,24 +47,22 @@ class DeviceController extends Controller
             'status' => 'Pending',
         ]);
 
-        // Create notifications log
+        // Create notifications log for both NDRRMO and Clinic
         Notification::create([
             'incident_id' => $incident->id,
-            'recipient' => 'NDRRMO',
-            'channel' => 'Dashboard',
-            'status' => 'Delivered',
-            'sent_at' => now(),
+            'recipient'   => 'NDRRMO',
+            'channel'     => 'Dashboard',
+            'status'      => 'Delivered',
+            'sent_at'     => now(),
         ]);
 
-        if ($emergencyType === 'Critical Emergency') {
-            Notification::create([
-                'incident_id' => $incident->id,
-                'recipient' => 'Clinic',
-                'channel' => 'Dashboard',
-                'status' => 'Delivered',
-                'sent_at' => now(),
-            ]);
-        }
+        Notification::create([
+            'incident_id' => $incident->id,
+            'recipient'   => 'Clinic',
+            'channel'     => 'Dashboard',
+            'status'      => 'Delivered',
+            'sent_at'     => now(),
+        ]);
 
         // Broadcast the event to WebSockets
         broadcast(new EmergencyReported($incident))->toOthers();

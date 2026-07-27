@@ -178,6 +178,17 @@
                             
                             marker.bindPopup(popupContent);
                             window.deviceMarkers[device.id] = marker;
+
+                            if (incident) {
+                                marker.openPopup();
+                                map.setView([device.latitude, device.longitude], 18);
+                                L.circle([device.latitude, device.longitude], {
+                                    color: '#dc2626',
+                                    fillColor: '#ef4444',
+                                    fillOpacity: 0.4,
+                                    radius: 30
+                                }).addTo(map);
+                            }
                         });
 
                         window.updateMarkerStatus = function(deviceId, type) {

@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -33,7 +34,10 @@
             }
         }
     </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
+        [x-cloak] { display: none !important; }
         body {
             background: linear-gradient(135deg, #dbeafe 0%, #f0f4ff 40%, #e0f2fe 100%);
             color: #000000;
@@ -50,6 +54,24 @@
             -webkit-backdrop-filter: blur(18px);
             border: 1px solid rgba(255, 255, 255, 0.9);
             box-shadow: 6px 0 32px rgba(59, 130, 246, 0.1), inset 0 0 0 1px rgba(255,255,255,0.6);
+        }
+
+        /* Red Blinking Animation for Active Alert Navigation Items */
+        @keyframes alert-nav-blink {
+            0%, 100% { background-color: #dc2626; color: #ffffff; box-shadow: 0 0 18px rgba(220, 38, 38, 0.8); }
+            50% { background-color: #991b1b; color: #ffffff; box-shadow: 0 0 28px rgba(220, 38, 38, 1); }
+        }
+        .nav-alert-blinking {
+            animation: alert-nav-blink 0.8s infinite !important;
+            border: 1px solid #f87171 !important;
+            font-weight: 900 !important;
+        }
+        .nav-alert-blinking svg {
+            color: #ffffff !important;
+            animation: bounce 0.6s infinite;
+        }
+        .nav-alert-blinking span {
+            color: #ffffff !important;
         }
     </style>
 </head>
@@ -70,12 +92,12 @@
         <div class="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-1">
             <p class="text-[10px] font-black text-black uppercase tracking-widest px-3 mb-1 mt-2">Navigation</p>
             
-            <a href="{{ route('ndrrmo.dashboard') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.dashboard') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a id="nav-ndrrmo-dashboard" href="{{ route('ndrrmo.dashboard') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.dashboard') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                 <span class="font-bold text-[13px]">Dashboard</span>
             </a>
             
-            <a href="{{ route('ndrrmo.alerts') }}" class="flex items-center justify-between px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.alerts') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a id="nav-ndrrmo-alerts" href="{{ route('ndrrmo.alerts') }}" class="flex items-center justify-between px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.alerts') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group {{ ($activeAlertsCount ?? 0) > 0 ? 'nav-alert-blinking' : '' }}">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110 {{ request()->routeIs('ndrrmo.alerts') ? 'text-white' : 'text-brand-red group-hover:text-brand-blue' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <span class="font-bold text-[13px] {{ request()->routeIs('ndrrmo.alerts') ? 'text-white' : 'text-brand-red group-hover:text-brand-blue' }}">Live Alerts</span>
@@ -83,24 +105,29 @@
                 <span id="ndrrmo-sidebar-alert-badge" class="bg-brand-red text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse {{ ($activeAlertsCount ?? 0) > 0 ? '' : 'hidden' }}">{{ $activeAlertsCount ?? 0 }}</span>
             </a>
 
-            <a href="{{ route('ndrrmo.logs') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.logs') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a id="nav-ndrrmo-logs" href="{{ route('ndrrmo.logs') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.logs') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                 <span class="font-bold text-[13px]">Incident Logs</span>
             </a>
 
-            <a href="{{ route('ndrrmo.map') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.map') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a id="nav-ndrrmo-map" href="{{ route('ndrrmo.map') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.map') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group {{ ($activeAlertsCount ?? 0) > 0 ? 'nav-alert-blinking' : '' }}">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 <span class="font-bold text-[13px]">Campus Map</span>
             </a>
 
-            <a href="{{ route('ndrrmo.devices') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.devices') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a id="nav-ndrrmo-devices" href="{{ route('ndrrmo.devices') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.devices') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
                 <span class="font-bold text-[13px]">Devices</span>
             </a>
 
-            <a href="{{ route('ndrrmo.reports') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.reports') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a id="nav-ndrrmo-reports" href="{{ route('ndrrmo.reports') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.reports') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 <span class="font-bold text-[13px]">Reports</span>
+            </a>
+
+            <a id="nav-ndrrmo-profile" href="{{ route('ndrrmo.profile') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.profile') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+                <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <span class="font-bold text-[13px]">Profile</span>
             </a>
 
         </div>
@@ -145,15 +172,32 @@
                         <span id="ndrrmo-header-notification-badge" class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-brand-red rounded-full text-[9px] font-black flex items-center justify-center text-white {{ ($activeAlertsCount ?? 0) > 0 ? '' : 'hidden' }}">{{ $activeAlertsCount ?? 0 }}</span>
                     </button>
                     
-                    <div class="flex items-center cursor-pointer">
-                        <div class="w-8 h-8 rounded-full bg-slate-900 overflow-hidden mr-3">
-                            <img src="https://ui-avatars.com/api/?name=Admin&background=000000&color=fff" alt="Admin" class="w-full h-full object-cover">
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" type="button" class="flex items-center cursor-pointer focus:outline-none group">
+                            <div class="w-8 h-8 rounded-full bg-slate-900 overflow-hidden mr-3 ring-2 ring-transparent group-hover:ring-blue-500 transition-all">
+                                <img src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->fullname ?? auth()->user()->username ?? 'Admin') }}&background=000000&color=fff" alt="{{ auth()->user()->fullname ?? 'Admin' }}" class="w-full h-full object-cover">
+                            </div>
+                            <div class="hidden md:block text-left">
+                                <div class="text-xs font-bold text-black leading-none mb-1">{{ auth()->user()->fullname ?? 'NDRRMO Admin' }}</div>
+                                <div class="text-[11px] font-semibold text-slate-600 leading-none">{{ auth()->user()->role ?? 'Administrator' }}</div>
+                            </div>
+                            <svg class="w-4 h-4 ml-2 text-black transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+
+                        <div x-show="open" @click.away="open = false" x-cloak style="display: none;" class="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50">
+                            <a href="{{ route('ndrrmo.profile') }}" class="flex items-center px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-blue-600 transition-colors">
+                                <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                My Profile
+                            </a>
+                            <div class="border-t border-slate-100 my-1"></div>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="flex items-center w-full px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors">
+                                    <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                    Logout
+                                </button>
+                            </form>
                         </div>
-                        <div class="hidden md:block">
-                            <div class="text-xs font-bold text-black leading-none mb-1">NDRRMO Admin</div>
-                            <div class="text-[11px] font-semibold text-black leading-none">Administrator</div>
-                        </div>
-                        <svg class="w-4 h-4 ml-2 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </div>
                 </div>
             </div>
@@ -165,36 +209,45 @@
         </div>
     </main>
 
-    {{-- Global Emergency Siren, Screen Flash Overlay & Voice Announcement Modal --}}
+    {{-- Global Emergency Siren, Screen Flash Overlay with Map Location & Voice Announcement Modal --}}
     <div id="global-emergency-overlay" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 transition-all duration-300 select-none">
         <div id="global-emergency-backdrop" class="absolute inset-0 animate-pulse bg-red-600/60 backdrop-blur-md"></div>
         
-        <div id="global-emergency-modal" class="relative z-10 w-full max-w-lg bg-white border-4 border-red-600 rounded-3xl shadow-2xl overflow-hidden p-8 text-center transform transition-all scale-100">
-            <div class="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center animate-bounce bg-red-600 shadow-lg" id="global-emergency-icon-box">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div id="global-emergency-modal" class="relative z-10 w-full max-w-lg bg-white border-4 border-red-600 rounded-3xl shadow-2xl overflow-hidden p-6 text-center transform transition-all scale-100">
+            <div class="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center animate-bounce bg-red-600 shadow-lg" id="global-emergency-icon-box">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
             </div>
 
-            <span id="global-emergency-category-badge" class="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest text-white bg-red-600 mb-3 shadow-sm">
+            <span id="global-emergency-category-badge" class="inline-block px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest text-white bg-red-600 mb-2 shadow-sm">
                 CRITICAL EMERGENCY
             </span>
 
-            <h3 id="global-emergency-title" class="text-2xl font-black text-slate-900 mb-2 uppercase tracking-wide">
+            <h3 id="global-emergency-title" class="text-xl font-black text-slate-900 mb-1 uppercase tracking-wide">
                 CRITICAL EMERGENCY
             </h3>
 
-            <p id="global-emergency-location" class="text-slate-700 font-bold text-lg mb-1">
+            <p id="global-emergency-location" class="text-slate-800 font-extrabold text-base mb-0.5">
                 Engineering Building
             </p>
 
-            <p id="global-emergency-device" class="text-slate-500 text-xs font-mono mb-8">
+            <p id="global-emergency-device" class="text-slate-500 text-xs font-mono mb-3">
                 Device ID: ENG-001 • Active Alarm
             </p>
 
+            {{-- Map Location Display Container --}}
+            <div class="relative w-full h-44 rounded-2xl overflow-hidden border-2 border-red-500 shadow-md mb-4 bg-slate-100 z-0">
+                <div id="modal-emergency-map" class="w-full h-full"></div>
+                <div class="absolute bottom-2 left-2 z-[1000] bg-slate-900/90 text-white text-[10px] font-black px-2.5 py-1 rounded-md backdrop-blur-xs flex items-center gap-1.5 border border-slate-700">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <span id="modal-map-coords-text">INCIDENT MAP LOCATION</span>
+                </div>
+            </div>
+
             <button id="global-emergency-ack-btn" type="button" onclick="acknowledgeActiveEmergency()"
-                    class="w-full py-4 px-6 rounded-2xl font-extrabold text-white text-base shadow-xl bg-red-600 hover:bg-red-700 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="w-full py-3.5 px-6 rounded-2xl font-extrabold text-white text-sm shadow-xl bg-red-600 hover:bg-red-700 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                 </svg>
                 <span>ACKNOWLEDGE & STOP ALARM</span>
@@ -219,6 +272,8 @@
             const type = incident.emergency_type || 'Critical Emergency';
             const location = (incident.device && incident.device.building) ? incident.device.building : 'Campus Location';
             const deviceCode = (incident.device && incident.device.device_code) ? incident.device.device_code : 'N/A';
+            const lat = (incident.device && incident.device.latitude) ? parseFloat(incident.device.latitude) : 7.708601;
+            const lng = (incident.device && incident.device.longitude) ? parseFloat(incident.device.longitude) : 123.292456;
 
             const overlay = document.getElementById('global-emergency-overlay');
             const backdrop = document.getElementById('global-emergency-backdrop');
@@ -229,6 +284,7 @@
             const locEl = document.getElementById('global-emergency-location');
             const devEl = document.getElementById('global-emergency-device');
             const ackBtn = document.getElementById('global-emergency-ack-btn');
+            const coordsText = document.getElementById('modal-map-coords-text');
 
             let bgClass = 'bg-red-600/70';
             let badgeClass = 'bg-red-600';
@@ -245,17 +301,65 @@
             }
 
             if (backdrop) backdrop.className = `absolute inset-0 animate-pulse ${bgClass} backdrop-blur-md`;
-            if (modal) modal.className = `relative z-10 w-full max-w-lg bg-white border-4 ${borderClass} rounded-3xl shadow-2xl overflow-hidden p-8 text-center transform transition-all scale-100`;
-            if (iconBox) iconBox.className = `w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center animate-bounce ${badgeClass} shadow-lg`;
-            if (badge) { badge.className = `inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest text-white ${badgeClass} mb-3 shadow-sm`; badge.textContent = type; }
+            if (modal) modal.className = `relative z-10 w-full max-w-lg bg-white border-4 ${borderClass} rounded-3xl shadow-2xl overflow-hidden p-6 text-center transform transition-all scale-100`;
+            if (iconBox) iconBox.className = `w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center animate-bounce ${badgeClass} shadow-lg`;
+            if (badge) { badge.className = `inline-block px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest text-white ${badgeClass} mb-2 shadow-sm`; badge.textContent = type; }
             if (title) title.textContent = type.toUpperCase();
             if (locEl) locEl.textContent = location;
             if (devEl) devEl.textContent = `Device ID: ${deviceCode} • Active Alarm`;
-            if (ackBtn) ackBtn.className = `w-full py-4 px-6 rounded-2xl font-extrabold text-white text-base shadow-xl ${badgeClass} hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer`;
+            if (coordsText) coordsText.textContent = `INCIDENT LOCATION (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+            if (ackBtn) ackBtn.className = `w-full py-3.5 px-6 rounded-2xl font-extrabold text-white text-sm shadow-xl ${badgeClass} hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer`;
 
             if (overlay) {
                 overlay.classList.remove('hidden');
                 overlay.classList.add('flex');
+            }
+
+            // Render Mini Map inside Modal
+            if (typeof L !== 'undefined') {
+                setTimeout(() => {
+                    if (window.modalLeafletMap) {
+                        try { window.modalLeafletMap.remove(); } catch(e) {}
+                        window.modalLeafletMap = null;
+                    }
+                    const container = document.getElementById('modal-emergency-map');
+                    if (container) {
+                        container.innerHTML = '';
+                        const modalMap = L.map('modal-emergency-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 18);
+                        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                            maxZoom: 19
+                        }).addTo(modalMap);
+
+                        const emergencyIcon = L.divIcon({
+                            className: 'custom-marker',
+                            html: `
+                                <div class="relative flex items-center justify-center w-10 h-10">
+                                    <span class="absolute w-full h-full rounded-full bg-red-600 animate-ping opacity-85"></span>
+                                    <div class="relative z-10 w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg border-2 border-white font-black text-sm">
+                                        🚨
+                                    </div>
+                                </div>
+                            `,
+                            iconSize: [40, 40],
+                            iconAnchor: [20, 20],
+                            popupAnchor: [0, -20]
+                        });
+
+                        const marker = L.marker([lat, lng], { icon: emergencyIcon }).addTo(modalMap);
+                        marker.bindPopup(`<div class="p-2 font-black text-xs text-red-600">🚨 EMERGENCY ACTIVE<br><span class="text-slate-900 font-bold">${location} (${deviceCode})</span></div>`).openPopup();
+
+                        // Pulsing radius circle around incident location
+                        L.circle([lat, lng], {
+                            color: '#dc2626',
+                            fillColor: '#ef4444',
+                            fillOpacity: 0.4,
+                            radius: 30
+                        }).addTo(modalMap);
+
+                        window.modalLeafletMap = modalMap;
+                        setTimeout(() => modalMap.invalidateSize(), 300);
+                    }
+                }, 200);
             }
 
             // Start Audio Siren & Voice Speech
@@ -391,6 +495,9 @@
             const sidebarBadge = document.getElementById('ndrrmo-sidebar-alert-badge');
             const headerBadge = document.getElementById('ndrrmo-header-notification-badge');
 
+            const navAlerts = document.getElementById('nav-ndrrmo-alerts');
+            const navMap = document.getElementById('nav-ndrrmo-map');
+
             [sidebarBadge, headerBadge].forEach(badge => {
                 if (badge) {
                     badge.textContent = count;
@@ -398,6 +505,16 @@
                         badge.classList.remove('hidden');
                     } else {
                         badge.classList.add('hidden');
+                    }
+                }
+            });
+
+            [navAlerts, navMap].forEach(nav => {
+                if (nav) {
+                    if (count > 0) {
+                        nav.classList.add('nav-alert-blinking');
+                    } else {
+                        nav.classList.remove('nav-alert-blinking');
                     }
                 }
             });

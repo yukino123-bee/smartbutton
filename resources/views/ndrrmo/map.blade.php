@@ -203,6 +203,17 @@
         
         marker.bindPopup(popupContent);
         mapMarkers[device.device_code] = marker;
+
+        if (incident) {
+            marker.openPopup();
+            map.setView([device.latitude, device.longitude], 18);
+            L.circle([device.latitude, device.longitude], {
+                color: '#dc2626',
+                fillColor: '#ef4444',
+                fillOpacity: 0.4,
+                radius: 30
+            }).addTo(map);
+        }
     });
     
     // Fit bounds to show all markers if any exist

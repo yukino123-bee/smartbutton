@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -35,6 +36,7 @@
         }
     </script>
     <style>
+        [x-cloak] { display: none !important; }
         body {
             background: linear-gradient(135deg, #dbeafe 0%, #f0f4ff 40%, #e0f2fe 100%);
             color: #000000;
@@ -109,12 +111,17 @@
                 <span class="font-bold text-[13px]">Reports</span>
             </a>
 
+            <a href="{{ route('clinic.profile') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('clinic.profile') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+                <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <span class="font-bold text-[13px]">Profile</span>
+            </a>
+
         </div>
 
         <div class="p-3 border-t border-slate-200/80 mt-auto">
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button type="submit" class="flex items-center w-full px-3.5 py-2.5 text-brand-red font-bold hover:text-white hover:bg-red-600 hover:shadow-md hover:shadow-red-200 hover:translate-x-1 rounded-xl transition-all duration-200 group">
+                <button type="submit" class="flex items-center w-full px-3.5 py-2.5 text-brand-red font-bold hover:text-white hover:bg-red-600 hover:shadow-md hover:shadow-red-200 hover:translate-x-1 rounded-xl transition-all duration-200 group cursor-pointer">
                     <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                     <span class="font-bold text-[13px]">Logout</span>
                 </button>
@@ -151,15 +158,32 @@
                         <span id="header-notification-badge" class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-brand-red rounded-full text-[9px] font-black flex items-center justify-center text-white {{ ($activeAlertsCount ?? 0) > 0 ? '' : 'hidden' }}">{{ $activeAlertsCount ?? 0 }}</span>
                     </button>
                     
-                    <div class="flex items-center cursor-pointer">
-                        <div class="w-8 h-8 rounded-full bg-slate-900 overflow-hidden mr-3">
-                            <img src="https://ui-avatars.com/api/?name=Admin&background=000000&color=fff" alt="Admin" class="w-full h-full object-cover">
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" type="button" class="flex items-center cursor-pointer focus:outline-none group">
+                            <div class="w-8 h-8 rounded-full bg-slate-900 overflow-hidden mr-3 ring-2 ring-transparent group-hover:ring-blue-500 transition-all">
+                                <img src="https://ui-avatars.com/api/?name={{ urlencode(auth()->user()->fullname ?? auth()->user()->username ?? 'Admin') }}&background=000000&color=fff" alt="{{ auth()->user()->fullname ?? 'Admin' }}" class="w-full h-full object-cover">
+                            </div>
+                            <div class="hidden md:block text-left">
+                                <div class="text-xs font-bold text-black leading-none mb-1">{{ auth()->user()->fullname ?? 'Clinic Admin' }}</div>
+                                <div class="text-[11px] font-semibold text-slate-600 leading-none">{{ auth()->user()->role ?? 'Administrator' }}</div>
+                            </div>
+                            <svg class="w-4 h-4 ml-2 text-black transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+
+                        <div x-show="open" @click.away="open = false" x-cloak style="display: none;" class="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50">
+                            <a href="{{ route('clinic.profile') }}" class="flex items-center px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-blue-600 transition-colors">
+                                <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                My Profile
+                            </a>
+                            <div class="border-t border-slate-100 my-1"></div>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="flex items-center w-full px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
+                                    <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                    Logout
+                                </button>
+                            </form>
                         </div>
-                        <div class="hidden md:block">
-                            <div class="text-xs font-bold text-black leading-none mb-1">Clinic Admin</div>
-                            <div class="text-[11px] font-semibold text-black leading-none">Clinic Staff</div>
-                        </div>
-                        <svg class="w-4 h-4 ml-2 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </div>
                 </div>
             </div>
@@ -172,6 +196,214 @@
     </main>
 
     <!-- Scripts -->
+    {{-- Global Emergency Siren, Screen Flash Overlay & Voice Announcement Modal --}}
+    <div id="global-emergency-overlay" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 transition-all duration-300 select-none">
+        <div id="global-emergency-backdrop" class="absolute inset-0 animate-pulse bg-red-600/60 backdrop-blur-md"></div>
+        
+        <div id="global-emergency-modal" class="relative z-10 w-full max-w-lg bg-white border-4 border-red-600 rounded-3xl shadow-2xl overflow-hidden p-8 text-center transform transition-all scale-100">
+            <div class="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center animate-bounce bg-red-600 shadow-lg" id="global-emergency-icon-box">
+                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+
+            <span id="global-emergency-category-badge" class="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest text-white bg-red-600 mb-3 shadow-sm">
+                CRITICAL MEDICAL EMERGENCY
+            </span>
+
+            <h3 id="global-emergency-title" class="text-2xl font-black text-slate-900 mb-2 uppercase tracking-wide">
+                CRITICAL EMERGENCY
+            </h3>
+
+            <p id="global-emergency-location" class="text-slate-700 font-bold text-lg mb-1">
+                Engineering Building
+            </p>
+
+            <p id="global-emergency-device" class="text-slate-500 text-xs font-mono mb-8">
+                Device ID: ENG-001 • Active Alarm
+            </p>
+
+            <button id="global-emergency-ack-btn" type="button" onclick="acknowledgeClinicEmergency()"
+                    class="w-full py-4 px-6 rounded-2xl font-extrabold text-white text-base shadow-xl bg-red-600 hover:bg-red-700 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span>ACKNOWLEDGE & STOP ALARM</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentClinicEmergency = null;
+        let webAudioCtx = null;
+        let sirenOscillator = null;
+        let sirenGainNode = null;
+        let sirenInterval = null;
+        let isSirenActive = false;
+
+        function triggerClinicFlashAndAlarm(incident) {
+            if (!incident || !incident.id) return;
+            if (currentClinicEmergency && currentClinicEmergency.id === incident.id) return;
+
+            currentClinicEmergency = incident;
+            const type = incident.emergency_type || 'Critical Emergency';
+            const location = (incident.device && incident.device.building) ? incident.device.building : 'Campus Location';
+            const deviceCode = (incident.device && incident.device.device_code) ? incident.device.device_code : 'N/A';
+
+            const overlay = document.getElementById('global-emergency-overlay');
+            const backdrop = document.getElementById('global-emergency-backdrop');
+            const modal = document.getElementById('global-emergency-modal');
+            const iconBox = document.getElementById('global-emergency-icon-box');
+            const badge = document.getElementById('global-emergency-category-badge');
+            const title = document.getElementById('global-emergency-title');
+            const locEl = document.getElementById('global-emergency-location');
+            const devEl = document.getElementById('global-emergency-device');
+            const ackBtn = document.getElementById('global-emergency-ack-btn');
+
+            let bgClass = 'bg-red-600/70';
+            let badgeClass = 'bg-red-600';
+            let borderClass = 'border-red-600';
+
+            if (type.includes('Medical')) {
+                bgClass = 'bg-orange-500/70';
+                badgeClass = 'bg-orange-500';
+                borderClass = 'border-orange-500';
+            }
+
+            if (backdrop) backdrop.className = `absolute inset-0 animate-pulse ${bgClass} backdrop-blur-md`;
+            if (modal) modal.className = `relative z-10 w-full max-w-lg bg-white border-4 ${borderClass} rounded-3xl shadow-2xl overflow-hidden p-8 text-center transform transition-all scale-100`;
+            if (iconBox) iconBox.className = `w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center animate-bounce ${badgeClass} shadow-lg`;
+            if (badge) { badge.className = `inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest text-white ${badgeClass} mb-3 shadow-sm`; badge.textContent = type; }
+            if (title) title.textContent = type.toUpperCase();
+            if (locEl) locEl.textContent = location;
+            if (devEl) devEl.textContent = `Device ID: ${deviceCode} • Active Alarm`;
+            if (ackBtn) ackBtn.className = `w-full py-4 px-6 rounded-2xl font-extrabold text-white text-base shadow-xl ${badgeClass} hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer`;
+
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+            }
+
+            startClinicSirenAudio();
+            speakClinicAnnouncement(`Urgent Medical Emergency! ${type} detected at ${location}! Clinic medical team respond immediately!`);
+        }
+
+        function unlockClinicAudio() {
+            if (webAudioCtx && webAudioCtx.state === 'suspended') {
+                webAudioCtx.resume();
+            }
+            if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+        }
+        ['click', 'pointerdown', 'keydown', 'touchstart'].forEach(evt => {
+            document.addEventListener(evt, unlockClinicAudio, { passive: true });
+        });
+
+        function startClinicSirenAudio() {
+            if (isSirenActive) return;
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!webAudioCtx) {
+                    webAudioCtx = new AudioContext();
+                }
+                if (webAudioCtx.state === 'suspended') {
+                    webAudioCtx.resume();
+                }
+
+                sirenOscillator = webAudioCtx.createOscillator();
+                sirenGainNode = webAudioCtx.createGain();
+
+                sirenOscillator.type = 'sawtooth';
+                sirenGainNode.gain.setValueAtTime(0.4, webAudioCtx.currentTime);
+
+                sirenOscillator.connect(sirenGainNode);
+                sirenGainNode.connect(webAudioCtx.destination);
+
+                let highPitch = true;
+                sirenOscillator.frequency.setValueAtTime(900, webAudioCtx.currentTime);
+                sirenOscillator.start();
+                isSirenActive = true;
+
+                sirenInterval = setInterval(() => {
+                    if (!webAudioCtx || !sirenOscillator) return;
+                    if (webAudioCtx.state === 'suspended') webAudioCtx.resume();
+                    const freq = highPitch ? 600 : 960;
+                    sirenOscillator.frequency.exponentialRampToValueAtTime(freq, webAudioCtx.currentTime + 0.2);
+                    highPitch = !highPitch;
+                }, 300);
+            } catch (err) {
+                console.error("Web Audio Siren error:", err);
+            }
+        }
+
+        function stopClinicSirenAudio() {
+            isSirenActive = false;
+            if (sirenInterval) { clearInterval(sirenInterval); sirenInterval = null; }
+            if (sirenOscillator) {
+                try { sirenOscillator.stop(); sirenOscillator.disconnect(); } catch (e) {}
+                sirenOscillator = null;
+            }
+            if (webAudioCtx) {
+                try { webAudioCtx.close(); } catch (e) {}
+                webAudioCtx = null;
+            }
+        }
+
+        function speakClinicAnnouncement(text) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.rate = 1.0;
+            msg.pitch = 1.1;
+            msg.volume = 1.0;
+
+            msg.onend = function() {
+                if (currentClinicEmergency) {
+                    setTimeout(() => {
+                        if (currentClinicEmergency) window.speechSynthesis.speak(msg);
+                    }, 800);
+                }
+            };
+
+            window.speechSynthesis.speak(msg);
+        }
+
+        function acknowledgeClinicEmergency() {
+            stopClinicSirenAudio();
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+            const overlay = document.getElementById('global-emergency-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+
+            if (currentClinicEmergency && currentClinicEmergency.id) {
+                const targetId = currentClinicEmergency.id;
+                currentClinicEmergency = null;
+
+                fetch(`/clinic/incidents/${targetId}/acknowledge`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    console.log("[ACKNOWLEDGED] Alert acknowledged by Clinic:", data);
+                    window.location.reload();
+                })
+                .catch(err => {
+                    console.error("Ack error:", err);
+                    window.location.reload();
+                });
+            }
+        }
+    </script>
+
     <script type="module">
         window.updateAlertBadges = function(count) {
             const sidebarBadge = document.getElementById('sidebar-alert-badge');
@@ -191,16 +423,16 @@
 
         window.Echo.channel('emergencies')
             .listen('EmergencyReported', (e) => {
-                if (e.incident.emergency_type === 'Critical Emergency') {
-                    console.log('CRITICAL Emergency:', e);
-                    
-                    // Increment badges
+                if (e && e.incident) {
+                    triggerClinicFlashAndAlarm(e.incident);
+
+                    // Update badge numbers
                     const sidebarBadge = document.getElementById('sidebar-alert-badge');
                     let currentCount = parseInt(sidebarBadge ? sidebarBadge.textContent || '0' : '0');
                     if (isNaN(currentCount)) currentCount = 0;
                     window.updateAlertBadges(currentCount + 1);
 
-                    // Update Stat Cards Grid in real-time
+                    // Update Stat Cards Grid
                     const activeAlertsEl = document.getElementById('stat-active-alerts');
                     const incomingEl = document.getElementById('stat-incoming');
                     if (activeAlertsEl) {
@@ -211,84 +443,6 @@
                         let num = parseInt(incomingEl.textContent || '0');
                         incomingEl.textContent = isNaN(num) ? 1 : num + 1;
                     }
-
-                    // Dynamically update active emergency banner
-                    const bldg = document.getElementById('emergency-building');
-                    const devCode = document.getElementById('emergency-device-code');
-                    const devName = document.getElementById('emergency-device-name');
-                    const timeStamp = document.getElementById('emergency-timestamp');
-                    const btn = document.getElementById('btn-patient-arrived');
-
-                    if (bldg) bldg.textContent = e.incident.device?.building || 'Campus Building';
-                    if (devCode) devCode.textContent = e.incident.device?.device_code || 'DEV-001';
-                    if (devName) devName.textContent = `(${e.incident.device?.name || 'Panic Button'})`;
-                    if (timeStamp) {
-                        const now = new Date();
-                        timeStamp.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) + ' · ' + now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    }
-                    if (btn && e.incident.id) {
-                        btn.setAttribute('onclick', `resolveActiveEmergency(${e.incident.id})`);
-                    }
-
-                    // Prepend to Active Critical Alerts table in real time
-                    const activeTbody = document.getElementById('active-alerts-tbody');
-                    if (activeTbody) {
-                        document.getElementById('no-active-alerts-row')?.remove();
-                        const timeNow = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                        const rowHtml = `
-                        <tr class="bg-red-50/60 hover:bg-red-100/50 transition-colors" id="incident-row-${e.incident.id}">
-                            <td class="px-5 py-4 text-black font-bold">1</td>
-                            <td class="px-5 py-4 font-black text-black">${timeNow}</td>
-                            <td class="px-5 py-4 font-bold text-black">${e.incident.device?.building || 'Campus Building'}</td>
-                            <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">${e.incident.device?.device_code || 'DEV-001'}</td>
-                            <td class="px-5 py-4"><span class="inline-flex items-center bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full">Critical Emergency</span></td>
-                            <td class="px-5 py-4"><span class="inline-flex items-center gap-1.5 text-brand-red font-black"><span class="w-2 h-2 rounded-full bg-brand-red animate-pulse"></span>Pending</span></td>
-                            <td class="px-5 py-4 text-center">
-                                <button onclick="resolveActiveEmergency(${e.incident.id})" class="bg-brand-blue hover:bg-blue-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm">
-                                    Acknowledge
-                                </button>
-                            </td>
-                        </tr>`;
-                        activeTbody.insertAdjacentHTML('afterbegin', rowHtml);
-                    }
-
-                    // Prepend to Alert History table in real time
-                    const historyTbody = document.getElementById('alert-history-tbody');
-                    if (historyTbody) {
-                        document.getElementById('no-history-row')?.remove();
-                        const timeNow = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                        const histHtml = `
-                        <tr class="hover:bg-slate-100/70 transition-colors" id="history-row-${e.incident.id}">
-                            <td class="px-5 py-4 text-black font-bold">1</td>
-                            <td class="px-5 py-4 font-black text-black">${timeNow}</td>
-                            <td class="px-5 py-4 font-bold text-black">${e.incident.device?.building || 'Campus Building'}</td>
-                            <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">${e.incident.device?.device_code || 'DEV-001'}</td>
-                            <td class="px-5 py-4"><span class="inline-flex items-center bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full">Critical Emergency</span></td>
-                            <td class="px-5 py-4 status-cell"><span class="inline-flex items-center gap-1.5 text-black font-bold"><span class="w-2 h-2 rounded-full bg-slate-600"></span>Pending</span></td>
-                            <td class="px-5 py-4 text-center"><span class="text-xs font-bold text-slate-700">Recorded</span></td>
-                        </tr>`;
-                        historyTbody.insertAdjacentHTML('afterbegin', histHtml);
-                    }
-
-                    // Reveal Active Emergency Banner & Hide Standby Banner
-                    document.getElementById('no-emergency-banner')?.classList.add('hidden');
-                    document.getElementById('active-emergency-banner')?.classList.remove('hidden');
-
-                    // Play Alarm Sound
-                    const audio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
-                    audio.play().catch(e => console.log("Audio play failed: ", e));
-
-                    // Show Flashing Banner/Alert
-                    const alertHtml = `
-                    <div class="bg-brand-red text-white p-4 rounded-xl mb-4 animate-pulse flex justify-between items-center shadow-[0_0_20px_rgba(220,38,38,0.6)]">
-                        <div>
-                            <div class="font-bold text-lg">CRITICAL EMERGENCY INCOMING</div>
-                            <div class="text-sm">${e.incident.device.building} • Device: ${e.incident.device.device_code}</div>
-                        </div>
-                        <button onclick="this.parentElement.remove(); audio.pause();" class="bg-white text-brand-red font-bold px-4 py-2 rounded">ACKNOWLEDGE</button>
-                    </div>
-                    `;
-                    document.querySelector('main .flex-1').insertAdjacentHTML('afterbegin', alertHtml);
                 }
             });
     </script>
@@ -324,11 +478,15 @@
                     if (window.updateAlertBadges && data.active_alerts !== undefined) {
                         window.updateAlertBadges(data.active_alerts);
                     }
+
+                    if (data.latest_pending && window.triggerClinicFlashAndAlarm) {
+                        window.triggerClinicFlashAndAlarm(data.latest_pending);
+                    }
                 })
                 .catch(err => console.error(err));
         }
         pollClinicStats();
-        setInterval(pollClinicStats, 3000);
+        setInterval(pollClinicStats, 1500);
     </script>
 </body>
 </html>

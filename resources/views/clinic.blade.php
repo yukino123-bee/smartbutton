@@ -2,97 +2,98 @@
 
 @section('content')
 
-{{-- ===== STAT CARDS ROW ===== --}}
-<div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6 text-black">
+{{-- ===== STAT CARDS ROW (NDRRMO Layout) ===== --}}
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 text-black">
 
     {{-- Active Alerts --}}
-    <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-        <div class="w-12 h-12 rounded-xl bg-red-100 border border-red-300 flex items-center justify-center shrink-0">
+    <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
+        <div class="w-12 h-12 rounded-xl bg-red-100 border border-red-300 flex items-center justify-center mr-4 shrink-0">
             <svg class="w-6 h-6 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
         </div>
         <div>
-            <p class="text-[11px] font-black text-black uppercase tracking-wider mb-0.5">Active Alerts</p>
-            <p id="stat-active-alerts" class="text-3xl font-black text-black leading-none tabular-nums">{{ $activeAlerts ?? 0 }}</p>
-            <p class="text-[11px] text-brand-red font-extrabold mt-1">Needs attention</p>
+            <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">ACTIVE ALERTS</div>
+            <div id="stat-active-alerts" class="text-3xl font-black text-brand-red leading-none mb-1 tabular-nums">{{ $activeAlerts ?? 0 }}</div>
+            <div class="text-[11px] font-bold text-brand-red">Needs attention</div>
         </div>
     </div>
 
     {{-- Incoming Patients --}}
-    <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-        <div class="w-12 h-12 rounded-xl bg-blue-100 border border-blue-300 flex items-center justify-center shrink-0">
+    <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
+        <div class="w-12 h-12 rounded-xl bg-blue-100 border border-blue-300 flex items-center justify-center mr-4 shrink-0">
             <svg class="w-6 h-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
         </div>
         <div>
-            <p class="text-[11px] font-black text-black uppercase tracking-wider mb-0.5">Incoming</p>
-            <p id="stat-incoming" class="text-3xl font-black text-black leading-none tabular-nums">{{ $incomingCount ?? 0 }}</p>
-            <p class="text-[11px] text-black font-bold mt-1">Patient today</p>
+            <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">INCOMING</div>
+            <div id="stat-incoming" class="text-3xl font-black text-black leading-none mb-1 tabular-nums">{{ $incomingCount ?? 0 }}</div>
+            <div class="text-[11px] font-bold text-slate-700">Patient today</div>
         </div>
     </div>
 
     {{-- Patients Treated --}}
-    <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-        <div class="w-12 h-12 rounded-xl bg-green-100 border border-green-300 flex items-center justify-center shrink-0">
+    <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
+        <div class="w-12 h-12 rounded-xl bg-green-100 border border-green-300 flex items-center justify-center mr-4 shrink-0">
             <svg class="w-6 h-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         </div>
         <div>
-            <p class="text-[11px] font-black text-black uppercase tracking-wider mb-0.5">Treated Today</p>
-            <p id="stat-treated" class="text-3xl font-black text-black leading-none tabular-nums">{{ $treatedTodayCount ?? 0 }}</p>
-            <p class="text-[11px] text-black font-bold mt-1">Total patients</p>
+            <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">TREATED TODAY</div>
+            <div id="stat-treated" class="text-3xl font-black text-brand-green leading-none mb-1 tabular-nums">{{ $treatedTodayCount ?? 0 }}</div>
+            <div class="text-[11px] font-bold text-slate-700">Total patients</div>
         </div>
     </div>
 
-    {{-- Resolved --}}
-    <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-        <div class="w-12 h-12 rounded-xl bg-teal-100 border border-teal-300 flex items-center justify-center shrink-0">
+    {{-- Resolved Incidents --}}
+    <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
+        <div class="w-12 h-12 rounded-xl bg-teal-100 border border-teal-300 flex items-center justify-center mr-4 shrink-0">
             <svg class="w-6 h-6 text-brand-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         <div>
-            <p class="text-[11px] font-black text-black uppercase tracking-wider mb-0.5">Resolved Today</p>
-            <p id="stat-resolved" class="text-3xl font-black text-black leading-none tabular-nums">{{ $resolvedTodayCount ?? 0 }}</p>
-            <p class="text-[11px] text-black font-bold mt-1">Incidents closed</p>
+            <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">RESOLVED TODAY</div>
+            <div id="stat-resolved" class="text-3xl font-black text-black leading-none mb-1 tabular-nums">{{ $resolvedTodayCount ?? 0 }}</div>
+            <div class="text-[11px] font-bold text-slate-700">Incidents closed</div>
         </div>
     </div>
 </div>
 
 {{-- ===== ACTIVE EMERGENCY BANNER (Dynamic) ===== --}}
-<div id="active-emergency-banner" class="bg-white border-2 border-red-300 rounded-2xl mb-6 overflow-hidden shadow-md text-black {{ $activeEmergency ? '' : 'hidden' }}">
+<div id="active-emergency-banner" class="bg-white border-2 border-red-500 rounded-3xl mb-6 overflow-hidden shadow-lg text-black {{ $activeEmergency ? '' : 'hidden' }}">
     {{-- Header bar --}}
-    <div class="bg-brand-red px-6 py-3 flex items-center justify-between">
+    <div class="bg-red-600 px-6 py-3.5 flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center gap-3">
-            <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
-            <span class="text-white font-black text-sm uppercase tracking-widest">⚠ Critical Emergency — Active</span>
+            <span class="w-3 h-3 rounded-full bg-white animate-ping"></span>
+            <span class="text-white font-black text-xs md:text-sm uppercase tracking-widest">⚠ CRITICAL EMERGENCY — ACTIVE RESPONSE</span>
         </div>
-        <span id="emergency-timestamp" class="text-white text-xs font-bold bg-black/30 px-3 py-1 rounded-full">
+        <span id="emergency-timestamp" class="text-white text-xs font-extrabold bg-black/30 px-3.5 py-1 rounded-full">
             {{ $activeEmergency ? $activeEmergency->created_at->format('h:i A · M d, Y') : '' }}
         </span>
     </div>
 
     {{-- Body --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+    <div class="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
 
         {{-- Emergency Details --}}
-        <div class="col-span-1 md:col-span-2 p-6 flex gap-5 items-start">
-            <div class="w-14 h-14 rounded-full bg-red-100 border-2 border-red-300 flex items-center justify-center shrink-0 shadow-sm">
-                <svg class="w-8 h-8 text-brand-red" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c-4.97 0-9 4.03-9 9 0 3.86 2.43 7.15 5.91 8.46l.09.04V22h6v-2.5l.09-.04C18.57 18.15 21 14.86 21 11c0-4.97-4.03-9-9-9zm0 2c3.86 0 7 3.14 7 7 0 2.89-1.74 5.38-4.26 6.45L14 17.75V19h-4v-1.25l-.74-.3C6.74 16.38 5 13.89 5 11c0-3.86 3.14-7 7-7zm-1 3v5h2V7h-2zm0 7v2h2v-2h-2z"/></svg>
+        <div class="flex-1 p-6 flex flex-col sm:flex-row gap-5 items-start">
+            <div class="w-14 h-14 rounded-2xl bg-red-100 border-2 border-red-300 flex items-center justify-center shrink-0 shadow-sm text-red-600 text-2xl font-black">
+                🚨
             </div>
-            <div>
-                <h2 class="text-2xl font-black text-black mb-3">Emergency Incoming!</h2>
-                <div class="space-y-2">
-                    <div class="flex items-center gap-2 text-sm text-black font-bold">
-                        <svg class="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        <span id="emergency-building" class="font-extrabold text-black text-base">{{ $activeEmergency->device->building ?? 'Engineering Building' }}</span>
+            <div class="flex-1 min-w-0">
+                <h2 class="text-2xl font-black text-slate-900 mb-2">Emergency Patient Incoming!</h2>
+                <div class="space-y-1.5 text-xs font-bold text-slate-700">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-400 font-extrabold uppercase tracking-wider text-[10px]">BUILDING:</span>
+                        <span id="emergency-building" class="font-black text-slate-900 text-sm">{{ $activeEmergency->device->building ?? 'Engineering Building' }}</span>
                     </div>
-                    <div class="flex items-center gap-2 text-sm text-black font-bold">
-                        <svg class="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-                        <span>Device: <span id="emergency-device-code" class="font-black text-black">{{ $activeEmergency->device->device_code ?? 'GYM-001' }}</span> <span id="emergency-device-name" class="text-black font-bold">({{ $activeEmergency->device->name ?? 'Gymnasium' }})</span></span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-400 font-extrabold uppercase tracking-wider text-[10px]">DEVICE:</span>
+                        <span id="emergency-device-code" class="font-mono font-black text-slate-900">{{ $activeEmergency->device->device_code ?? 'ENG-001' }}</span>
+                        <span id="emergency-device-name" class="text-slate-500 font-semibold">({{ $activeEmergency->device->room ?? 'Room N/A' }})</span>
                     </div>
                 </div>
 
                 {{-- Checklist --}}
-                <div class="mt-4 grid grid-cols-2 gap-2">
-                    @foreach(['Prepare emergency equipment', 'Prepare medical staff', 'Standby for patient', 'Coordinate with NDRRMO'] as $item)
-                    <div class="flex items-center gap-2 text-xs font-bold text-black">
-                        <svg class="w-4 h-4 text-brand-green shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 border-t border-slate-100">
+                    @foreach(['Prepare medical stretcher', 'Alert clinic doctor/nurses', 'Prepare oxygen & first aid', 'Coordinate with NDRRMO'] as $item)
+                    <div class="flex items-center gap-2 text-[11px] font-bold text-slate-700">
+                        <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                         <span>{{ $item }}</span>
                     </div>
                     @endforeach
@@ -101,15 +102,15 @@
         </div>
 
         {{-- Timer + Action --}}
-        <div class="p-6 flex flex-col items-center justify-center gap-4 bg-red-100/50">
+        <div class="w-full lg:w-72 p-6 flex flex-col items-center justify-center gap-4 bg-red-50/70 shrink-0">
             <div class="text-center">
-                <p class="text-[11px] font-black text-black uppercase tracking-wider mb-1">Estimated Arrival</p>
-                <p id="emergency-countdown" class="text-5xl font-black text-brand-red leading-none tabular-nums">03:00</p>
-                <p class="text-xs text-black font-bold mt-1">minutes</p>
+                <p class="text-[10px] font-black text-red-700 uppercase tracking-widest mb-1">Estimated Arrival</p>
+                <p id="emergency-countdown" class="text-4xl font-black text-red-600 leading-none tabular-nums">03:00</p>
+                <p class="text-[11px] text-slate-500 font-bold mt-1">minutes</p>
             </div>
-            <button id="btn-patient-arrived" onclick="resolveActiveEmergency({{ $activeEmergency->id ?? 'null' }})" class="w-full bg-brand-red hover:bg-red-700 active:scale-95 text-white font-black py-3 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                Patient Arrived
+            <button id="btn-patient-arrived" onclick="resolveActiveEmergency({{ $activeEmergency->id ?? 'null' }})" class="w-full bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold py-3 px-4 rounded-2xl shadow-md shadow-red-200 transition-all flex items-center justify-center gap-2 text-xs cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                <span>Patient Arrived & Treated</span>
             </button>
         </div>
     </div>
@@ -231,7 +232,6 @@
                 </tbody>
             </table>
         </div>
-    </div>
     </div>
 </div>
 
