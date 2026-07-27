@@ -190,7 +190,17 @@
                 let currentCount = parseInt(sidebarBadge ? sidebarBadge.textContent || '0' : '0');
                 if (isNaN(currentCount)) currentCount = 0;
                 window.updateNDRRMOAlertBadges(currentCount + 1);
-                console.log('New Emergency:', e);
+                // Increment stat grid numbers in real time
+                const activeEl = document.getElementById('ndrrmo-stat-active');
+                const totalEl = document.getElementById('ndrrmo-stat-total');
+                if (activeEl) {
+                    let num = parseInt(activeEl.textContent || '0');
+                    activeEl.textContent = isNaN(num) ? 1 : num + 1;
+                }
+                if (totalEl) {
+                    let num = parseInt(totalEl.textContent || '0');
+                    totalEl.textContent = isNaN(num) ? 1 : num + 1;
+                }
                 // Here we dynamically add the row to the active alerts and table
                 const alertHtml = `
                     <div class="border border-brand-red/30 bg-brand-red/5 rounded-lg p-3 relative overflow-hidden group mb-3 animate-pulse">

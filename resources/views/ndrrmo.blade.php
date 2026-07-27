@@ -4,48 +4,51 @@
             
             <!-- Top Stats Row -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <!-- Stat Card 1 -->
-                <div class="bg-brand-card border border-brand-border rounded-xl p-4 flex items-center hover:shadow-lg hover:border-brand-blue/30 transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                    <div class="w-12 h-12 rounded-lg bg-brand-red/20 flex items-center justify-center mr-4">
-                        <svg class="w-6 h-6 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                <!-- Stat Card 1: Active Alerts -->
+                <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
+                    <div class="w-12 h-12 rounded-xl bg-red-100 border border-red-300 flex items-center justify-center mr-4 shrink-0">
+                        <svg class="w-6 h-6 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                     </div>
                     <div>
-                        <div class="text-[10px] font-bold text-brand-text uppercase tracking-wider mb-1">ACTIVE ALERTS</div>
-                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">{{ $activeIncidents->count() }}</div>
-                        <div class="text-[10px] text-brand-text">Require immediate attention</div>
+                        <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">ACTIVE ALERTS</div>
+                        <div id="ndrrmo-stat-active" class="text-3xl font-black text-brand-red leading-none mb-1 tabular-nums">{{ $activeIncidents->count() }}</div>
+                        <div class="text-[11px] font-bold text-slate-700">Require immediate attention</div>
                     </div>
                 </div>
-                <!-- Stat Card 2 -->
-                <div class="bg-brand-card border border-brand-border rounded-xl p-4 flex items-center hover:shadow-lg hover:border-brand-blue/30 transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                    <div class="w-12 h-12 rounded-lg bg-brand-orange/20 flex items-center justify-center mr-4">
-                        <svg class="w-6 h-6 text-brand-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+
+                <!-- Stat Card 2: Total Incidents -->
+                <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
+                    <div class="w-12 h-12 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center mr-4 shrink-0">
+                        <svg class="w-6 h-6 text-brand-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                     </div>
                     <div>
-                        <div class="text-[10px] font-bold text-brand-text uppercase tracking-wider mb-1">TOTAL INCIDENTS</div>
-                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">{{ $totalIncidents }}</div>
-                        <div class="text-[10px] text-brand-text">This month</div>
+                        <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">TOTAL INCIDENTS</div>
+                        <div id="ndrrmo-stat-total" class="text-3xl font-black text-black leading-none mb-1 tabular-nums">{{ $totalIncidents }}</div>
+                        <div class="text-[11px] font-bold text-slate-700">This month</div>
                     </div>
                 </div>
-                <!-- Stat Card 3 -->
-                <div class="bg-brand-card border border-brand-border rounded-xl p-4 flex items-center hover:shadow-lg hover:border-brand-blue/30 transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                    <div class="w-12 h-12 rounded-lg bg-brand-green/20 flex items-center justify-center mr-4">
-                        <svg class="w-6 h-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+
+                <!-- Stat Card 3: Resolved Incidents -->
+                <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
+                    <div class="w-12 h-12 rounded-xl bg-green-100 border border-green-300 flex items-center justify-center mr-4 shrink-0">
+                        <svg class="w-6 h-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
                     </div>
                     <div>
-                        <div class="text-[10px] font-bold text-brand-text uppercase tracking-wider mb-1">RESOLVED INCIDENTS</div>
-                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">{{ $resolvedIncidents }}</div>
-                        <div class="text-[10px] text-brand-text">This month</div>
+                        <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">RESOLVED INCIDENTS</div>
+                        <div id="ndrrmo-stat-resolved" class="text-3xl font-black text-brand-green leading-none mb-1 tabular-nums">{{ $resolvedIncidents }}</div>
+                        <div class="text-[11px] font-bold text-slate-700">This month</div>
                     </div>
                 </div>
-                <!-- Stat Card 4 -->
-                <div class="bg-brand-card border border-brand-border rounded-xl p-4 flex items-center hover:shadow-lg hover:border-brand-blue/30 transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-                    <div class="w-12 h-12 rounded-lg bg-brand-blue/20 flex items-center justify-center mr-4">
-                        <svg class="w-6 h-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
+
+                <!-- Stat Card 4: Devices Online -->
+                <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
+                    <div class="w-12 h-12 rounded-xl bg-blue-100 border border-blue-300 flex items-center justify-center mr-4 shrink-0">
+                        <svg class="w-6 h-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
                     </div>
                     <div>
-                        <div class="text-[10px] font-bold text-brand-text uppercase tracking-wider mb-1">DEVICES ONLINE</div>
-                        <div class="text-2xl font-bold text-brand-dark leading-none mb-1">{{ $devicesCount }} / {{ $devicesCount }}</div>
-                        <div class="text-[10px] text-brand-text">All devices operational</div>
+                        <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">DEVICES ONLINE</div>
+                        <div class="text-3xl font-black text-black leading-none mb-1 tabular-nums">{{ $devicesCount }} / {{ $devicesCount }}</div>
+                        <div class="text-[11px] font-bold text-slate-700">All devices operational</div>
                     </div>
                 </div>
             </div>
