@@ -57,38 +57,38 @@
         <div class="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-1">
             <div class="text-[10px] font-bold text-brand-text mb-2 tracking-wider">MAIN NAVIGATION</div>
             
-            <a href="{{ route('ndrrmo.dashboard') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('ndrrmo.dashboard') ? 'bg-brand-blue text-white' : 'text-brand-text hover:bg-brand-blue/10 hover:text-brand-blue' }} rounded-lg group">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                <span class="font-medium">Dashboard</span>
+            <a href="{{ route('ndrrmo.dashboard') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.dashboard') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-brand-text font-semibold hover:bg-slate-100 hover:text-brand-blue hover:translate-x-1' }} rounded-xl transition-all duration-200 group">
+                <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span class="font-semibold text-[13px]">Dashboard</span>
             </a>
             
-            <a href="{{ route('ndrrmo.alerts') }}" class="flex items-center justify-between px-3 py-2.5 {{ request()->routeIs('ndrrmo.alerts') ? 'bg-brand-blue text-white' : 'text-brand-text hover:bg-brand-blue/10 hover:text-brand-blue' }} rounded-lg transition-colors">
+            <a href="{{ route('ndrrmo.alerts') }}" class="flex items-center justify-between px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.alerts') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-brand-text font-semibold hover:bg-slate-100 hover:text-brand-blue hover:translate-x-1' }} rounded-xl transition-all duration-200 group">
                 <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                    <span class="font-medium">Live Alerts</span>
+                    <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    <span class="font-semibold text-[13px]">Live Alerts</span>
                 </div>
                 <span id="ndrrmo-sidebar-alert-badge" class="bg-brand-red text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full {{ ($activeAlertsCount ?? 0) > 0 ? '' : 'hidden' }}">{{ $activeAlertsCount ?? 0 }}</span>
             </a>
 
-            <a href="{{ route('ndrrmo.logs') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('ndrrmo.logs') ? 'bg-brand-blue text-white' : 'text-brand-text hover:bg-brand-blue/10 hover:text-brand-blue' }} rounded-lg transition-colors">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                <span class="font-medium">Incident Logs</span>
+            <a href="{{ route('ndrrmo.logs') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.logs') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-brand-text font-semibold hover:bg-slate-100 hover:text-brand-blue hover:translate-x-1' }} rounded-xl transition-all duration-200 group">
+                <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                <span class="font-semibold text-[13px]">Incident Logs</span>
             </a>
 
-            <a href="{{ route('ndrrmo.map') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('ndrrmo.map') ? 'bg-brand-blue text-white' : 'text-brand-text hover:bg-brand-blue/10 hover:text-brand-blue' }} rounded-lg transition-colors">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <span class="font-medium">Campus Map</span>
+            <a href="{{ route('ndrrmo.map') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.map') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-brand-text font-semibold hover:bg-slate-100 hover:text-brand-blue hover:translate-x-1' }} rounded-xl transition-all duration-200 group">
+                <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span class="font-semibold text-[13px]">Campus Map</span>
             </a>
 
-            <a href="{{ route('ndrrmo.devices') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('ndrrmo.devices') ? 'bg-brand-blue text-white' : 'text-brand-text hover:bg-brand-blue/10 hover:text-brand-blue' }} rounded-lg transition-colors">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
-                <span class="font-medium">Devices</span>
+            <a href="{{ route('ndrrmo.devices') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.devices') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-brand-text font-semibold hover:bg-slate-100 hover:text-brand-blue hover:translate-x-1' }} rounded-xl transition-all duration-200 group">
+                <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+                <span class="font-semibold text-[13px]">Devices</span>
             </a>
 
 
-            <a href="{{ route('ndrrmo.reports') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('ndrrmo.reports') ? 'bg-brand-blue text-white' : 'text-brand-text hover:bg-brand-blue/10 hover:text-brand-blue' }} rounded-lg transition-colors">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                <span class="font-medium">Reports</span>
+            <a href="{{ route('ndrrmo.reports') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.reports') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-brand-text font-semibold hover:bg-slate-100 hover:text-brand-blue hover:translate-x-1' }} rounded-xl transition-all duration-200 group">
+                <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <span class="font-semibold text-[13px]">Reports</span>
             </a>
 
 
@@ -97,9 +97,9 @@
         <div class="p-4 border-t border-brand-border mt-auto">
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button type="submit" class="flex items-center w-full px-3 py-2.5 text-brand-red hover:text-white hover:bg-brand-red rounded-lg transition-colors">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    <span class="font-medium">Logout</span>
+                <button type="submit" class="flex items-center w-full px-3.5 py-2.5 text-brand-red font-bold hover:text-white hover:bg-red-600 hover:shadow-md hover:translate-x-1 rounded-xl transition-all duration-200 group">
+                    <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span class="font-semibold text-[13px]">Logout</span>
                 </button>
             </form>
         </div>
