@@ -13,6 +13,9 @@ const char *status_url = "http://192.168.100.151:8000/api/device/status?device_i
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "ENG-001"; // E-Building
 
+// Emergency Contact Phone Number for SMS Alerts
+const char *EMERGENCY_PHONE_NUMBER = "09187439096";
+
 // --- Hardware Pins ---
 const int BTN_CRITICAL = 14;   // Critical Emergency
 const int BTN_MEDICAL = 12;    // Medical Emergency
@@ -62,15 +65,16 @@ void soundSOSPattern();
 void checkAcknowledgeStatus();
 void triggerAlarm(String emergencyType);
 void sendPanicAlert(String emergencyType);
+void initSIM800L();
 void sendSMS(String message);
 
 void setup() {
   Serial.begin(115200);
 
-  // Initialize GSM Serial (Hardware Serial 2)
+  // Initialize GSM Serial (Hardware Serial 2) at 9600 baud
   Serial2.begin(9600, SERIAL_8N1, SIM800L_RX, SIM800L_TX);
 
-  // Initialize Pins
+  // Initialize Hardware Pins
   pinMode(BTN_CRITICAL, INPUT_PULLUP);
   pinMode(BTN_MEDICAL, INPUT_PULLUP);
   pinMode(BTN_SUSPICIOUS, INPUT_PULLUP);
@@ -84,24 +88,35 @@ void setup() {
   digitalWrite(LED_GREEN, LOW);
   digitalWrite(BUZZER, LOW);
 
+  // Initialize SIM800L GSM Modem
+  initSIM800L();
+
   // Connect to WiFi
   Serial.print("Connecting to WiFi");
   WiFi.begin(ssid, password);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  int wifiAttempts = 0;
+  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 20) {
     delay(500);
     Serial.print(".");
+    wifiAttempts++;
   }
 
-  Serial.println("\nWiFi connected!");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\nWiFi connected!");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
 
-  // Connected State: Red OFF, Green ON
-  digitalWrite(LED_RED, LOW);
-  digitalWrite(LED_GREEN, HIGH);
+    // Connected State: Red OFF, Green ON
+    digitalWrite(LED_RED, LOW);
+    digitalWrite(LED_GREEN, HIGH);
+  } else {
+    Serial.println("\nWiFi Connection Failed! Running in GSM Standalone Mode.");
+    digitalWrite(LED_RED, HIGH);
+    digitalWrite(LED_GREEN, LOW);
+  }
 
-  // Short beep to indicate readiness
+  // Short beep to indicate system readiness
   beepBuzzer(1, 200);
 }
 
@@ -165,13 +180,14 @@ void triggerAlarm(String emergencyType) {
     digitalWrite(LED_RED, HIGH);
     beepBuzzer(2, 150);
 
-    // Send Data to API
+    // Process Alert
     sendPanicAlert(emergencyType);
 }
 
 void sendPanicAlert(String emergencyType) {
   bool apiSuccess = false;
 
+  // 1. Send via Web API if WiFi is connected
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.begin(api_url);
@@ -181,7 +197,7 @@ void sendPanicAlert(String emergencyType) {
     String payload = "{\"device_id\":\"" + String(DEVICE_CODE) +
                      "\", \"emergency_category\":\"" + emergencyType + "\"}";
 
-    Serial.println("Sending Payload: " + payload);
+    Serial.println("Sending API Payload: " + payload);
 
     int httpResponseCode = http.POST(payload);
 
@@ -203,16 +219,129 @@ void sendPanicAlert(String emergencyType) {
     Serial.println("WiFi Disconnected!");
   }
 
-  // Fallback to SMS if WiFi is down or API request fails
-  if (!apiSuccess) {
-    Serial.println("Failed to reach API! Falling back to SMS via SIM800L...");
-    digitalWrite(LED_GREEN, LOW);
-    digitalWrite(LED_RED, HIGH);
-    beepBuzzer(3, 100);
+  // 2. ALWAYS Send SMS Notification via SIM800L for EVERY Alert Trigger
+  Serial.println("\n[ALERT] Transmitting SMS notification via SIM800L GSM Module...");
+  String smsMessage = "JHCSC SMART PANIC ALERT!\nDevice: " + String(DEVICE_CODE) +
+                      "\nCategory: " + emergencyType +
+                      "\nStatus: Immediate Response Required!";
+  
+  sendSMS(smsMessage);
+}
 
-    String smsMessage = "URGENT ALERT!\nLocation: " + String(DEVICE_CODE) +
-                        "\nType: " + emergencyType;
-    sendSMS(smsMessage);
+// Initialize SIM800L AT commands & Network
+void initSIM800L() {
+  Serial.println("\n[SIM800L] Initializing GSM Module...");
+  
+  // Sync baud rate
+  bool modemReady = false;
+  for (int i = 0; i < 5; i++) {
+    Serial2.println("AT");
+    delay(300);
+    if (Serial2.find("OK")) {
+      modemReady = true;
+      break;
+    }
+  }
+
+  if (modemReady) {
+    Serial.println("[SIM800L] Modem responded OK!");
+
+    // Set Text Mode
+    Serial2.println("AT+CMGF=1");
+    delay(300);
+
+    // Set Character Set to GSM
+    Serial2.println("AT+CSCS=\"GSM\"");
+    delay(300);
+
+    // Check SIM Card Status
+    Serial2.println("AT+CPIN?");
+    delay(300);
+
+    // Check Network Registration
+    Serial2.println("AT+CREG?");
+    delay(300);
+
+    Serial.println("[SIM800L] GSM Initialization complete.");
+  } else {
+    Serial.println("[SIM800L WARNING] SIM800L not responding to AT commands!");
+    Serial.println("[TIP] Verify TX/RX wiring (ESP32 RX=16 to SIM800L TX, ESP32 TX=17 to SIM800L RX) and ensure 3.7V-4.2V 2A power supply.");
+  }
+}
+
+// Helper function to handle the SIM800L SMS with full prompt & delivery checks
+void sendSMS(String message) {
+  Serial.println("\n[SMS] Preparing to send SMS via SIM800L...");
+  Serial.println("[SMS] Recipient: " + String(EMERGENCY_PHONE_NUMBER));
+  Serial.println("[SMS] Message: " + message);
+
+  // 1. Set Text Mode
+  Serial2.println("AT+CMGF=1");
+  delay(300);
+
+  // Clear serial input buffer
+  while (Serial2.available()) Serial2.read();
+
+  // 2. Issue AT+CMGS Command
+  Serial2.print("AT+CMGS=\"");
+  Serial2.print(EMERGENCY_PHONE_NUMBER);
+  Serial2.println("\"");
+
+  // 3. Wait for '>' prompt character from SIM800L (up to 3 seconds)
+  unsigned long startPrompt = millis();
+  bool promptReady = false;
+
+  while (millis() - startPrompt < 3000) {
+    if (Serial2.available()) {
+      char c = Serial2.read();
+      if (c == '>') {
+        promptReady = true;
+        break;
+      }
+    }
+  }
+
+  if (promptReady) {
+    Serial.println("[SMS] '>' Prompt received! Sending message body...");
+    delay(100);
+
+    // 4. Send Message Content
+    Serial2.print(message);
+    delay(200);
+
+    // 5. Send Ctrl+Z (ASCII 26) to commit and send SMS
+    Serial2.write(26);
+    Serial.println("[SMS] Ctrl+Z sent! Awaiting network delivery confirmation (+CMGS / OK)...");
+
+    // 6. Wait for GSM Network transmission response (up to 10 seconds)
+    unsigned long startSend = millis();
+    bool delivered = false;
+    String modemOutput = "";
+
+    while (millis() - startSend < 10000) {
+      while (Serial2.available()) {
+        char c = Serial2.read();
+        modemOutput += c;
+        if (modemOutput.indexOf("+CMGS:") >= 0 || modemOutput.indexOf("OK") >= 0) {
+          delivered = true;
+          break;
+        }
+      }
+      if (delivered) break;
+      delay(10);
+    }
+
+    if (delivered) {
+      Serial.println("[SMS SUCCESS] SMS successfully delivered to cellular network!");
+      Serial.println("[GSM Output]: " + modemOutput);
+      beepBuzzer(2, 100);
+    } else {
+      Serial.println("[SMS WARNING] Timeout waiting for network OK. Response: " + modemOutput);
+      Serial.println("[NOTE] Ensure SIM800L has sufficient power (3.7V-4.2V 2A), load balance, and antenna connected.");
+    }
+  } else {
+    Serial.println("[SMS ERROR] Failed to receive '>' prompt from SIM800L modem!");
+    Serial.println("[NOTE] Check serial baud rate (9600), wiring (16/17), SIM PIN lock, and power.");
   }
 }
 
@@ -261,20 +390,6 @@ void soundSOSPattern() {
     digitalWrite(BUZZER, HIGH); delay(100);
     digitalWrite(BUZZER, LOW);  delay(100);
   }
-}
-
-// Helper function to handle the SIM800L SMS
-void sendSMS(String message) {
-  Serial.println("Sending SMS via SIM800L...");
-  Serial2.println("AT+CMGF=1");
-  delay(100);
-  Serial2.println("AT+CMGS=\"09187439096\"");
-  delay(100);
-  Serial2.print(message);
-  delay(100);
-  Serial2.write(26);
-  delay(100);
-  Serial.println("SMS sent to 09187439096!");
 }
 
 // Helper function to control buzzer
