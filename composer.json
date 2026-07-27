@@ -53,7 +53,7 @@
         ],
         "save": [
             "git add .",
-            "git commit -m \"update: save changes\"",
+            "git diff-index --quiet HEAD || git commit -m \"update: save changes\"",
             "git push origin master"
         ],
         "test": [
