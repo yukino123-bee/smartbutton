@@ -54,15 +54,17 @@
     </div>
 </div>
 
-{{-- ===== ACTIVE EMERGENCY BANNER ===== --}}
-<div class="bg-white border-2 border-red-300 rounded-2xl mb-6 overflow-hidden shadow-md text-black">
+{{-- ===== ACTIVE EMERGENCY BANNER (Dynamic) ===== --}}
+<div id="active-emergency-banner" class="bg-white border-2 border-red-300 rounded-2xl mb-6 overflow-hidden shadow-md text-black {{ $activeEmergency ? '' : 'hidden' }}">
     {{-- Header bar --}}
     <div class="bg-brand-red px-6 py-3 flex items-center justify-between">
         <div class="flex items-center gap-3">
             <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
             <span class="text-white font-black text-sm uppercase tracking-widest">⚠ Critical Emergency — Active</span>
         </div>
-        <span class="text-white text-xs font-bold bg-black/30 px-3 py-1 rounded-full">10:28 AM · May 15, 2025</span>
+        <span id="emergency-timestamp" class="text-white text-xs font-bold bg-black/30 px-3 py-1 rounded-full">
+            {{ $activeEmergency ? $activeEmergency->created_at->format('h:i A · M d, Y') : '' }}
+        </span>
     </div>
 
     {{-- Body --}}
@@ -78,11 +80,11 @@
                 <div class="space-y-2">
                     <div class="flex items-center gap-2 text-sm text-black font-bold">
                         <svg class="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        <span class="font-extrabold text-black text-base">Engineering Building</span>
+                        <span id="emergency-building" class="font-extrabold text-black text-base">{{ $activeEmergency->device->building ?? 'Engineering Building' }}</span>
                     </div>
                     <div class="flex items-center gap-2 text-sm text-black font-bold">
                         <svg class="w-5 h-5 text-brand-red shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-                        <span>Device: <span class="font-black text-black">GYM-001</span> <span class="text-black font-bold">(Gymnasium)</span></span>
+                        <span>Device: <span id="emergency-device-code" class="font-black text-black">{{ $activeEmergency->device->device_code ?? 'GYM-001' }}</span> <span id="emergency-device-name" class="text-black font-bold">({{ $activeEmergency->device->name ?? 'Gymnasium' }})</span></span>
                     </div>
                 </div>
 
@@ -102,15 +104,31 @@
         <div class="p-6 flex flex-col items-center justify-center gap-4 bg-red-100/50">
             <div class="text-center">
                 <p class="text-[11px] font-black text-black uppercase tracking-wider mb-1">Estimated Arrival</p>
-                <p class="text-5xl font-black text-brand-red leading-none tabular-nums">03:45</p>
+                <p id="emergency-countdown" class="text-5xl font-black text-brand-red leading-none tabular-nums">03:00</p>
                 <p class="text-xs text-black font-bold mt-1">minutes</p>
             </div>
-            <button class="w-full bg-brand-red hover:bg-red-700 active:scale-95 text-white font-black py-3 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm">
+            <button id="btn-patient-arrived" onclick="resolveActiveEmergency({{ $activeEmergency->id ?? 'null' }})" class="w-full bg-brand-red hover:bg-red-700 active:scale-95 text-white font-black py-3 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                 Patient Arrived
             </button>
         </div>
     </div>
+</div>
+
+{{-- ===== NO EMERGENCY STANDBY BANNER ===== --}}
+<div id="no-emergency-banner" class="bg-white border border-green-300 rounded-2xl mb-6 p-6 shadow-sm flex items-center justify-between text-black {{ $activeEmergency ? 'hidden' : '' }}">
+    <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-xl bg-green-100 border border-green-300 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+            <h3 class="text-base font-black text-black">System Normal — No Active Emergency</h3>
+            <p class="text-xs font-bold text-slate-700 mt-0.5">Clinic emergency response team is on standby. All panic button devices are online.</p>
+        </div>
+    </div>
+    <span class="inline-flex items-center gap-1.5 bg-green-100 text-brand-green text-xs font-black px-3 py-1.5 rounded-full border border-green-300">
+        <span class="w-2.5 h-2.5 rounded-full bg-brand-green animate-pulse"></span>STANDBY READY
+    </span>
 </div>
 
 {{-- ===== BOTTOM SECTION: TABLES ===== --}}
@@ -207,6 +225,56 @@
             </table>
         </div>
     </div>
+    </div>
 </div>
+
+<script>
+    window.currentEmergencyId = {{ $activeEmergency->id ?? 'null' }};
+    window.countdownInterval = null;
+
+    window.resolveActiveEmergency = function(id) {
+        const incidentId = id || window.currentEmergencyId;
+        if (incidentId) {
+            fetch('/clinic/incidents/' + incidentId + '/resolve', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => console.log('Resolved:', data))
+            .catch(err => console.error(err));
+        }
+
+        // Hide active banner, show standby banner
+        document.getElementById('active-emergency-banner')?.classList.add('hidden');
+        document.getElementById('no-emergency-banner')?.classList.remove('hidden');
+
+        // Update stats
+        const activeEl = document.getElementById('stat-active-alerts');
+        const treatedEl = document.getElementById('stat-treated');
+        const resolvedEl = document.getElementById('stat-resolved');
+
+        if (activeEl) {
+            let num = parseInt(activeEl.textContent || '0');
+            activeEl.textContent = Math.max(0, isNaN(num) ? 0 : num - 1);
+        }
+        if (treatedEl) {
+            let num = parseInt(treatedEl.textContent || '0');
+            treatedEl.textContent = isNaN(num) ? 1 : num + 1;
+        }
+        if (resolvedEl) {
+            let num = parseInt(resolvedEl.textContent || '0');
+            resolvedEl.textContent = isNaN(num) ? 1 : num + 1;
+        }
+
+        if (window.updateAlertBadges) {
+            let cur = parseInt(document.getElementById('sidebar-alert-badge')?.textContent || '0');
+            window.updateAlertBadges(Math.max(0, isNaN(cur) ? 0 : cur - 1));
+        }
+    };
+</script>
 
 @endsection

@@ -212,6 +212,28 @@
                         incomingEl.textContent = isNaN(num) ? 1 : num + 1;
                     }
 
+                    // Dynamically update active emergency banner
+                    const bldg = document.getElementById('emergency-building');
+                    const devCode = document.getElementById('emergency-device-code');
+                    const devName = document.getElementById('emergency-device-name');
+                    const timeStamp = document.getElementById('emergency-timestamp');
+                    const btn = document.getElementById('btn-patient-arrived');
+
+                    if (bldg) bldg.textContent = e.incident.device?.building || 'Campus Building';
+                    if (devCode) devCode.textContent = e.incident.device?.device_code || 'DEV-001';
+                    if (devName) devName.textContent = `(${e.incident.device?.name || 'Panic Button'})`;
+                    if (timeStamp) {
+                        const now = new Date();
+                        timeStamp.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) + ' · ' + now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+                    if (btn && e.incident.id) {
+                        btn.setAttribute('onclick', `resolveActiveEmergency(${e.incident.id})`);
+                    }
+
+                    // Reveal Active Emergency Banner & Hide Standby Banner
+                    document.getElementById('no-emergency-banner')?.classList.add('hidden');
+                    document.getElementById('active-emergency-banner')?.classList.remove('hidden');
+
                     // Play Alarm Sound
                     const audio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
                     audio.play().catch(e => console.log("Audio play failed: ", e));

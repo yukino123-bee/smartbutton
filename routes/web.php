@@ -41,4 +41,5 @@ Route::middleware(['auth', 'role:Clinic'])->prefix('clinic')->name('clinic.')->g
     Route::get('/logs', [\App\Http\Controllers\ClinicController::class, 'logs'])->name('logs');
     Route::get('/patients', [\App\Http\Controllers\ClinicController::class, 'patients'])->name('patients');
     Route::get('/reports', [\App\Http\Controllers\ClinicController::class, 'reports'])->name('reports');
+    Route::post('/incidents/{incident}/resolve', [\App\Http\Controllers\ClinicController::class, 'resolveIncident'])->name('incidents.resolve');
 });

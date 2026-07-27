@@ -36,14 +36,22 @@ class ClinicController extends Controller
             ->take(10)
             ->get();
 
+        $activeEmergency = $criticalIncidents->first();
+
         return view('clinic', compact(
             'activeAlerts',
             'incomingCount',
             'treatedTodayCount',
             'resolvedTodayCount',
             'criticalIncidents',
-            'recentHistory'
+            'recentHistory',
+            'activeEmergency'
         ));
+    }
+
+    public function resolveIncident(Incident $incident) {
+        $incident->update(['status' => 'resolved']);
+        return response()->json(['success' => true, 'message' => 'Incident resolved successfully']);
     }
 
     public function alerts() { return view('clinic.alerts'); }
