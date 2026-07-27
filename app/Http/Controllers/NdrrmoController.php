@@ -11,7 +11,7 @@ class NdrrmoController extends Controller
         $totalIncidents = \App\Models\Incident::count();
         $resolvedIncidents = \App\Models\Incident::where('status', 'resolved')->count();
         $devicesCount = \App\Models\Device::count();
-        $onlineDevicesCount = \App\Models\Device::whereIn('status', ['active', 'online'])->count();
+        $onlineDevicesCount = \App\Models\Device::all()->filter(fn($d) => $d->is_online)->count();
         $devicesList = \App\Models\Device::all();
         $recentLogs = \App\Models\Incident::with('device')->latest()->take(5)->get();
         
@@ -107,7 +107,7 @@ class NdrrmoController extends Controller
 
     public function statsJson() {
         $devicesCount = \App\Models\Device::count();
-        $onlineDevicesCount = \App\Models\Device::whereIn('status', ['active', 'online'])->count();
+        $onlineDevicesCount = \App\Models\Device::all()->filter(fn($d) => $d->is_online)->count();
         return response()->json([
             'active_alerts' => \App\Models\Incident::whereIn('status', ['pending', 'acknowledged', 'responding'])->count(),
             'total_incidents' => \App\Models\Incident::count(),
