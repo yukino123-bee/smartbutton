@@ -255,10 +255,18 @@
                     const activeEl = document.getElementById('ndrrmo-stat-active');
                     const totalEl = document.getElementById('ndrrmo-stat-total');
                     const resolvedEl = document.getElementById('ndrrmo-stat-resolved');
+                    const devicesEl = document.getElementById('ndrrmo-stat-devices');
+                    const subtitleEl = document.getElementById('ndrrmo-stat-devices-subtitle');
                     
                     if (activeEl && data.active_alerts !== undefined) activeEl.textContent = data.active_alerts;
                     if (totalEl && data.total_incidents !== undefined) totalEl.textContent = data.total_incidents;
                     if (resolvedEl && data.resolved_incidents !== undefined) resolvedEl.textContent = data.resolved_incidents;
+                    if (devicesEl && data.devices_online !== undefined && data.total_devices !== undefined) {
+                        devicesEl.textContent = `${data.devices_online} / ${data.total_devices}`;
+                        if (subtitleEl) {
+                            subtitleEl.textContent = data.devices_online > 0 ? 'Devices operational' : 'No devices online';
+                        }
+                    }
 
                     if (window.updateNDRRMOAlertBadges && data.active_alerts !== undefined) {
                         window.updateNDRRMOAlertBadges(data.active_alerts);

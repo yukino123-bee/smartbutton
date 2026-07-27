@@ -47,8 +47,8 @@
                     </div>
                     <div>
                         <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">DEVICES ONLINE</div>
-                        <div class="text-3xl font-black text-black leading-none mb-1 tabular-nums">{{ $devicesCount }} / {{ $devicesCount }}</div>
-                        <div class="text-[11px] font-bold text-slate-700">All devices operational</div>
+                        <div id="ndrrmo-stat-devices" class="text-3xl font-black text-black leading-none mb-1 tabular-nums">{{ $onlineDevicesCount ?? 0 }} / {{ $devicesCount ?? 0 }}</div>
+                        <div id="ndrrmo-stat-devices-subtitle" class="text-[11px] font-bold text-slate-700">{{ ($onlineDevicesCount ?? 0) > 0 ? 'Devices operational' : 'No devices online' }}</div>
                     </div>
                 </div>
             </div>

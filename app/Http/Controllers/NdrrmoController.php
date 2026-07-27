@@ -11,6 +11,7 @@ class NdrrmoController extends Controller
         $totalIncidents = \App\Models\Incident::count();
         $resolvedIncidents = \App\Models\Incident::where('status', 'resolved')->count();
         $devicesCount = \App\Models\Device::count();
+        $onlineDevicesCount = \App\Models\Device::whereIn('status', ['active', 'online'])->count();
         $devicesList = \App\Models\Device::all();
         $recentLogs = \App\Models\Incident::with('device')->latest()->take(5)->get();
         
@@ -21,7 +22,7 @@ class NdrrmoController extends Controller
             'Facility & Hazard' => \App\Models\Incident::where('emergency_type', 'like', '%Facility%')->orWhere('emergency_type', 'like', '%Hazard%')->count(),
         ];
         
-        return view('ndrrmo', compact('activeIncidents', 'totalIncidents', 'resolvedIncidents', 'devicesCount', 'devicesList', 'recentLogs', 'stats'));
+        return view('ndrrmo', compact('activeIncidents', 'totalIncidents', 'resolvedIncidents', 'devicesCount', 'onlineDevicesCount', 'devicesList', 'recentLogs', 'stats'));
     }
     public function alerts() { 
         $alerts = \App\Models\Incident::with('device')
@@ -105,12 +106,14 @@ class NdrrmoController extends Controller
     }
 
     public function statsJson() {
+        $devicesCount = \App\Models\Device::count();
+        $onlineDevicesCount = \App\Models\Device::whereIn('status', ['active', 'online'])->count();
         return response()->json([
             'active_alerts' => \App\Models\Incident::whereIn('status', ['pending', 'acknowledged', 'responding'])->count(),
             'total_incidents' => \App\Models\Incident::count(),
             'resolved_incidents' => \App\Models\Incident::where('status', 'resolved')->count(),
-            'devices_online' => \App\Models\Device::where('status', 'active')->count(),
-            'total_devices' => \App\Models\Device::count(),
+            'devices_online' => $onlineDevicesCount,
+            'total_devices' => $devicesCount,
             'pending' => \App\Models\Incident::where('status', 'pending')->count(),
             'responding' => \App\Models\Incident::where('status', 'responding')->count(),
             'resolved' => \App\Models\Incident::where('status', 'resolved')->count(),
