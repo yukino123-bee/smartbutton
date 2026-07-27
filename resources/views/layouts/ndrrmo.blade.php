@@ -44,10 +44,13 @@
 
     <!-- Sidebar -->
     <aside class="w-64 bg-brand-sidebar flex flex-col border-r border-brand-border z-20 shrink-0">
-        <div class="h-16 flex items-center px-4 border-b border-brand-border shrink-0">
-            <img src="/images/logo.png" alt="JHCSC Logo" class="w-10 h-10 object-contain shrink-0">
-            <div class="ml-3 text-[11px] font-bold leading-tight text-brand-dark tracking-wide">
-                Smart Student Panic Button &<br>Emergency Response System
+        <div class="h-20 flex items-center px-4 border-b border-brand-border shrink-0 gap-3">
+            <div class="w-10 h-10 rounded-xl bg-slate-100 p-1 border border-slate-200 flex items-center justify-center shrink-0">
+                <img src="/images/logo.png" alt="JHCSC Logo" class="w-full h-full object-contain">
+            </div>
+            <div class="flex flex-col justify-center min-w-0">
+                <span class="text-[12px] font-extrabold text-brand-dark leading-snug tracking-tight truncate">Smart Panic Button</span>
+                <span class="text-[10px] font-bold text-brand-text leading-tight truncate">Emergency Response System</span>
             </div>
         </div>
 
@@ -64,7 +67,7 @@
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                     <span class="font-medium">Live Alerts</span>
                 </div>
-                <span class="bg-brand-red text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">2</span>
+                <span id="ndrrmo-sidebar-alert-badge" class="bg-brand-red text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full {{ ($activeAlertsCount ?? 0) > 0 ? '' : 'hidden' }}">{{ $activeAlertsCount ?? 0 }}</span>
             </a>
 
             <a href="{{ route('ndrrmo.logs') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('ndrrmo.logs') ? 'bg-brand-blue text-white' : 'text-brand-text hover:bg-brand-blue/10 hover:text-brand-blue' }} rounded-lg transition-colors">
@@ -120,15 +123,15 @@
                 
                 <div class="flex items-center text-xs text-brand-text border-l border-brand-border pl-6">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    May 15, 2025
+                    <span id="ndrrmo-header-date">--</span>
                     <span class="mx-2">|</span>
-                    10:30:45 AM
+                    <span id="ndrrmo-header-time" class="tabular-nums">--</span>
                 </div>
 
                 <div class="flex items-center pl-4 border-l border-brand-border space-x-4">
                     <button class="relative text-brand-text hover:text-brand-dark transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                        <span class="absolute -top-1 -right-1 w-4 h-4 bg-brand-red rounded-full text-[9px] font-bold flex items-center justify-center text-white border border-brand-bg">3</span>
+                        <span id="ndrrmo-header-notification-badge" class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-brand-red rounded-full text-[9px] font-bold flex items-center justify-center text-white border border-brand-bg {{ ($activeAlertsCount ?? 0) > 0 ? '' : 'hidden' }}">{{ $activeAlertsCount ?? 0 }}</span>
                     </button>
                     
                     <div class="flex items-center cursor-pointer">
@@ -153,8 +156,29 @@
 
     <!-- Scripts -->
     <script type="module">
+        window.updateNDRRMOAlertBadges = function(count) {
+            const sidebarBadge = document.getElementById('ndrrmo-sidebar-alert-badge');
+            const headerBadge = document.getElementById('ndrrmo-header-notification-badge');
+
+            [sidebarBadge, headerBadge].forEach(badge => {
+                if (badge) {
+                    badge.textContent = count;
+                    if (count > 0) {
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+            });
+        };
+
         window.Echo.channel('emergencies')
             .listen('EmergencyReported', (e) => {
+                // Increment badges
+                const sidebarBadge = document.getElementById('ndrrmo-sidebar-alert-badge');
+                let currentCount = parseInt(sidebarBadge ? sidebarBadge.textContent || '0' : '0');
+                if (isNaN(currentCount)) currentCount = 0;
+                window.updateNDRRMOAlertBadges(currentCount + 1);
                 console.log('New Emergency:', e);
                 // Here we dynamically add the row to the active alerts and table
                 const alertHtml = `
@@ -187,6 +211,21 @@
                     window.updateMarkerStatus(e.incident.device.device_code, e.incident.emergency_type);
                 }
             });
+    </script>
+    <script>
+        function updateLiveNDRRMOClock() {
+            const now = new Date();
+            const dateEl = document.getElementById('ndrrmo-header-date');
+            const timeEl = document.getElementById('ndrrmo-header-time');
+            if (dateEl) {
+                dateEl.textContent = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+            if (timeEl) {
+                timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+            }
+        }
+        updateLiveNDRRMOClock();
+        setInterval(updateLiveNDRRMOClock, 1000);
     </script>
 </body>
 </html>
