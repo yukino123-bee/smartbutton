@@ -139,7 +139,13 @@ function toggleAllLogs(master) {
 }
 
 function deleteSingleLog(id) {
-    if (confirm('Are you sure you want to delete this incident log?')) {
+    window.showConfirmDialog({
+        title: 'Delete Incident Log',
+        message: 'Are you sure you want to delete this incident log? This action cannot be undone.',
+        confirmText: 'Delete',
+        type: 'danger'
+    }).then(confirmed => {
+        if (!confirmed) return;
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '{{ route("ndrrmo.alerts.bulk-delete") }}';
@@ -149,15 +155,24 @@ function deleteSingleLog(id) {
         `;
         document.body.appendChild(form);
         form.submit();
-    }
+    });
 }
 
 document.getElementById('logs-bulk-form').addEventListener('submit', function(e) {
     const count = getCheckedLogs().length;
     if (count === 0) { e.preventDefault(); return; }
-    if (!confirm(`Delete ${count} incident log(s)? This cannot be undone.`)) {
-        e.preventDefault();
-    }
+    e.preventDefault();
+    const form = this;
+    window.showConfirmDialog({
+        title: 'Delete Selected Incident Logs',
+        message: `Are you sure you want to delete ${count} selected incident log(s)? This action cannot be undone.`,
+        confirmText: 'Delete Logs',
+        type: 'danger'
+    }).then(confirmed => {
+        if (confirmed) {
+            form.submit();
+        }
+    });
 });
 
 // Keyboard shortcuts (Ctrl+A = Select All, Esc = Deselect)

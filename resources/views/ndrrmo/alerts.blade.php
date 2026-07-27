@@ -280,64 +280,100 @@ function showShortcutToast() {
     setTimeout(() => t.remove(), 3000);
 }
 
-// Confirm before submitting
+// Confirm before submitting bulk delete
 document.getElementById('bulk-form').addEventListener('submit', function(e) {
     const count = getChecked().length;
     if (count === 0) { e.preventDefault(); return; }
-    if (!confirm(`Delete ${count} alert(s)? This cannot be undone.`)) {
-        e.preventDefault();
-    }
+    e.preventDefault();
+    const form = this;
+    window.showConfirmDialog({
+        title: 'Delete Selected Alerts',
+        message: `Are you sure you want to delete ${count} selected alert(s)? This action cannot be undone.`,
+        confirmText: 'Delete',
+        type: 'danger'
+    }).then(confirmed => {
+        if (confirmed) {
+            form.submit();
+        }
+    });
 });
 
 function acknowledgeSingleAlert(id) {
-    if (window.stopEmergencySirenAudio) window.stopEmergencySirenAudio();
-    if (window.stopVoiceSpeech) window.stopVoiceSpeech();
+    window.showConfirmDialog({
+        title: 'Acknowledge Alert',
+        message: 'Are you sure you want to acknowledge this emergency alert and stop the alarm?',
+        confirmText: 'Acknowledge',
+        type: 'warning'
+    }).then(confirmed => {
+        if (!confirmed) return;
 
-    fetch(`/ndrrmo/incidents/${id}/acknowledge`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        window.location.reload();
-    })
-    .catch(err => window.location.reload());
+        if (window.stopEmergencySirenAudio) window.stopEmergencySirenAudio();
+        if (window.stopVoiceSpeech) window.stopVoiceSpeech();
+
+        fetch(`/ndrrmo/incidents/${id}/acknowledge`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            window.location.reload();
+        })
+        .catch(err => window.location.reload());
+    });
 }
 
 function dispatchSingleAlert(id) {
-    fetch(`/ndrrmo/incidents/${id}/dispatch`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        window.location.reload();
-    })
-    .catch(err => window.location.reload());
+    window.showConfirmDialog({
+        title: 'Dispatch Responder Team',
+        message: 'Are you sure you want to dispatch a responder team to this incident location?',
+        confirmText: 'Dispatch Team',
+        type: 'info'
+    }).then(confirmed => {
+        if (!confirmed) return;
+
+        fetch(`/ndrrmo/incidents/${id}/dispatch`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            window.location.reload();
+        })
+        .catch(err => window.location.reload());
+    });
 }
 
 function resolveSingleAlert(id) {
-    fetch(`/ndrrmo/incidents/${id}/resolve`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        window.location.reload();
-    })
-    .catch(err => window.location.reload());
+    window.showConfirmDialog({
+        title: 'Resolve Emergency Incident',
+        message: 'Are you sure you want to mark this incident as RESOLVED?',
+        confirmText: 'Resolve Incident',
+        type: 'danger'
+    }).then(confirmed => {
+        if (!confirmed) return;
+
+        fetch(`/ndrrmo/incidents/${id}/resolve`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            window.location.reload();
+        })
+        .catch(err => window.location.reload());
+    });
 }
 </script>
 @endsection

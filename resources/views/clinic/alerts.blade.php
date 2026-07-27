@@ -123,21 +123,34 @@
 
             <!-- Card Actions -->
             <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-2 items-center">
-                @if(strtolower($alert->status) === 'pending')
-                    <button type="button" onclick="event.preventDefault(); document.getElementById('ack-form-{{ $alert->id }}').submit();" class="flex-1 py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        Acknowledge
-                    </button>
-                @endif
-                <button type="button" onclick="event.preventDefault(); document.getElementById('resolve-form-{{ $alert->id }}').submit();" class="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Mark Resolved
-                </button>
-                
-                {{-- Single Delete Button --}}
-                <button type="button" onclick="event.preventDefault(); if(confirm('Delete this alert?')) document.getElementById('delete-form-{{ $alert->id }}').submit();" class="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 border border-rose-200 transition-colors shrink-0 cursor-pointer" title="Delete Alert">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                </button>
+                {{-- Action Buttons --}}
+                <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+                    @if($alert->status === 'pending')
+                        <form id="ack-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.incidents.acknowledge', $alert->id) }}" class="flex-1" onsubmit="return confirmAction(event, 'Are you sure you want to acknowledge this alert?', 'Acknowledge Alert', 'Acknowledge', 'warning')">
+                            @csrf
+                            <button type="submit" class="w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                Acknowledge
+                            </button>
+                        </form>
+                    @endif
+                    <form id="resolve-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.incidents.resolve', $alert->id) }}" class="flex-1" onsubmit="return confirmAction(event, 'Are you sure you want to mark this emergency as RESOLVED?', 'Resolve Incident', 'Mark Resolved', 'danger')">
+                        @csrf
+                        <button type="submit" class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Mark Resolved
+                        </button>
+                    </form>
+                    
+                    {{-- Single Delete Button --}}
+                    <form id="delete-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.alerts.destroy', $alert->id) }}" class="shrink-0" onsubmit="return confirmAction(event, 'Are you sure you want to delete this alert?', 'Delete Alert', 'Delete', 'danger')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 border border-rose-200 transition-colors cursor-pointer" title="Delete Alert">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     @endforeach
@@ -145,19 +158,21 @@
 @endif
 </form>
 
-{{-- Hidden Individual Action Forms --}}
-@foreach($alerts as $alert)
-    <form id="ack-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.incidents.acknowledge', $alert->id) }}" class="hidden">@csrf</form>
-    <form id="resolve-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.incidents.resolve', $alert->id) }}" class="hidden">@csrf</form>
-    <form id="delete-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.alerts.destroy', $alert->id) }}" class="hidden">@csrf @method('DELETE')</form>
-@endforeach
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const selectAll = document.getElementById('header-select-all');
         const checkboxes = document.querySelectorAll('.alert-checkbox');
         const deleteBtn = document.getElementById('header-delete-btn');
         const countSpan = document.getElementById('header-selected-count');
+        const bulkForm = document.getElementById('bulk-form');
+
+        if (bulkForm) {
+            bulkForm.addEventListener('submit', function(e) {
+                const checked = document.querySelectorAll('.alert-checkbox:checked');
+                if (checked.length === 0) { e.preventDefault(); return; }
+                confirmAction(e, `Are you sure you want to delete ${checked.length} selected alert(s)? This action cannot be undone.`, 'Delete Selected Alerts', 'Delete All', 'danger');
+            });
+        }
 
         function updateState() {
             const checked = document.querySelectorAll('.alert-checkbox:checked');

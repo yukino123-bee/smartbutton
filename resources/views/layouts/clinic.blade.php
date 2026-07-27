@@ -119,7 +119,7 @@
         </div>
 
         <div class="p-3 border-t border-slate-200/80 mt-auto">
-            <form method="POST" action="{{ route('logout') }}">
+            <form method="POST" action="{{ route('logout') }}" onsubmit="return confirmAction(event, 'Are you sure you want to log out of your Clinic session?', 'Confirm Logout', 'Logout', 'danger')">
                 @csrf
                 <button type="submit" class="flex items-center w-full px-3.5 py-2.5 text-brand-red font-bold hover:text-white hover:bg-red-600 hover:shadow-md hover:shadow-red-200 hover:translate-x-1 rounded-xl transition-all duration-200 group cursor-pointer">
                     <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
@@ -176,7 +176,7 @@
                                 My Profile
                             </a>
                             <div class="border-t border-slate-100 my-1"></div>
-                            <form method="POST" action="{{ route('logout') }}">
+                            <form method="POST" action="{{ route('logout') }}" onsubmit="return confirmAction(event, 'Are you sure you want to log out of your Clinic session?', 'Confirm Logout', 'Logout', 'danger')">
                                 @csrf
                                 <button type="submit" class="flex items-center w-full px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer">
                                     <svg class="w-4 h-4 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
@@ -446,7 +446,110 @@
                 }
             });
     </script>
+    {{-- Custom Action Confirmation Dialog Modal --}}
+    <div id="custom-confirm-modal" class="fixed inset-0 z-[10000] hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all duration-200 select-none">
+        <div class="relative w-full max-w-sm bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden p-6 text-center transform transition-all scale-100">
+            <div id="confirm-icon-wrapper" class="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-red-100 text-red-600 shadow-sm border border-red-200">
+                <svg id="confirm-modal-icon" class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+
+            <h3 id="confirm-modal-title" class="text-lg font-black text-slate-900 mb-1">
+                Confirm Action
+            </h3>
+
+            <p id="confirm-modal-message" class="text-slate-600 font-medium text-xs mb-6 leading-relaxed">
+                Are you sure you want to proceed with this action?
+            </p>
+
+            <div class="flex items-center gap-3">
+                <button id="confirm-modal-cancel-btn" type="button"
+                        class="flex-1 py-3 px-4 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all text-xs cursor-pointer border border-slate-200">
+                    Cancel
+                </button>
+                <button id="confirm-modal-submit-btn" type="button"
+                        class="flex-1 py-3 px-4 rounded-xl font-extrabold text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all text-xs shadow-md shadow-red-200 cursor-pointer">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        window.showConfirmDialog = function({
+            title = 'Confirm Action',
+            message = 'Are you sure you want to proceed?',
+            confirmText = 'Confirm',
+            cancelText = 'Cancel',
+            type = 'danger'
+        } = {}) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('custom-confirm-modal');
+                const titleEl = document.getElementById('confirm-modal-title');
+                const msgEl = document.getElementById('confirm-modal-message');
+                const submitBtn = document.getElementById('confirm-modal-submit-btn');
+                const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+                const iconWrapper = document.getElementById('confirm-icon-wrapper');
+
+                if (!modal) {
+                    resolve(true);
+                    return;
+                }
+
+                if (titleEl) titleEl.textContent = title;
+                if (msgEl) msgEl.textContent = message;
+                if (submitBtn) submitBtn.textContent = confirmText;
+                if (cancelBtn) cancelBtn.textContent = cancelText;
+
+                if (type === 'danger') {
+                    if (iconWrapper) iconWrapper.className = 'w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-red-100 text-red-600 shadow-sm border border-red-200';
+                    if (submitBtn) submitBtn.className = 'flex-1 py-3 px-4 rounded-xl font-extrabold text-white bg-red-600 hover:bg-red-700 active:scale-95 transition-all text-xs shadow-md shadow-red-200 cursor-pointer';
+                } else if (type === 'warning') {
+                    if (iconWrapper) iconWrapper.className = 'w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-amber-100 text-amber-600 shadow-sm border border-amber-200';
+                    if (submitBtn) submitBtn.className = 'flex-1 py-3 px-4 rounded-xl font-extrabold text-white bg-amber-600 hover:bg-amber-700 active:scale-95 transition-all text-xs shadow-md shadow-amber-200 cursor-pointer';
+                } else {
+                    if (iconWrapper) iconWrapper.className = 'w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-blue-100 text-blue-600 shadow-sm border border-blue-200';
+                    if (submitBtn) submitBtn.className = 'flex-1 py-3 px-4 rounded-xl font-extrabold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all text-xs shadow-md shadow-blue-200 cursor-pointer';
+                }
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+
+                function cleanup() {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    submitBtn.removeEventListener('click', onConfirm);
+                    cancelBtn.removeEventListener('click', onCancel);
+                }
+
+                function onConfirm() {
+                    cleanup();
+                    resolve(true);
+                }
+
+                function onCancel() {
+                    cleanup();
+                    resolve(false);
+                }
+
+                submitBtn.addEventListener('click', onConfirm);
+                cancelBtn.addEventListener('click', onCancel);
+            });
+        };
+
+        window.confirmAction = function(event, message, title = 'Confirm Action', confirmText = 'Confirm', type = 'danger') {
+            event.preventDefault();
+            const target = event.currentTarget || event.target;
+            const form = target.closest('form') || target;
+            window.showConfirmDialog({ title, message, confirmText, type }).then(confirmed => {
+                if (confirmed) {
+                    form.submit();
+                }
+            });
+            return false;
+        };
+
         function updateLiveClock() {
             const now = new Date();
             const dateEl = document.getElementById('header-date');
