@@ -56,6 +56,10 @@
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900">
                     Sign In
                 </button>
+                
+                <div class="text-center mt-4">
+                    <p class="text-sm text-slate-400">Don't have an account? <a href="{{ route('register') }}" class="text-blue-500 hover:text-blue-400 font-medium">Register here</a></p>
+                </div>
             </form>
             
             <div class="mt-8 text-center text-xs text-slate-500">
