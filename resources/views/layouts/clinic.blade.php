@@ -200,6 +200,18 @@
                     if (isNaN(currentCount)) currentCount = 0;
                     window.updateAlertBadges(currentCount + 1);
 
+                    // Update Stat Cards Grid in real-time
+                    const activeAlertsEl = document.getElementById('stat-active-alerts');
+                    const incomingEl = document.getElementById('stat-incoming');
+                    if (activeAlertsEl) {
+                        let num = parseInt(activeAlertsEl.textContent || '0');
+                        activeAlertsEl.textContent = isNaN(num) ? 1 : num + 1;
+                    }
+                    if (incomingEl) {
+                        let num = parseInt(incomingEl.textContent || '0');
+                        incomingEl.textContent = isNaN(num) ? 1 : num + 1;
+                    }
+
                     // Play Alarm Sound
                     const audio = new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg');
                     audio.play().catch(e => console.log("Audio play failed: ", e));

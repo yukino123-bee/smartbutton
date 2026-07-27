@@ -12,7 +12,7 @@
         </div>
         <div>
             <p class="text-[11px] font-black text-black uppercase tracking-wider mb-0.5">Active Alerts</p>
-            <p class="text-3xl font-black text-black leading-none">1</p>
+            <p id="stat-active-alerts" class="text-3xl font-black text-black leading-none tabular-nums">{{ $activeAlerts ?? 0 }}</p>
             <p class="text-[11px] text-brand-red font-extrabold mt-1">Needs attention</p>
         </div>
     </div>
@@ -24,7 +24,7 @@
         </div>
         <div>
             <p class="text-[11px] font-black text-black uppercase tracking-wider mb-0.5">Incoming</p>
-            <p class="text-3xl font-black text-black leading-none">1</p>
+            <p id="stat-incoming" class="text-3xl font-black text-black leading-none tabular-nums">{{ $incomingCount ?? 0 }}</p>
             <p class="text-[11px] text-black font-bold mt-1">Patient today</p>
         </div>
     </div>
@@ -36,7 +36,7 @@
         </div>
         <div>
             <p class="text-[11px] font-black text-black uppercase tracking-wider mb-0.5">Treated Today</p>
-            <p class="text-3xl font-black text-black leading-none">3</p>
+            <p id="stat-treated" class="text-3xl font-black text-black leading-none tabular-nums">{{ $treatedTodayCount ?? 0 }}</p>
             <p class="text-[11px] text-black font-bold mt-1">Total patients</p>
         </div>
     </div>
@@ -48,7 +48,7 @@
         </div>
         <div>
             <p class="text-[11px] font-black text-black uppercase tracking-wider mb-0.5">Resolved Today</p>
-            <p class="text-3xl font-black text-black leading-none">2</p>
+            <p id="stat-resolved" class="text-3xl font-black text-black leading-none tabular-nums">{{ $resolvedTodayCount ?? 0 }}</p>
             <p class="text-[11px] text-black font-bold mt-1">Incidents closed</p>
         </div>
     </div>
