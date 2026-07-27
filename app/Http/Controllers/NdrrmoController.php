@@ -14,8 +14,17 @@ class NdrrmoController extends Controller
         
         return view('ndrrmo', compact('activeIncidents', 'totalIncidents', 'resolvedIncidents', 'devices'));
     }
-    public function alerts() { return view('ndrrmo.alerts'); }
-    public function logs() { return view('ndrrmo.logs'); }
+    public function alerts() { 
+        $alerts = \App\Models\Incident::with('device')
+            ->whereIn('status', ['pending', 'acknowledged', 'responding'])
+            ->latest()
+            ->get();
+        return view('ndrrmo.alerts', compact('alerts')); 
+    }
+    public function logs() { 
+        $logs = \App\Models\Incident::with('device')->latest()->paginate(15);
+        return view('ndrrmo.logs', compact('logs')); 
+    }
     public function map() { 
         $devices = \App\Models\Device::all();
         $activeIncidents = \App\Models\Incident::with('device')
@@ -65,6 +74,24 @@ class NdrrmoController extends Controller
         $device->delete();
         return redirect()->route('ndrrmo.devices')->with('success', 'Device deleted successfully.');
     }
-    public function sms() { return view('ndrrmo.sms'); }
-    public function reports() { return view('ndrrmo.reports'); }
+    public function sms() { 
+        $smsLogs = \App\Models\Notification::where('channel', 'SMS Backup')
+            ->with('incident.device')
+            ->latest()
+            ->paginate(15);
+        return view('ndrrmo.sms', compact('smsLogs')); 
+    }
+    public function reports() { 
+        $stats = \App\Models\Incident::selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+            
+        $typeStats = \App\Models\Incident::selectRaw('emergency_type, count(*) as count')
+            ->groupBy('emergency_type')
+            ->pluck('count', 'emergency_type');
+            
+        $totalIncidents = \App\Models\Incident::count();
+        
+        return view('ndrrmo.reports', compact('stats', 'typeStats', 'totalIncidents')); 
+    }
 }

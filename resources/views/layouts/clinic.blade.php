@@ -16,17 +16,18 @@
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
                         brand: {
-                            bg: '#0F1523',
-                            sidebar: '#0A0F1A',
-                            card: '#182235',
-                            border: '#2A364E',
-                            blue: '#2563EB',
+                            bg: '#F8FAFC',
+                            sidebar: '#FFFFFF',
+                            card: '#FFFFFF',
+                            border: '#E2E8F0',
+                            blue: '#3B82F6',
                             red: '#EF4444',
                             orange: '#F59E0B',
-                            green: '#10B981',
+                            green: '#15803D',
                             teal: '#14B8A6',
-                            text: '#94A3B8',
-                            white: '#F8FAFC'
+                            text: '#64748B',
+                            dark: '#0F172A',
+                            hover: '#F1F5F9'
                         }
                     }
                 }
@@ -34,7 +35,7 @@
         }
     </script>
     <style>
-        body { background-color: theme('colors.brand.bg'); color: theme('colors.brand.white'); font-family: 'Inter', sans-serif; }
+        body { background-color: theme('colors.brand.bg'); color: theme('colors.brand.dark'); font-family: 'Inter', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -53,23 +54,19 @@
     <!-- Sidebar -->
     <aside class="w-64 bg-brand-sidebar flex flex-col border-r border-brand-border z-20 shrink-0">
         <div class="h-16 flex items-center px-4 border-b border-brand-border shrink-0">
-            <div class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center shrink-0 overflow-hidden border-2 border-brand-sidebar">
-                <div class="w-full h-full bg-yellow-400 rounded-full flex items-center justify-center">
-                    <span class="text-[10px] font-bold text-black">JHCSC</span>
-                </div>
-            </div>
-            <div class="ml-3 text-[11px] font-bold leading-tight text-white tracking-wide">
+            <img src="/images/logo.png" alt="JHCSC Logo" class="w-10 h-10 object-contain shrink-0">
+            <div class="ml-3 text-[11px] font-bold leading-tight text-brand-dark tracking-wide">
                 Smart Student Panic Button &<br>Emergency Response System
             </div>
         </div>
 
         <div class="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-1">
-            <a href="{{ route('clinic.dashboard') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('clinic.dashboard') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-white/5' }} rounded-lg group">
+            <a href="{{ route('clinic.dashboard') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('clinic.dashboard') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-brand-hover' }} rounded-lg group">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                 <span class="font-medium">Dashboard</span>
             </a>
             
-            <a href="{{ route('clinic.alerts') }}" class="flex items-center justify-between px-3 py-2.5 {{ request()->routeIs('clinic.alerts') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-white/5' }} rounded-lg transition-colors">
+            <a href="{{ route('clinic.alerts') }}" class="flex items-center justify-between px-3 py-2.5 {{ request()->routeIs('clinic.alerts') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-brand-hover' }} rounded-lg transition-colors">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 mr-3 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                     <span class="font-medium text-brand-red">Critical Alerts</span>
@@ -77,24 +74,24 @@
                 <span class="bg-brand-red text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">2</span>
             </a>
 
-            <a href="{{ route('clinic.incoming') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('clinic.incoming') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-white/5' }} rounded-lg transition-colors">
+            <a href="{{ route('clinic.incoming') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('clinic.incoming') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-brand-hover' }} rounded-lg transition-colors">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
                 <span class="font-medium">Incoming Patients</span>
             </a>
 
-            <a href="{{ route('clinic.logs') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('clinic.logs') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-white/5' }} rounded-lg transition-colors">
+            <a href="{{ route('clinic.logs') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('clinic.logs') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-brand-hover' }} rounded-lg transition-colors">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                 <span class="font-medium">Incident Logs</span>
             </a>
 
-            <a href="{{ route('clinic.patients') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('clinic.patients') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-white/5' }} rounded-lg transition-colors">
+            <a href="{{ route('clinic.patients') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('clinic.patients') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-brand-hover' }} rounded-lg transition-colors">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                 <span class="font-medium">Patients Record</span>
             </a>
 
 
 
-            <a href="{{ route('clinic.reports') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('clinic.reports') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-white/5' }} rounded-lg transition-colors">
+            <a href="{{ route('clinic.reports') }}" class="flex items-center px-3 py-2.5 {{ request()->routeIs('clinic.reports') ? 'bg-brand-blue text-white' : 'text-brand-text hover:text-white hover:bg-brand-hover' }} rounded-lg transition-colors">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 <span class="font-medium">Reports</span>
             </a>
@@ -113,7 +110,7 @@
         <!-- Header -->
         <header class="h-16 bg-brand-bg border-b border-brand-border flex items-center justify-between px-6 shrink-0 z-10">
             <div class="flex items-baseline space-x-2">
-                <h1 class="text-lg font-bold text-white uppercase tracking-wider">CLINIC DASHBOARD</h1>
+                <h1 class="text-lg font-bold text-brand-dark uppercase tracking-wider">CLINIC DASHBOARD</h1>
                 <span class="text-xs text-brand-text">Clinic Side</span>
             </div>
             
@@ -131,7 +128,7 @@
                 </div>
 
                 <div class="flex items-center pl-4 border-l border-brand-border space-x-4">
-                    <button class="relative text-brand-text hover:text-white transition-colors">
+                    <button class="relative text-brand-text hover:text-brand-dark transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                         <span class="absolute -top-1 -right-1 w-4 h-4 bg-brand-red rounded-full text-[9px] font-bold flex items-center justify-center text-white border border-brand-bg">3</span>
                     </button>
@@ -141,7 +138,7 @@
                             <img src="https://ui-avatars.com/api/?name=Admin&background=475569&color=fff" alt="Admin" class="w-full h-full object-cover">
                         </div>
                         <div class="hidden md:block">
-                            <div class="text-xs font-semibold text-white leading-none mb-1">Clinic Admin</div>
+                            <div class="text-xs font-semibold text-brand-dark leading-none mb-1">Clinic Admin</div>
                             <div class="text-[10px] text-brand-text leading-none">Clinic Staff</div>
                         </div>
                         <svg class="w-4 h-4 ml-2 text-brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>

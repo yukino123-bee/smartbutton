@@ -3,7 +3,7 @@
 @section('content')
 <div class="mb-6 flex justify-between items-center">
     <div>
-        <h1 class="text-white text-2xl font-bold">Device Management</h1>
+        <h1 class="text-brand-dark text-2xl font-bold">Device Management</h1>
         <p class="text-brand-text text-sm mt-1">Register, monitor, and manage ESP32 panic buttons across the campus.</p>
     </div>
     <button onclick="document.getElementById('addDeviceModal').classList.remove('hidden')" class="bg-brand-red hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center shadow-[0_0_15px_rgba(239,68,68,0.3)]">
@@ -44,15 +44,15 @@
             </thead>
             <tbody class="text-sm">
                 @forelse($devices as $device)
-                <tr class="border-b border-brand-border/50 hover:bg-white/5 transition-colors">
+                <tr class="border-b border-brand-border/50 hover:bg-brand-hover transition-colors">
                     <td class="p-4">
-                        <div class="font-bold text-white flex items-center">
+                        <div class="font-bold text-brand-dark flex items-center">
                             <svg class="w-4 h-4 mr-2 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             {{ $device->device_code }}
                         </div>
                     </td>
                     <td class="p-4 text-brand-text">
-                        <div class="text-white">{{ $device->building }}</div>
+                        <div class="text-brand-dark">{{ $device->building }}</div>
                         <div class="text-xs">{{ $device->floor }}, {{ $device->room }}</div>
                     </td>
                     <td class="p-4 text-brand-text text-xs font-mono">
@@ -69,7 +69,7 @@
                     </td>
                     <td class="p-4 text-brand-text text-xs">
                         @if($device->last_seen)
-                            <div class="text-white">{{ \Carbon\Carbon::parse($device->last_seen)->diffForHumans() }}</div>
+                            <div class="text-brand-dark">{{ \Carbon\Carbon::parse($device->last_seen)->diffForHumans() }}</div>
                             <div class="text-[10px]">{{ \Carbon\Carbon::parse($device->last_seen)->format('M d, Y h:i A') }}</div>
                         @else
                             <span class="text-brand-text italic">Never connected</span>
@@ -88,10 +88,10 @@
                 <tr>
                     <td colspan="6" class="p-12 text-center">
                         <div class="flex flex-col items-center justify-center">
-                            <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                            <div class="w-16 h-16 rounded-full bg-brand-hover flex items-center justify-center mb-4">
                                 <svg class="w-8 h-8 text-brand-text" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
                             </div>
-                            <h3 class="text-lg font-medium text-white mb-1">No Devices Registered</h3>
+                            <h3 class="text-lg font-medium text-brand-dark mb-1">No Devices Registered</h3>
                             <p class="text-brand-text text-sm mb-4">You haven't added any ESP32 panic buttons to the system yet.</p>
                             <button onclick="document.getElementById('addDeviceModal').classList.remove('hidden')" class="bg-brand-red hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">Register First Device</button>
                         </div>
@@ -107,11 +107,11 @@
 <div id="addDeviceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity">
     <div class="bg-[#1a1a1a] border border-brand-border rounded-xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
         <div class="p-4 border-b border-brand-border flex justify-between items-center bg-black/40">
-            <h3 class="text-lg font-bold text-white flex items-center">
+            <h3 class="text-lg font-bold text-brand-dark flex items-center">
                 <svg class="w-5 h-5 mr-2 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                 Register New Device
             </h3>
-            <button onclick="document.getElementById('addDeviceModal').classList.add('hidden')" class="text-brand-text hover:text-white transition-colors">
+            <button onclick="document.getElementById('addDeviceModal').classList.add('hidden')" class="text-brand-text hover:text-brand-dark transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
@@ -120,35 +120,35 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Device Code</label>
-                    <input type="text" name="device_code" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. ENG-001">
+                    <input type="text" name="device_code" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. ENG-001">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Building</label>
-                    <input type="text" name="building" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. Engineering Building">
+                    <input type="text" name="building" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. Engineering Building">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Floor</label>
-                        <input type="text" name="floor" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. 2nd Floor">
+                        <input type="text" name="floor" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. 2nd Floor">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Room</label>
-                        <input type="text" name="room" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. Room 203">
+                        <input type="text" name="room" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="e.g. Room 203">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Latitude</label>
-                        <input type="text" name="latitude" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="10.123456">
+                        <input type="text" name="latitude" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark font-mono text-sm focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="10.123456">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Longitude</label>
-                        <input type="text" name="longitude" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="124.123456">
+                        <input type="text" name="longitude" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark font-mono text-sm focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all" placeholder="124.123456">
                     </div>
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Initial Status</label>
-                    <select name="status" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all appearance-none">
+                    <select name="status" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all appearance-none">
                         <option value="active">Active (Ready)</option>
                         <option value="maintenance">Maintenance</option>
                         <option value="inactive">Inactive</option>
@@ -156,7 +156,7 @@
                 </div>
             </div>
             <div class="mt-8 flex justify-end">
-                <button type="button" onclick="document.getElementById('addDeviceModal').classList.add('hidden')" class="px-4 py-2 text-brand-text hover:text-white mr-3 font-medium transition-colors">Cancel</button>
+                <button type="button" onclick="document.getElementById('addDeviceModal').classList.add('hidden')" class="px-4 py-2 text-brand-text hover:text-brand-dark mr-3 font-medium transition-colors">Cancel</button>
                 <button type="submit" class="bg-brand-red hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-[0_0_15px_rgba(239,68,68,0.3)]">Save Device</button>
             </div>
         </form>
@@ -167,11 +167,11 @@
 <div id="editDeviceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity">
     <div class="bg-[#1a1a1a] border border-brand-border rounded-xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
         <div class="p-4 border-b border-brand-border flex justify-between items-center bg-black/40">
-            <h3 class="text-lg font-bold text-white flex items-center">
+            <h3 class="text-lg font-bold text-brand-dark flex items-center">
                 <svg class="w-5 h-5 mr-2 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                 Edit Device
             </h3>
-            <button onclick="document.getElementById('editDeviceModal').classList.add('hidden')" class="text-brand-text hover:text-white transition-colors">
+            <button onclick="document.getElementById('editDeviceModal').classList.add('hidden')" class="text-brand-text hover:text-brand-dark transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
@@ -181,35 +181,35 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Device Code</label>
-                    <input type="text" name="device_code" id="edit_device_code" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
+                    <input type="text" name="device_code" id="edit_device_code" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Building</label>
-                    <input type="text" name="building" id="edit_building" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
+                    <input type="text" name="building" id="edit_building" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Floor</label>
-                        <input type="text" name="floor" id="edit_floor" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
+                        <input type="text" name="floor" id="edit_floor" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Room</label>
-                        <input type="text" name="room" id="edit_room" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
+                        <input type="text" name="room" id="edit_room" required class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Latitude</label>
-                        <input type="text" name="latitude" id="edit_latitude" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
+                        <input type="text" name="latitude" id="edit_latitude" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark font-mono text-sm focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Longitude</label>
-                        <input type="text" name="longitude" id="edit_longitude" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
+                        <input type="text" name="longitude" id="edit_longitude" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark font-mono text-sm focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all">
                     </div>
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-brand-text mb-1 uppercase tracking-wider">Status</label>
-                    <select name="status" id="edit_status" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all appearance-none">
+                    <select name="status" id="edit_status" class="w-full bg-black/40 border border-brand-border rounded-lg px-4 py-2.5 text-brand-dark focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all appearance-none">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                         <option value="maintenance">Maintenance</option>
@@ -217,7 +217,7 @@
                 </div>
             </div>
             <div class="mt-8 flex justify-end">
-                <button type="button" onclick="document.getElementById('editDeviceModal').classList.add('hidden')" class="px-4 py-2 text-brand-text hover:text-white mr-3 font-medium transition-colors">Cancel</button>
+                <button type="button" onclick="document.getElementById('editDeviceModal').classList.add('hidden')" class="px-4 py-2 text-brand-text hover:text-brand-dark mr-3 font-medium transition-colors">Cancel</button>
                 <button type="submit" class="bg-brand-blue hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-[0_0_15px_rgba(59,130,246,0.3)]">Update Details</button>
             </div>
         </form>

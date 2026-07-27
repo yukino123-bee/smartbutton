@@ -15,7 +15,7 @@
             <div class="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-slate-800">
                 <span class="text-xs font-bold text-black">JHCSC</span>
             </div>
-            <h1 class="text-xl font-bold text-white mb-2">System Login</h1>
+            <h1 class="text-xl font-bold text-brand-dark mb-2">System Login</h1>
             <p class="text-xs text-slate-400">Smart Student Panic Button & Emergency Response System</p>
         </div>
         
@@ -53,7 +53,7 @@
                 </div>
 
                 <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900">
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-brand-dark font-medium py-3 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900">
                     Sign In
                 </button>
                 
