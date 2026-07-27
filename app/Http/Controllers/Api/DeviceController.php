@@ -77,6 +77,84 @@ class DeviceController extends Controller
     }
 
     /**
+     * Return status of pending incidents for an ESP32 device.
+     */
+    public function status(Request $request)
+    {
+        $deviceCode = $request->query('device_id');
+        if (!$deviceCode) {
+            return response()->json(['status' => 'normal', 'has_pending' => false]);
+        }
+
+        $device = Device::where('device_code', $deviceCode)->first();
+        if (!$device) {
+            return response()->json(['status' => 'normal', 'has_pending' => false]);
+        }
+
+        $pendingIncident = Incident::where('device_id', $device->id)
+            ->whereIn('status', ['pending', 'Pending'])
+            ->first();
+
+        return response()->json([
+            'device_code' => $deviceCode,
+            'has_pending' => (bool) $pendingIncident,
+            'status'      => $pendingIncident ? 'pending' : 'normal',
+            'incident_id' => $pendingIncident ? $pendingIncident->id : null,
+        ]);
+    }
+
+    /**
+     * Acknowledge an incident via API.
+     */
+    public function acknowledge($incident)
+    {
+        $incidentModel = Incident::find($incident);
+        if (!$incidentModel) {
+            $incidentModel = Incident::findOrFail($incident);
+        }
+
+        Incident::where('device_id', $incidentModel->device_id)
+            ->whereIn('status', ['pending', 'Pending'])
+            ->update([
+                'status' => 'Acknowledged',
+            ]);
+
+        return response()->json([
+            'status'      => 'success',
+            'message'     => 'Emergency alert acknowledged.',
+            'incident_id' => $incidentModel->id,
+        ]);
+    }
+
+    public function dispatch($incident)
+    {
+        $incidentModel = Incident::findOrFail($incident);
+        $incidentModel->update([
+            'status' => 'Responding',
+        ]);
+
+        return response()->json([
+            'status'      => 'success',
+            'message'     => 'Responders dispatched.',
+            'incident_id' => $incidentModel->id,
+        ]);
+    }
+
+    public function resolve($incident)
+    {
+        $incidentModel = Incident::findOrFail($incident);
+        $incidentModel->update([
+            'status' => 'Resolved',
+        ]);
+
+        return response()->json([
+            'status'      => 'success',
+            'message'     => 'Incident marked resolved and recorded.',
+            'incident_id' => $incidentModel->id,
+        ]);
+    }
+
+    /**
      * Handle incoming SMS backup messages from GSM Module via Webhook.
      */
     public function smsWebhook(Request $request)

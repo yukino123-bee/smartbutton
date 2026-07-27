@@ -33,6 +33,11 @@ Route::middleware(['auth', 'role:NDRRMO'])->prefix('ndrrmo')->name('ndrrmo.')->g
     Route::get('/sms', [\App\Http\Controllers\NdrrmoController::class, 'sms'])->name('sms');
     Route::get('/reports', [\App\Http\Controllers\NdrrmoController::class, 'reports'])->name('reports');
     Route::get('/stats-json', [\App\Http\Controllers\NdrrmoController::class, 'statsJson'])->name('stats-json');
+    Route::get('/reports/export-excel', [\App\Http\Controllers\NdrrmoController::class, 'exportExcel'])->name('reports.export-excel');
+    Route::post('/alerts/bulk-delete', [\App\Http\Controllers\NdrrmoController::class, 'bulkDeleteAlerts'])->name('alerts.bulk-delete');
+    Route::post('/incidents/{incident}/acknowledge', [\App\Http\Controllers\NdrrmoController::class, 'acknowledgeIncident'])->name('incidents.acknowledge');
+    Route::post('/incidents/{incident}/dispatch', [\App\Http\Controllers\NdrrmoController::class, 'dispatchIncident'])->name('incidents.dispatch');
+    Route::post('/incidents/{incident}/resolve', [\App\Http\Controllers\NdrrmoController::class, 'resolveIncident'])->name('incidents.resolve');
 });
 
 Route::middleware(['auth', 'role:Clinic'])->prefix('clinic')->name('clinic.')->group(function () {

@@ -1,82 +1,85 @@
 @extends('layouts.ndrrmo')
 
 @section('content')
-<div class="mb-4">
-    <h1 class="text-brand-dark text-2xl font-bold">Campus Incident Map</h1>
-    <p class="text-brand-text text-sm mt-1">Live geographical overview of all registered ESP32 devices and active emergencies.</p>
-</div>
+<div class="flex flex-col h-full space-y-4">
+    {{-- Page Title Header --}}
+    <div class="shrink-0">
+        <h1 class="text-slate-800 text-xl font-bold">Campus Incident Map</h1>
+        <p class="text-slate-500 text-xs mt-0.5">Live geographical overview of all registered ESP32 devices and active emergencies.</p>
+    </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-140px)]">
-    <!-- Map Container -->
-    <div class="lg:col-span-3 bg-brand-card border border-brand-border rounded-xl overflow-hidden relative shadow-2xl h-full flex flex-col">
-        <div id="campusMap" class="w-full h-full flex-grow z-0"></div>
-        
-        <!-- Legend Overlay -->
-        <div class="absolute bottom-6 right-6 z-[1000] bg-black/80 backdrop-blur-md border border-brand-border p-4 rounded-xl shadow-lg">
-            <h4 class="text-brand-dark text-xs font-bold uppercase tracking-wider mb-3">Map Legend</h4>
-            <div class="space-y-2">
-                <div class="flex items-center text-xs text-brand-text">
-                    <span class="w-3 h-3 rounded-full bg-brand-red mr-2 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
-                    Critical Emergency
-                </div>
-                <div class="flex items-center text-xs text-brand-text">
-                    <span class="w-3 h-3 rounded-full bg-orange-500 mr-2 shadow-[0_0_8px_rgba(249,115,22,0.8)]"></span>
-                    Public Safety
-                </div>
-                <div class="flex items-center text-xs text-brand-text">
-                    <span class="w-3 h-3 rounded-full bg-yellow-500 mr-2 shadow-[0_0_8px_rgba(234,179,8,0.8)]"></span>
-                    Facility & Hazard
-                </div>
-                <div class="flex items-center text-xs text-brand-text mt-2 pt-2 border-t border-white/10">
-                    <span class="w-3 h-3 rounded-full bg-brand-green mr-2 opacity-70"></span>
-                    Device Online (Idle)
+    {{-- Map & Side Panel Container --}}
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-h-0">
+        {{-- Map Box --}}
+        <div class="lg:col-span-3 bg-white border border-slate-200 rounded-2xl overflow-hidden relative shadow-sm h-full flex flex-col min-h-[450px]">
+            <div id="campusMap" class="w-full h-full flex-grow z-0"></div>
+            
+            {{-- Map Legend Overlay --}}
+            <div class="absolute bottom-5 right-5 z-[1000] bg-white/95 backdrop-blur-md border border-slate-200 p-4 rounded-xl shadow-xl max-w-xs">
+                <h4 class="text-slate-800 text-xs font-bold uppercase tracking-wider mb-2.5 border-b border-slate-100 pb-1.5">Map Legend</h4>
+                <div class="space-y-2 text-xs font-semibold text-slate-700">
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full bg-red-600 mr-2.5 shrink-0 ring-2 ring-red-200"></span>
+                        <span>Critical Emergency</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full bg-orange-500 mr-2.5 shrink-0 ring-2 ring-orange-200"></span>
+                        <span>Public Safety</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full bg-amber-500 mr-2.5 shrink-0 ring-2 ring-amber-200"></span>
+                        <span>Facility & Hazard</span>
+                    </div>
+                    <div class="flex items-center pt-2 border-t border-slate-100">
+                        <span class="w-3 h-3 rounded-full bg-blue-600 mr-2.5 shrink-0 ring-2 ring-blue-200"></span>
+                        <span>Device Online (Idle)</span>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Active Incidents Panel -->
-    <div class="bg-brand-card border border-brand-border rounded-xl flex flex-col h-full overflow-hidden shadow-xl">
-        <div class="p-4 border-b border-brand-border bg-black/20 flex justify-between items-center shrink-0">
-            <h3 class="text-brand-dark font-bold flex items-center">
-                <svg class="w-5 h-5 mr-2 text-brand-red animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                Active Incidents
-            </h3>
-            <span class="bg-brand-red text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{{ $activeIncidents->count() }}</span>
-        </div>
         
-        <div class="p-4 overflow-y-auto flex-grow space-y-3" id="incidentList">
-            @forelse($activeIncidents as $incident)
-                @php
-                    $borderColor = 'border-brand-red/50';
-                    $textColor = 'text-brand-red';
-                    $bgColor = 'bg-brand-red/10';
-                    
-                    if (str_contains($incident->emergency_type, 'Public Safety')) {
-                        $borderColor = 'border-orange-500/50';
-                        $textColor = 'text-orange-500';
-                        $bgColor = 'bg-orange-500/10';
-                    } elseif (str_contains($incident->emergency_type, 'Facility') || str_contains($incident->emergency_type, 'Hazard')) {
-                        $borderColor = 'border-yellow-500/50';
-                        $textColor = 'text-yellow-500';
-                        $bgColor = 'bg-yellow-500/10';
-                    }
-                @endphp
-                <div class="border {{ $borderColor }} {{ $bgColor }} rounded-lg p-3 transition-colors cursor-pointer hover:bg-black/40" onclick="focusOnDevice('{{ $incident->device->device_code }}')">
-                    <div class="flex justify-between items-start mb-1">
-                        <div class="font-bold text-brand-dark text-sm">{{ $incident->device->device_code }}</div>
-                        <span class="text-[9px] font-bold uppercase tracking-wider {{ $textColor }}">{{ $incident->status }}</span>
+        {{-- Active Incidents Panel --}}
+        <div class="bg-white border border-slate-200 rounded-2xl flex flex-col h-full overflow-hidden shadow-sm min-h-[300px]">
+            <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
+                <h3 class="text-slate-800 font-bold text-sm flex items-center">
+                    <svg class="w-4 h-4 mr-2 text-red-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Active Incidents
+                </h3>
+                <span class="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{{ $activeIncidents->count() }}</span>
+            </div>
+            
+            <div class="p-4 overflow-y-auto flex-grow space-y-3" id="incidentList">
+                @forelse($activeIncidents as $incident)
+                    @php
+                        if (str_contains($incident->emergency_type, 'Public Safety')) {
+                            $cardBg = 'bg-orange-50/60 border-orange-200 text-orange-800';
+                            $badgeColor = 'text-orange-700 bg-orange-100';
+                        } elseif (str_contains($incident->emergency_type, 'Facility') || str_contains($incident->emergency_type, 'Hazard')) {
+                            $cardBg = 'bg-amber-50/60 border-amber-200 text-amber-800';
+                            $badgeColor = 'text-amber-700 bg-amber-100';
+                        } else {
+                            $cardBg = 'bg-red-50/60 border-red-200 text-red-800';
+                            $badgeColor = 'text-red-700 bg-red-100';
+                        }
+                    @endphp
+                    <div class="border {{ $cardBg }} rounded-xl p-3 transition-all cursor-pointer hover:shadow-md active:scale-[0.98]" onclick="focusOnDevice('{{ $incident->device->device_code }}')">
+                        <div class="flex justify-between items-start mb-1">
+                            <div class="font-bold text-slate-800 text-sm">{{ $incident->device->device_code }}</div>
+                            <span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full {{ $badgeColor }}">{{ $incident->status }}</span>
+                        </div>
+                        <div class="text-xs font-bold mb-1">{{ $incident->emergency_type }}</div>
+                        <div class="text-[10px] text-slate-500 font-medium">{{ $incident->device->building }} ({{ $incident->device->floor }}, {{ $incident->device->room }})</div>
+                        <div class="text-[10px] text-slate-400 mt-1.5 text-right font-medium">{{ $incident->created_at->diffForHumans() }}</div>
                     </div>
-                    <div class="text-xs {{ $textColor }} font-medium mb-1">{{ $incident->emergency_type }}</div>
-                    <div class="text-[10px] text-brand-text">{{ $incident->device->building }} ({{ $incident->device->floor }}, {{ $incident->device->room }})</div>
-                    <div class="text-[10px] text-brand-text mt-1 text-right">{{ $incident->created_at->diffForHumans() }}</div>
-                </div>
-            @empty
-                <div class="text-center py-8">
-                    <svg class="w-12 h-12 text-brand-text mx-auto mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <p class="text-brand-text text-sm">No active emergencies on campus.</p>
-                </div>
-            @endforelse
+                @empty
+                    <div class="text-center py-12 flex flex-col items-center justify-center h-full">
+                        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <p class="text-slate-500 text-xs font-medium">No active emergencies on campus.</p>
+                    </div>
+                @endforelse
+            </div>
         </div>
     </div>
 </div>
@@ -87,9 +90,9 @@
 
 <style>
     /* Custom Leaflet Map styling */
-    .leaflet-container { background-color: #0f1011; }
-    .leaflet-popup-content-wrapper { background-color: #ffffff; color: #334155; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); padding: 0; }
-    .leaflet-popup-tip { background-color: #ffffff; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; }
+    .leaflet-container { background-color: #f8fafc; font-family: inherit; }
+    .leaflet-popup-content-wrapper { background-color: #ffffff; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); padding: 0; }
+    .leaflet-popup-tip { background-color: #ffffff; }
     .leaflet-popup-content { margin: 0; }
     .custom-marker { background: none; border: none; }
 </style>
@@ -100,8 +103,7 @@
     const activeIncidentsData = @json($activeIncidents);
     const mapMarkers = {};
     
-    // Default Map Center (adjust to specific campus coords, e.g., somewhere in the Philippines)
-    // For now, defaulting to Manila area, but it will automatically center if devices exist with coords.
+    // Default Map Center
     let centerLat = 7.708601;
     let centerLng = 123.292456;
     
@@ -112,7 +114,7 @@
         centerLng = deviceWithCoords.longitude;
     }
 
-    const map = L.map('campusMap').setView([centerLat, centerLng], 18); // Zoom 18 for campus scale
+    const map = L.map('campusMap').setView([centerLat, centerLng], 18);
 
     // Add Esri World Imagery Satellite tiles
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -139,38 +141,36 @@
 
     // Plot Devices on Map
     devicesData.forEach(device => {
-        if (!device.latitude || !device.longitude) return; // Skip if no coords
+        if (!device.latitude || !device.longitude) return;
         
-        // Check if device has active incident
         const incident = activeIncidentsData.find(i => i.device_id === device.id);
         
         let markerIcon;
         let popupTitle = 'Device Status: Normal';
-        let popupColor = 'text-brand-green';
+        let popupColor = 'text-blue-600';
         let statusText = 'Online';
         let pulseClass = null;
-        let colorClass = 'text-brand-blue';
+        let colorClass = 'text-blue-600';
         let svgIcon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>';
         
         if (incident) {
             statusText = 'EMERGENCY ACTIVE';
             svgIcon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>';
             if (incident.emergency_type.includes('Public Safety')) {
-                pulseClass = 'animate-ping bg-brand-orange';
-                colorClass = 'text-brand-orange';
+                pulseClass = 'animate-ping bg-orange-500';
+                colorClass = 'text-orange-500';
                 popupTitle = 'EMERGENCY: ' + incident.emergency_type;
-                popupColor = 'text-brand-orange';
+                popupColor = 'text-orange-600';
             } else if (incident.emergency_type.includes('Facility') || incident.emergency_type.includes('Hazard')) {
-                pulseClass = 'animate-ping bg-yellow-500';
-                colorClass = 'text-yellow-500';
+                pulseClass = 'animate-ping bg-amber-500';
+                colorClass = 'text-amber-500';
                 popupTitle = 'EMERGENCY: ' + incident.emergency_type;
-                popupColor = 'text-yellow-500';
+                popupColor = 'text-amber-600';
             } else {
-                // Critical
-                pulseClass = 'animate-ping bg-brand-red';
-                colorClass = 'text-brand-red';
+                pulseClass = 'animate-ping bg-red-600';
+                colorClass = 'text-red-600';
                 popupTitle = 'EMERGENCY: ' + incident.emergency_type;
-                popupColor = 'text-brand-red';
+                popupColor = 'text-red-600';
             }
         }
 
@@ -179,14 +179,14 @@
         const marker = L.marker([device.latitude, device.longitude], {icon: markerIcon}).addTo(map);
         
         const popupContent = `
-            <div class="p-3 min-w-[200px]">
+            <div class="p-4 min-w-[220px]">
                 <div class="flex items-center gap-3 mb-3">
-                    <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                    <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
                         <svg class="w-5 h-5 ${popupColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">${svgIcon}</svg>
                     </div>
                     <div>
-                        <h3 class="font-bold text-brand-dark text-sm leading-tight">${device.device_code}</h3>
-                        <div class="text-[10px] text-slate-500 font-medium">${device.building} (${device.floor}, ${device.room})</div>
+                        <h3 class="font-bold text-slate-800 text-sm leading-tight">${device.device_code}</h3>
+                        <div class="text-[11px] text-slate-500 font-medium">${device.building} (${device.floor}, ${device.room})</div>
                     </div>
                 </div>
                 <div class="border-t border-slate-100 pt-3">
@@ -195,7 +195,7 @@
                     </div>
                     <div class="flex justify-between items-center text-xs">
                         <span class="text-slate-500 font-medium">Status</span>
-                        <span class="font-bold ${popupColor} flex items-center"><span class="w-1.5 h-1.5 rounded-full ${incident ? 'bg-brand-red animate-pulse' : 'bg-brand-green'} mr-1.5"></span>${statusText}</span>
+                        <span class="font-bold ${popupColor} flex items-center"><span class="w-1.5 h-1.5 rounded-full ${incident ? 'bg-red-600 animate-pulse' : 'bg-blue-600'} mr-1.5"></span>${statusText}</span>
                     </div>
                 </div>
             </div>

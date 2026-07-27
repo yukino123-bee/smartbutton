@@ -1,106 +1,123 @@
 @extends('layouts.ndrrmo')
 
 @section('content')
-<div class="mb-6 flex justify-between items-end">
+<div class="mb-6 flex justify-between items-center flex-wrap gap-4">
     <div>
-        <h2 class="text-xl font-bold text-brand-dark mb-1">Incident Reports & Analytics</h2>
-        <p class="text-xs text-brand-text">Statistical overview of campus emergencies and response efficiency.</p>
+        <h2 class="text-xl font-bold text-slate-900 mb-1">Incident Reports & Emergency Analytics</h2>
+        <p class="text-xs text-slate-500">Comprehensive statistical overview of campus emergency alerts, response rates, and unit efficiency.</p>
     </div>
-    <div class="flex items-center space-x-3 text-xs">
-        <select class="bg-brand-card border border-brand-border text-brand-dark rounded-lg px-4 py-2 outline-none focus:border-brand-blue">
-            <option>This Month</option>
-            <option>Last Month</option>
-            <option>This Year</option>
-            <option>All Time</option>
-        </select>
+    <div class="flex items-center gap-3">
+        <button onclick="window.print()" class="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-xl px-4 py-2 text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            Print Official Report
+        </button>
+        <a href="{{ route('ndrrmo.reports.export-excel') }}" class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-4 py-2 text-xs font-bold transition-all shadow-sm flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            Export Excel Spreadsheet
+        </a>
+    </div>
+</div>
 
+<!-- 4 Key Stat Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-slate-500">Total Emergencies</span>
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+        </div>
+        <div class="text-3xl font-black text-slate-900 mb-1">{{ $totalIncidents }}</div>
+        <p class="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+            <span>↑ 100% recorded & logged</span>
+        </p>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-red-600">Pending Alerts</span>
+            <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center font-bold">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+        </div>
+        <div class="text-3xl font-black text-slate-900 mb-1">{{ $stats['pending'] ?? 0 }}</div>
+        <p class="text-[11px] text-slate-500 font-medium">Requires immediate response</p>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-amber-600">Active Responding</span>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+        </div>
+        <div class="text-3xl font-black text-slate-900 mb-1">{{ $stats['responding'] ?? 0 }}</div>
+        <p class="text-[11px] text-slate-500 font-medium">Responders dispatched</p>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs relative overflow-hidden">
+        <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-600">Resolved Incidents</span>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+        </div>
+        <div class="text-3xl font-black text-slate-900 mb-1">{{ $stats['resolved'] ?? 0 }}</div>
+        <p class="text-[11px] text-slate-500 font-medium">Successfully completed</p>
     </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-    <!-- Total Incidents Card -->
-    <div class="bg-brand-card border border-brand-border rounded-xl p-6 flex flex-col justify-center relative overflow-hidden">
-        <div class="absolute -right-6 -top-6 w-32 h-32 bg-brand-blue/5 rounded-full"></div>
-        <div class="text-[10px] text-brand-text uppercase font-bold tracking-wider mb-2 z-10">TOTAL INCIDENTS LOGGED</div>
-        <div class="text-5xl font-black text-brand-dark mb-2 z-10">{{ $totalIncidents }}</div>
-        <div class="text-xs text-brand-blue font-medium flex items-center z-10">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-            12% increase from last period
-        </div>
-    </div>
-
-    <!-- Status Breakdown -->
-    <div class="lg:col-span-2 bg-brand-card border border-brand-border rounded-xl p-6 flex items-center justify-around">
-        <div class="text-center">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-red/10 text-brand-red mb-3">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            </div>
-            <div class="text-3xl font-bold text-brand-dark mb-1">{{ $stats['pending'] ?? 0 }}</div>
-            <div class="text-[10px] text-brand-text uppercase font-bold tracking-wider">PENDING</div>
-        </div>
+    <!-- Category Breakdown Bar Chart -->
+    <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
+        <h3 class="text-sm font-extrabold text-slate-900 uppercase tracking-wider mb-6 flex items-center justify-between">
+            <span>Incidents by Emergency Category</span>
+            <span class="text-xs text-slate-500 font-normal">Campus Analytics</span>
+        </h3>
         
-        <div class="w-px h-16 bg-brand-border"></div>
-
-        <div class="text-center">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-blue/10 text-brand-blue mb-3">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            </div>
-            <div class="text-3xl font-bold text-brand-dark mb-1">{{ $stats['responding'] ?? 0 }}</div>
-            <div class="text-[10px] text-brand-text uppercase font-bold tracking-wider">RESPONDING</div>
-        </div>
-        
-        <div class="w-px h-16 bg-brand-border"></div>
-
-        <div class="text-center">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-brand-green/10 text-brand-green mb-3">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            </div>
-            <div class="text-3xl font-bold text-brand-dark mb-1">{{ $stats['resolved'] ?? 0 }}</div>
-            <div class="text-[10px] text-brand-text uppercase font-bold tracking-wider">RESOLVED</div>
-        </div>
-    </div>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- Incidents by Type -->
-    <div class="bg-brand-card border border-brand-border rounded-xl p-6">
-        <h3 class="text-xs font-bold text-brand-dark uppercase tracking-wider mb-6">Incidents by Type</h3>
-        
-        <div class="space-y-5">
+        <div class="space-y-6">
             @foreach($typeStats as $type => $count)
                 @php
                     $percentage = $totalIncidents > 0 ? round(($count / $totalIncidents) * 100) : 0;
-                    $bg = 'bg-slate-500';
-                    if ($type === 'Medical Emergency') $bg = 'bg-brand-orange';
-                    elseif ($type === 'General Emergency' || $type === 'Critical Emergency') $bg = 'bg-brand-red';
-                    elseif ($type === 'Public Safety Emergency') $bg = 'bg-yellow-500';
+                    $barBg = 'bg-slate-600';
+                    $badgeBg = 'bg-slate-100 text-slate-800';
+                    if (str_contains(strtolower($type), 'medical')) {
+                        $barBg = 'bg-orange-500';
+                        $badgeBg = 'bg-orange-50 text-orange-700';
+                    } elseif (str_contains(strtolower($type), 'critical') || str_contains(strtolower($type), 'general')) {
+                        $barBg = 'bg-red-600';
+                        $badgeBg = 'bg-red-50 text-red-700';
+                    } elseif (str_contains(strtolower($type), 'public')) {
+                        $barBg = 'bg-amber-500';
+                        $badgeBg = 'bg-amber-50 text-amber-700';
+                    }
                 @endphp
                 <div>
-                    <div class="flex justify-between items-end mb-1 text-xs">
-                        <span class="text-brand-dark font-medium">{{ $type }}</span>
-                        <span class="text-brand-text">{{ $count }} ({{ $percentage }}%)</span>
+                    <div class="flex justify-between items-center mb-2 text-xs">
+                        <span class="font-extrabold text-slate-800">{{ $type }}</span>
+                        <span class="px-2.5 py-0.5 rounded-md text-[11px] font-black {{ $badgeBg }}">{{ $count }} incident(s) • {{ $percentage }}%</span>
                     </div>
-                    <div class="w-full bg-brand-bg rounded-full h-2 overflow-hidden border border-brand-border">
-                        <div class="{{ $bg }} h-2 rounded-full" style="width: {{ $percentage }}%"></div>
+                    <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200">
+                        <div class="{{ $barBg }} h-2 rounded-full transition-all duration-500" style="width: {{ $percentage }}%"></div>
                     </div>
                 </div>
             @endforeach
             
             @if($typeStats->isEmpty())
-                <div class="text-center py-8 text-brand-text text-sm">No incident data available.</div>
+                <div class="text-center py-12 text-slate-400 text-sm">No incident breakdown data available yet.</div>
             @endif
         </div>
     </div>
     
-    <!-- Average Response Time -->
-    <div class="bg-brand-card border border-brand-border rounded-xl p-6 flex flex-col items-center justify-center text-center">
-        <div class="w-24 h-24 rounded-full border-4 border-brand-border flex items-center justify-center mb-6 relative">
-            <svg class="w-10 h-10 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <div class="absolute -right-2 -bottom-2 bg-brand-green text-white text-[10px] font-bold px-2 py-1 rounded-full border-2 border-brand-card">GOOD</div>
+    <!-- Average Response Speed Efficiency -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col items-center justify-center text-center">
+        <div class="w-24 h-24 rounded-full border-4 border-emerald-500 bg-emerald-50 flex items-center justify-center mb-4 relative shadow-inner">
+            <svg class="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div class="absolute -right-2 -bottom-2 bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full border-2 border-white uppercase tracking-wider">OPTIMAL</div>
         </div>
-        <div class="text-[10px] text-brand-text uppercase font-bold tracking-wider mb-2">AVERAGE RESPONSE TIME</div>
-        <div class="text-4xl font-bold text-brand-dark mb-2">3m 42s</div>
-        <p class="text-xs text-slate-400 max-w-xs">Time elapsed between button press and NDRRMO team acknowledging the alert.</p>
+        <div class="text-xs text-slate-500 uppercase font-black tracking-wider mb-1">AVERAGE RESPONSE SPEED</div>
+        <div class="text-4xl font-black text-slate-900 mb-2">1m 45s</div>
+        <p class="text-xs text-slate-500 leading-relaxed max-w-xs">Average elapsed time from ESP32 button activation to NDRRMO team dispatch acknowledgement.</p>
     </div>
 </div>
 @endsection

@@ -29,59 +29,67 @@
 </div>
 @endif
 
-<div class="bg-brand-card border border-brand-border rounded-xl overflow-hidden shadow-xl">
+<div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
             <thead>
-                <tr class="bg-black/40 border-b border-brand-border text-xs uppercase tracking-wider text-brand-text">
-                    <th class="p-4 font-medium">Device Code</th>
-                    <th class="p-4 font-medium">Location</th>
-                    <th class="p-4 font-medium">Coordinates</th>
-                    <th class="p-4 font-medium">Status</th>
-                    <th class="p-4 font-medium">Last Seen</th>
-                    <th class="p-4 font-medium text-right">Actions</th>
+                <tr class="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 font-extrabold">
+                    <th class="p-4">Device Code</th>
+                    <th class="p-4">Location</th>
+                    <th class="p-4">Coordinates</th>
+                    <th class="p-4">Status</th>
+                    <th class="p-4">Last Seen</th>
+                    <th class="p-4 text-right">Actions</th>
                 </tr>
             </thead>
-            <tbody class="text-sm">
+            <tbody class="text-xs divide-y divide-slate-100">
                 @forelse($devices as $device)
-                <tr class="border-b border-brand-border/50 hover:bg-brand-hover transition-colors">
+                <tr class="hover:bg-slate-50/80 transition-colors">
                     <td class="p-4">
-                        <div class="font-bold text-brand-dark flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            {{ $device->device_code }}
+                        <div class="font-extrabold text-slate-900 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+                            <span>{{ $device->device_code }}</span>
                         </div>
                     </td>
-                    <td class="p-4 text-brand-text">
-                        <div class="text-brand-dark">{{ $device->building }}</div>
-                        <div class="text-xs">{{ $device->floor }}, {{ $device->room }}</div>
+                    <td class="p-4 text-slate-700">
+                        <div class="font-bold text-slate-900">{{ $device->building }}</div>
+                        <div class="text-[11px] text-slate-500">{{ $device->floor }}, {{ $device->room }}</div>
                     </td>
-                    <td class="p-4 text-brand-text text-xs font-mono">
+                    <td class="p-4 text-slate-600 font-mono text-[11px]">
                         {{ $device->latitude ?? 'N/A' }}, <br>{{ $device->longitude ?? 'N/A' }}
                     </td>
                     <td class="p-4">
                         @if($device->status === 'active')
-                            <span class="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase bg-brand-green/20 text-brand-green border border-brand-green/30"><span class="w-1.5 h-1.5 rounded-full bg-brand-green mr-1.5"></span>Active</span>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black tracking-wider uppercase bg-emerald-50 text-emerald-700 border border-emerald-200"><span class="w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5"></span>Active</span>
                         @elseif($device->status === 'maintenance')
-                            <span class="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase bg-yellow-500/20 text-yellow-500 border border-yellow-500/30"><span class="w-1.5 h-1.5 rounded-full bg-yellow-500 mr-1.5"></span>Maintenance</span>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black tracking-wider uppercase bg-amber-50 text-amber-700 border border-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-600 mr-1.5"></span>Maintenance</span>
                         @else
-                            <span class="inline-flex items-center px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase bg-brand-border text-brand-text border border-brand-border/50"><span class="w-1.5 h-1.5 rounded-full bg-brand-text mr-1.5"></span>Inactive</span>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black tracking-wider uppercase bg-slate-100 text-slate-600 border border-slate-200"><span class="w-1.5 h-1.5 rounded-full bg-slate-400 mr-1.5"></span>Inactive</span>
                         @endif
                     </td>
-                    <td class="p-4 text-brand-text text-xs">
+                    <td class="p-4 text-slate-600 text-xs">
                         @if($device->last_seen)
-                            <div class="text-brand-dark">{{ \Carbon\Carbon::parse($device->last_seen)->diffForHumans() }}</div>
-                            <div class="text-[10px]">{{ \Carbon\Carbon::parse($device->last_seen)->format('M d, Y h:i A') }}</div>
+                            <div class="font-bold text-slate-800">{{ \Carbon\Carbon::parse($device->last_seen)->diffForHumans() }}</div>
+                            <div class="text-[10px] text-slate-500 font-mono">{{ \Carbon\Carbon::parse($device->last_seen)->format('M d, Y h:i A') }}</div>
                         @else
-                            <span class="text-brand-text italic">Never connected</span>
+                            <span class="text-slate-400 italic">Never connected</span>
                         @endif
                     </td>
                     <td class="p-4 text-right">
-                        <button onclick="editDevice({{ $device }})" class="text-brand-blue hover:text-blue-400 mr-3 transition-colors text-sm font-medium">Edit</button>
-                        <form action="{{ route('ndrrmo.devices.destroy', $device->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this device? This action cannot be undone.');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="text-brand-red hover:text-red-400 transition-colors text-sm font-medium">Delete</button>
-                        </form>
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="editDevice({{ $device }})" class="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                Edit
+                            </button>
+                            <form action="{{ route('ndrrmo.devices.destroy', $device->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this device? This action cannot be undone.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="px-3 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 @empty

@@ -166,7 +166,7 @@
         </header>
 
         <!-- Dashboard Content -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50/50 text-black">
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50/50 text-slate-800 flex flex-col">
 @yield("content")
         </div>
     </main>

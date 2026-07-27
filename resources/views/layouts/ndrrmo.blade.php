@@ -160,12 +160,232 @@
         </header>
 
         <!-- Dashboard Content -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50/50 text-black">
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50/50 text-slate-800 flex flex-col">
 @yield("content")
         </div>
     </main>
 
+    {{-- Global Emergency Siren, Screen Flash Overlay & Voice Announcement Modal --}}
+    <div id="global-emergency-overlay" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 transition-all duration-300 select-none">
+        <div id="global-emergency-backdrop" class="absolute inset-0 animate-pulse bg-red-600/60 backdrop-blur-md"></div>
+        
+        <div id="global-emergency-modal" class="relative z-10 w-full max-w-lg bg-white border-4 border-red-600 rounded-3xl shadow-2xl overflow-hidden p-8 text-center transform transition-all scale-100">
+            <div class="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center animate-bounce bg-red-600 shadow-lg" id="global-emergency-icon-box">
+                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+
+            <span id="global-emergency-category-badge" class="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest text-white bg-red-600 mb-3 shadow-sm">
+                CRITICAL EMERGENCY
+            </span>
+
+            <h3 id="global-emergency-title" class="text-2xl font-black text-slate-900 mb-2 uppercase tracking-wide">
+                CRITICAL EMERGENCY
+            </h3>
+
+            <p id="global-emergency-location" class="text-slate-700 font-bold text-lg mb-1">
+                Engineering Building
+            </p>
+
+            <p id="global-emergency-device" class="text-slate-500 text-xs font-mono mb-8">
+                Device ID: ENG-001 • Active Alarm
+            </p>
+
+            <button id="global-emergency-ack-btn" type="button" onclick="acknowledgeActiveEmergency()"
+                    class="w-full py-4 px-6 rounded-2xl font-extrabold text-white text-base shadow-xl bg-red-600 hover:bg-red-700 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span>ACKNOWLEDGE & STOP ALARM</span>
+            </button>
+        </div>
+    </div>
+
     <!-- Scripts -->
+    <script>
+        let currentActiveEmergency = null;
+        let webAudioCtx = null;
+        let sirenOscillator = null;
+        let sirenGainNode = null;
+        let sirenInterval = null;
+        let isSirenActive = false;
+
+        function triggerScreenFlashAndAlarm(incident) {
+            if (!incident || !incident.id) return;
+            if (currentActiveEmergency && currentActiveEmergency.id === incident.id) return; // already active
+
+            currentActiveEmergency = incident;
+            const type = incident.emergency_type || 'Critical Emergency';
+            const location = (incident.device && incident.device.building) ? incident.device.building : 'Campus Location';
+            const deviceCode = (incident.device && incident.device.device_code) ? incident.device.device_code : 'N/A';
+
+            const overlay = document.getElementById('global-emergency-overlay');
+            const backdrop = document.getElementById('global-emergency-backdrop');
+            const modal = document.getElementById('global-emergency-modal');
+            const iconBox = document.getElementById('global-emergency-icon-box');
+            const badge = document.getElementById('global-emergency-category-badge');
+            const title = document.getElementById('global-emergency-title');
+            const locEl = document.getElementById('global-emergency-location');
+            const devEl = document.getElementById('global-emergency-device');
+            const ackBtn = document.getElementById('global-emergency-ack-btn');
+
+            let bgClass = 'bg-red-600/70';
+            let badgeClass = 'bg-red-600';
+            let borderClass = 'border-red-600';
+
+            if (type.includes('Medical')) {
+                bgClass = 'bg-orange-500/70';
+                badgeClass = 'bg-orange-500';
+                borderClass = 'border-orange-500';
+            } else if (type.includes('Public Safety') || type.includes('Facility')) {
+                bgClass = 'bg-amber-500/70';
+                badgeClass = 'bg-amber-500';
+                borderClass = 'border-amber-500';
+            }
+
+            if (backdrop) backdrop.className = `absolute inset-0 animate-pulse ${bgClass} backdrop-blur-md`;
+            if (modal) modal.className = `relative z-10 w-full max-w-lg bg-white border-4 ${borderClass} rounded-3xl shadow-2xl overflow-hidden p-8 text-center transform transition-all scale-100`;
+            if (iconBox) iconBox.className = `w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center animate-bounce ${badgeClass} shadow-lg`;
+            if (badge) { badge.className = `inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest text-white ${badgeClass} mb-3 shadow-sm`; badge.textContent = type; }
+            if (title) title.textContent = type.toUpperCase();
+            if (locEl) locEl.textContent = location;
+            if (devEl) devEl.textContent = `Device ID: ${deviceCode} • Active Alarm`;
+            if (ackBtn) ackBtn.className = `w-full py-4 px-6 rounded-2xl font-extrabold text-white text-base shadow-xl ${badgeClass} hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer`;
+
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+            }
+
+            // Start Audio Siren & Voice Speech
+            startEmergencySirenAudio();
+            speakEmergencyAnnouncement(`Urgent Alert! ${type} detected at ${location}! Please respond immediately!`);
+        }
+
+        // Auto unlock AudioContext & SpeechSynthesis on any user click/tap
+        function unlockAudioContext() {
+            if (webAudioCtx && webAudioCtx.state === 'suspended') {
+                webAudioCtx.resume();
+            }
+            if ('speechSynthesis' in window && window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+        }
+        ['click', 'pointerdown', 'keydown', 'touchstart'].forEach(evt => {
+            document.addEventListener(evt, unlockAudioContext, { passive: true });
+        });
+
+        function startEmergencySirenAudio() {
+            if (isSirenActive) return;
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!webAudioCtx) {
+                    webAudioCtx = new AudioContext();
+                }
+                if (webAudioCtx.state === 'suspended') {
+                    webAudioCtx.resume();
+                }
+
+                sirenOscillator = webAudioCtx.createOscillator();
+                sirenGainNode = webAudioCtx.createGain();
+
+                sirenOscillator.type = 'sawtooth';
+                sirenGainNode.gain.setValueAtTime(0.4, webAudioCtx.currentTime);
+
+                sirenOscillator.connect(sirenGainNode);
+                sirenGainNode.connect(webAudioCtx.destination);
+
+                let highPitch = true;
+                sirenOscillator.frequency.setValueAtTime(900, webAudioCtx.currentTime);
+                sirenOscillator.start();
+                isSirenActive = true;
+
+                sirenInterval = setInterval(() => {
+                    if (!webAudioCtx || !sirenOscillator) return;
+                    if (webAudioCtx.state === 'suspended') webAudioCtx.resume();
+                    const freq = highPitch ? 600 : 960;
+                    sirenOscillator.frequency.exponentialRampToValueAtTime(freq, webAudioCtx.currentTime + 0.2);
+                    highPitch = !highPitch;
+                }, 300);
+            } catch (err) {
+                console.error("Web Audio Siren error:", err);
+            }
+        }
+
+        function stopEmergencySirenAudio() {
+            isSirenActive = false;
+            if (sirenInterval) { clearInterval(sirenInterval); sirenInterval = null; }
+            if (sirenOscillator) {
+                try { sirenOscillator.stop(); sirenOscillator.disconnect(); } catch (e) {}
+                sirenOscillator = null;
+            }
+            if (webAudioCtx) {
+                try { webAudioCtx.close(); } catch (e) {}
+                webAudioCtx = null;
+            }
+        }
+
+        function speakEmergencyAnnouncement(text) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.rate = 1.0;
+            msg.pitch = 1.1;
+            msg.volume = 1.0;
+
+            msg.onend = function() {
+                if (currentActiveEmergency) {
+                    setTimeout(() => {
+                        if (currentActiveEmergency) window.speechSynthesis.speak(msg);
+                    }, 800);
+                }
+            };
+
+            window.speechSynthesis.speak(msg);
+        }
+
+        function stopVoiceSpeech() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        function acknowledgeActiveEmergency() {
+            stopEmergencySirenAudio();
+            stopVoiceSpeech();
+
+            const overlay = document.getElementById('global-emergency-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+
+            if (currentActiveEmergency && currentActiveEmergency.id) {
+                const targetId = currentActiveEmergency.id;
+                currentActiveEmergency = null;
+
+                fetch(`/ndrrmo/incidents/${targetId}/acknowledge`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    console.log("[ACKNOWLEDGED] Alert acknowledged via dashboard:", data);
+                    window.location.reload();
+                })
+                .catch(err => {
+                    console.error("Ack error:", err);
+                    window.location.reload();
+                });
+            }
+        }
+    </script>
+
     <script type="module">
         window.updateNDRRMOAlertBadges = function(count) {
             const sidebarBadge = document.getElementById('ndrrmo-sidebar-alert-badge');
@@ -185,51 +405,8 @@
 
         window.Echo.channel('emergencies')
             .listen('EmergencyReported', (e) => {
-                // Increment badges
-                const sidebarBadge = document.getElementById('ndrrmo-sidebar-alert-badge');
-                let currentCount = parseInt(sidebarBadge ? sidebarBadge.textContent || '0' : '0');
-                if (isNaN(currentCount)) currentCount = 0;
-                window.updateNDRRMOAlertBadges(currentCount + 1);
-                // Increment stat grid numbers in real time
-                const activeEl = document.getElementById('ndrrmo-stat-active');
-                const totalEl = document.getElementById('ndrrmo-stat-total');
-                if (activeEl) {
-                    let num = parseInt(activeEl.textContent || '0');
-                    activeEl.textContent = isNaN(num) ? 1 : num + 1;
-                }
-                if (totalEl) {
-                    let num = parseInt(totalEl.textContent || '0');
-                    totalEl.textContent = isNaN(num) ? 1 : num + 1;
-                }
-                // Here we dynamically add the row to the active alerts and table
-                const alertHtml = `
-                    <div class="border border-brand-red/30 bg-brand-red/5 rounded-lg p-3 relative overflow-hidden group mb-3 animate-pulse">
-                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-brand-red"></div>
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-start">
-                                <div class="mt-1 mr-3 text-brand-red">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
-                                </div>
-                                <div>
-                                    <div class="text-black font-bold text-sm leading-tight mb-1">${e.incident.device.building}</div>
-                                    <div class="text-black text-[11px] mb-2">${e.incident.emergency_type}</div>
-                                    <div class="text-[10px] text-slate-700 font-bold">Just now • Device ID: ${e.incident.device.device_code}</div>
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-end">
-                                <span class="bg-brand-red text-white text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mb-2">NEW ALARM</span>
-                                <span class="text-brand-red text-[10px] font-bold uppercase tracking-wider mb-2">ACTIVE</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                // Just a basic prepending for visual effect
-                const container = document.querySelector('.custom-scrollbar');
-                if (container) container.insertAdjacentHTML('afterbegin', alertHtml);
-                
-                // Update Map Marker
-                if (window.updateMarkerStatus) {
-                    window.updateMarkerStatus(e.incident.device.device_code, e.incident.emergency_type);
+                if (e && e.incident) {
+                    triggerScreenFlashAndAlarm(e.incident);
                 }
             });
     </script>
@@ -271,11 +448,16 @@
                     if (window.updateNDRRMOAlertBadges && data.active_alerts !== undefined) {
                         window.updateNDRRMOAlertBadges(data.active_alerts);
                     }
+
+                    // Auto-trigger emergency modal & audio siren if any pending incident exists
+                    if (data.latest_pending && window.triggerScreenFlashAndAlarm) {
+                        window.triggerScreenFlashAndAlarm(data.latest_pending);
+                    }
                 })
                 .catch(err => console.error(err));
         }
         pollNDRRMOStats();
-        setInterval(pollNDRRMOStats, 3000);
+        setInterval(pollNDRRMOStats, 1500);
     </script>
 </body>
 </html>

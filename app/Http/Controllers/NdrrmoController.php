@@ -84,6 +84,102 @@ class NdrrmoController extends Controller
         $device->delete();
         return redirect()->route('ndrrmo.devices')->with('success', 'Device deleted successfully.');
     }
+
+    public function bulkDeleteAlerts(Request $request) {
+        $validated = $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer|exists:incidents,id',
+        ]);
+
+        $ids = $validated['ids'];
+
+        // Delete associated notifications first, then the incidents
+        \App\Models\Notification::whereIn('incident_id', $ids)->delete();
+        \App\Models\Incident::whereIn('id', $ids)->delete();
+
+        return redirect()->route('ndrrmo.alerts')
+            ->with('success', count($ids) . ' alert(s) deleted successfully.');
+    }
+
+    public function acknowledgeIncident($id) {
+        $incident = \App\Models\Incident::with('device')->findOrFail($id);
+
+        // Set status to Acknowledged for pending incidents of this device
+        \App\Models\Incident::where('device_id', $incident->device_id)
+            ->whereIn('status', ['pending', 'Pending'])
+            ->update([
+                'status' => 'Acknowledged',
+            ]);
+
+        \App\Models\Notification::create([
+            'incident_id' => $incident->id,
+            'recipient'   => 'NDRRMO',
+            'channel'     => 'Dashboard',
+            'status'      => 'Acknowledged',
+            'sent_at'     => now(),
+        ]);
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'status'   => 'success',
+                'message'  => 'Emergency alert acknowledged.',
+                'incident' => $incident
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Incident acknowledged.');
+    }
+
+    public function dispatchIncident($id) {
+        $incident = \App\Models\Incident::findOrFail($id);
+        $incident->update([
+            'status' => 'Responding',
+        ]);
+
+        \App\Models\Notification::create([
+            'incident_id' => $incident->id,
+            'recipient'   => 'NDRRMO',
+            'channel'     => 'Dashboard',
+            'status'      => 'Dispatched',
+            'sent_at'     => now(),
+        ]);
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'status'   => 'success',
+                'message'  => 'Responders dispatched.',
+                'incident' => $incident
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Responders dispatched.');
+    }
+
+    public function resolveIncident($id) {
+        $incident = \App\Models\Incident::findOrFail($id);
+        $incident->update([
+            'status' => 'Resolved',
+        ]);
+
+        \App\Models\Notification::create([
+            'incident_id' => $incident->id,
+            'recipient'   => 'NDRRMO',
+            'channel'     => 'Dashboard',
+            'status'      => 'Resolved',
+            'sent_at'     => now(),
+        ]);
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'status'   => 'success',
+                'message'  => 'Incident marked resolved and recorded.',
+                'incident' => $incident
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Incident marked resolved and recorded.');
+    }
+
     public function sms() { 
         $smsLogs = \App\Models\Notification::where('channel', 'SMS Backup')
             ->with('incident.device')
@@ -108,15 +204,55 @@ class NdrrmoController extends Controller
     public function statsJson() {
         $devicesCount = \App\Models\Device::count();
         $onlineDevicesCount = \App\Models\Device::all()->filter(fn($d) => $d->is_online)->count();
+        $latestPending = \App\Models\Incident::with('device')
+            ->whereIn('status', ['pending', 'Pending'])
+            ->latest()
+            ->first();
+
         return response()->json([
-            'active_alerts' => \App\Models\Incident::whereIn('status', ['pending', 'acknowledged', 'responding'])->count(),
+            'active_alerts' => \App\Models\Incident::whereIn('status', ['pending', 'Pending', 'acknowledged', 'responding', 'Responding'])->count(),
             'total_incidents' => \App\Models\Incident::count(),
-            'resolved_incidents' => \App\Models\Incident::where('status', 'resolved')->count(),
+            'resolved_incidents' => \App\Models\Incident::whereIn('status', ['resolved', 'Resolved'])->count(),
             'devices_online' => $onlineDevicesCount,
             'total_devices' => $devicesCount,
-            'pending' => \App\Models\Incident::where('status', 'pending')->count(),
-            'responding' => \App\Models\Incident::where('status', 'responding')->count(),
-            'resolved' => \App\Models\Incident::where('status', 'resolved')->count(),
+            'pending' => \App\Models\Incident::whereIn('status', ['pending', 'Pending'])->count(),
+            'responding' => \App\Models\Incident::whereIn('status', ['responding', 'Responding'])->count(),
+            'resolved' => \App\Models\Incident::whereIn('status', ['resolved', 'Resolved'])->count(),
+            'latest_pending' => $latestPending,
         ]);
+    }
+
+    public function exportExcel() {
+        $incidents = \App\Models\Incident::with('device')->latest()->get();
+        $filename = "incident_reports_" . date('Y-m-d_H-i-s') . ".xls";
+
+        $headers = [
+            "Content-Type" => "application/vnd.ms-excel",
+            "Content-Disposition" => "attachment; filename=\"$filename\"",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ];
+
+        $callback = function() use ($incidents) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF");
+            fputcsv($file, ['Incident ID', 'Time Reported', 'Emergency Category', 'Building Location', 'Floor / Room', 'Device Code', 'Status'], "\t");
+
+            foreach ($incidents as $inc) {
+                fputcsv($file, [
+                    $inc->id,
+                    $inc->created_at ? $inc->created_at->format('Y-m-d H:i:s') : '',
+                    $inc->emergency_type,
+                    $inc->device->building ?? 'N/A',
+                    trim(($inc->device->floor ?? '') . ' ' . ($inc->device->room ?? '')),
+                    $inc->device->device_code ?? 'N/A',
+                    strtoupper($inc->status)
+                ], "\t");
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
