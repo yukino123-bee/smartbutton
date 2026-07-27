@@ -306,6 +306,29 @@
         }
         updateLiveClock();
         setInterval(updateLiveClock, 1000);
+
+        function pollClinicStats() {
+            fetch('/clinic/stats-json')
+                .then(res => res.json())
+                .then(data => {
+                    const activeEl = document.getElementById('stat-active-alerts');
+                    const incomingEl = document.getElementById('stat-incoming');
+                    const treatedEl = document.getElementById('stat-treated');
+                    const resolvedEl = document.getElementById('stat-resolved');
+
+                    if (activeEl && data.active_alerts !== undefined) activeEl.textContent = data.active_alerts;
+                    if (incomingEl && data.incoming !== undefined) incomingEl.textContent = data.incoming;
+                    if (treatedEl && data.treated_today !== undefined) treatedEl.textContent = data.treated_today;
+                    if (resolvedEl && data.resolved_today !== undefined) resolvedEl.textContent = data.resolved_today;
+
+                    if (window.updateAlertBadges && data.active_alerts !== undefined) {
+                        window.updateAlertBadges(data.active_alerts);
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+        pollClinicStats();
+        setInterval(pollClinicStats, 3000);
     </script>
 </body>
 </html>

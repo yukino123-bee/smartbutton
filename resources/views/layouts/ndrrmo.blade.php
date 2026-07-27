@@ -247,6 +247,27 @@
         }
         updateLiveNDRRMOClock();
         setInterval(updateLiveNDRRMOClock, 1000);
+
+        function pollNDRRMOStats() {
+            fetch('/ndrrmo/stats-json')
+                .then(res => res.json())
+                .then(data => {
+                    const activeEl = document.getElementById('ndrrmo-stat-active');
+                    const totalEl = document.getElementById('ndrrmo-stat-total');
+                    const resolvedEl = document.getElementById('ndrrmo-stat-resolved');
+                    
+                    if (activeEl && data.active_alerts !== undefined) activeEl.textContent = data.active_alerts;
+                    if (totalEl && data.total_incidents !== undefined) totalEl.textContent = data.total_incidents;
+                    if (resolvedEl && data.resolved_incidents !== undefined) resolvedEl.textContent = data.resolved_incidents;
+
+                    if (window.updateNDRRMOAlertBadges && data.active_alerts !== undefined) {
+                        window.updateNDRRMOAlertBadges(data.active_alerts);
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+        pollNDRRMOStats();
+        setInterval(pollNDRRMOStats, 3000);
     </script>
 </body>
 </html>

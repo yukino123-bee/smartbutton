@@ -32,6 +32,7 @@ Route::middleware(['auth', 'role:NDRRMO'])->prefix('ndrrmo')->name('ndrrmo.')->g
     Route::delete('/devices/{device}', [\App\Http\Controllers\NdrrmoController::class, 'destroyDevice'])->name('devices.destroy');
     Route::get('/sms', [\App\Http\Controllers\NdrrmoController::class, 'sms'])->name('sms');
     Route::get('/reports', [\App\Http\Controllers\NdrrmoController::class, 'reports'])->name('reports');
+    Route::get('/stats-json', [\App\Http\Controllers\NdrrmoController::class, 'statsJson'])->name('stats-json');
 });
 
 Route::middleware(['auth', 'role:Clinic'])->prefix('clinic')->name('clinic.')->group(function () {
@@ -41,5 +42,6 @@ Route::middleware(['auth', 'role:Clinic'])->prefix('clinic')->name('clinic.')->g
     Route::get('/logs', [\App\Http\Controllers\ClinicController::class, 'logs'])->name('logs');
     Route::get('/patients', [\App\Http\Controllers\ClinicController::class, 'patients'])->name('patients');
     Route::get('/reports', [\App\Http\Controllers\ClinicController::class, 'reports'])->name('reports');
+    Route::get('/stats-json', [\App\Http\Controllers\ClinicController::class, 'statsJson'])->name('stats-json');
     Route::post('/incidents/{incident}/resolve', [\App\Http\Controllers\ClinicController::class, 'resolveIncident'])->name('incidents.resolve');
 });

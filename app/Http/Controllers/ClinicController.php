@@ -54,6 +54,19 @@ class ClinicController extends Controller
         return response()->json(['success' => true, 'message' => 'Incident resolved successfully']);
     }
 
+    public function statsJson() {
+        return response()->json([
+            'active_alerts' => Incident::where('emergency_type', 'Critical Emergency')
+                ->whereIn('status', ['pending', 'acknowledged'])->count(),
+            'incoming' => Incident::whereDate('created_at', Carbon::today())
+                ->whereIn('status', ['pending', 'acknowledged'])->count(),
+            'treated_today' => Incident::whereDate('updated_at', Carbon::today())
+                ->where('status', 'resolved')->count(),
+            'resolved_today' => Incident::whereDate('updated_at', Carbon::today())
+                ->where('status', 'resolved')->count(),
+        ]);
+    }
+
     public function alerts() { return view('clinic.alerts'); }
     public function incoming() { return view('clinic.incoming'); }
     public function logs() { return view('clinic.logs'); }

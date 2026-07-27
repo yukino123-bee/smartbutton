@@ -103,4 +103,17 @@ class NdrrmoController extends Controller
         
         return view('ndrrmo.reports', compact('stats', 'typeStats', 'totalIncidents')); 
     }
+
+    public function statsJson() {
+        return response()->json([
+            'active_alerts' => \App\Models\Incident::whereIn('status', ['pending', 'acknowledged', 'responding'])->count(),
+            'total_incidents' => \App\Models\Incident::count(),
+            'resolved_incidents' => \App\Models\Incident::where('status', 'resolved')->count(),
+            'devices_online' => \App\Models\Device::where('status', 'active')->count(),
+            'total_devices' => \App\Models\Device::count(),
+            'pending' => \App\Models\Incident::where('status', 'pending')->count(),
+            'responding' => \App\Models\Incident::where('status', 'responding')->count(),
+            'resolved' => \App\Models\Incident::where('status', 'resolved')->count(),
+        ]);
+    }
 }
