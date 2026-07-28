@@ -216,23 +216,23 @@
             </div>
 
             <span id="global-emergency-category-badge" class="inline-block px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest text-white bg-red-600 mb-2 shadow-sm">
-                CRITICAL EMERGENCY
+                EMERGENCY ALERT
             </span>
 
             <h3 id="global-emergency-title" class="text-xl font-black text-slate-900 mb-1 uppercase tracking-wide">
-                CRITICAL EMERGENCY
+                Awaiting incident details
             </h3>
 
             <p id="global-emergency-location" class="text-slate-800 font-extrabold text-base mb-0.5">
-                Engineering Building
+                Location will appear here
             </p>
 
             <p id="global-emergency-device" class="text-slate-500 text-xs font-mono mb-3">
-                Device ID: ENG-001 • Active Alarm
+                Device information will appear here
             </p>
 
             {{-- Map Location Display Container --}}
-            <div class="relative w-full h-44 rounded-2xl overflow-hidden border-2 border-red-500 shadow-md mb-4 bg-slate-100 z-0">
+            <div id="modal-emergency-map-container" class="relative w-full h-44 rounded-2xl overflow-hidden border-2 border-red-500 shadow-md mb-4 bg-slate-100 z-0">
                 <div id="modal-emergency-map" class="w-full h-full"></div>
                 <div class="absolute bottom-2 left-2 z-[1000] bg-slate-900/90 text-white text-[10px] font-black px-2.5 py-1 rounded-md backdrop-blur-xs flex items-center gap-1.5 border border-slate-700">
                     <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
@@ -264,11 +264,12 @@
             if (currentActiveEmergency && currentActiveEmergency.id === incident.id) return; // already active
 
             currentActiveEmergency = incident;
-            const type = incident.emergency_type || 'Critical Emergency';
-            const location = (incident.device && incident.device.building) ? incident.device.building : 'Campus Location';
-            const deviceCode = (incident.device && incident.device.device_code) ? incident.device.device_code : 'N/A';
-            const lat = (incident.device && incident.device.latitude) ? parseFloat(incident.device.latitude) : 7.708601;
-            const lng = (incident.device && incident.device.longitude) ? parseFloat(incident.device.longitude) : 123.292456;
+            const type = incident.emergency_type || 'Emergency Alert';
+            const location = (incident.device && incident.device.building) ? incident.device.building : 'Location not recorded';
+            const deviceCode = (incident.device && incident.device.device_code) ? incident.device.device_code : 'Not recorded';
+            const hasCoordinates = Boolean(incident.device && incident.device.latitude && incident.device.longitude);
+            const lat = hasCoordinates ? parseFloat(incident.device.latitude) : null;
+            const lng = hasCoordinates ? parseFloat(incident.device.longitude) : null;
 
             const overlay = document.getElementById('global-emergency-overlay');
             const backdrop = document.getElementById('global-emergency-backdrop');
@@ -280,6 +281,7 @@
             const devEl = document.getElementById('global-emergency-device');
             const ackBtn = document.getElementById('global-emergency-ack-btn');
             const coordsText = document.getElementById('modal-map-coords-text');
+            const mapContainer = document.getElementById('modal-emergency-map-container');
 
             let bgClass = 'bg-red-600/70';
             let badgeClass = 'bg-red-600';
@@ -302,7 +304,8 @@
             if (title) title.textContent = type.toUpperCase();
             if (locEl) locEl.textContent = location;
             if (devEl) devEl.textContent = `Device ID: ${deviceCode} • Active Alarm`;
-            if (coordsText) coordsText.textContent = `INCIDENT LOCATION (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+            if (mapContainer) mapContainer.classList.toggle('hidden', !hasCoordinates);
+            if (coordsText && hasCoordinates) coordsText.textContent = `INCIDENT LOCATION (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
             if (ackBtn) ackBtn.className = `w-full py-3.5 px-6 rounded-2xl font-extrabold text-white text-sm shadow-xl ${badgeClass} hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer`;
 
             if (overlay) {
@@ -311,7 +314,7 @@
             }
 
             // Render Mini Map inside Modal
-            if (typeof L !== 'undefined') {
+            if (hasCoordinates && typeof L !== 'undefined') {
                 setTimeout(() => {
                     if (window.modalLeafletMap) {
                         try { window.modalLeafletMap.remove(); } catch(e) {}

@@ -26,10 +26,6 @@
                         <span class="w-3 h-3 rounded-full bg-orange-500 mr-2.5 shrink-0 ring-2 ring-orange-200"></span>
                         <span>Public Safety</span>
                     </div>
-                    <div class="flex items-center">
-                        <span class="w-3 h-3 rounded-full bg-amber-500 mr-2.5 shrink-0 ring-2 ring-amber-200"></span>
-                        <span>Facility & Hazard</span>
-                    </div>
                     <div class="flex items-center pt-2 border-t border-slate-100">
                         <span class="w-3 h-3 rounded-full bg-blue-600 mr-2.5 shrink-0 ring-2 ring-blue-200"></span>
                         <span>Device Online (Idle)</span>

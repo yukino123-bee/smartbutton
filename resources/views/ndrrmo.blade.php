@@ -222,7 +222,7 @@
                     <div class="bg-brand-card border border-brand-border rounded-xl flex flex-col h-[280px]">
                         <div class="px-5 py-4 flex items-center justify-between border-b border-brand-border">
                             <h2 class="text-xs font-bold text-brand-dark uppercase tracking-wider">ACTIVE ALERTS</h2>
-                            <a href="#" class="text-[10px] text-brand-blue hover:text-blue-400">View All</a>
+                            <a href="{{ route('ndrrmo.alerts') }}" class="text-[10px] text-brand-blue hover:text-blue-700">View All</a>
                         </div>
                         <div class="flex-1 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
                             @forelse($activeIncidents as $incident)
@@ -254,9 +254,9 @@
                                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
                                             </div>
                                             <div>
-                                                <div class="text-brand-dark font-bold text-sm leading-tight mb-1">{{ $incident->device->building ?? 'Unknown Location' }}</div>
+                                                <div class="text-brand-dark font-bold text-sm leading-tight mb-1">{{ $incident->device?->building ?? 'Location not recorded' }}</div>
                                                 <div class="text-brand-text text-[11px] mb-2">{{ $incident->emergency_type }}</div>
-                                                <div class="text-[10px] text-slate-500">{{ $incident->created_at->format('M d, g:i A') }} • Device ID: {{ $incident->device->device_code ?? 'N/A' }}</div>
+                                                <div class="text-[10px] text-slate-500">{{ $incident->reported_at->format('M d, g:i A') }} • Device ID: {{ $incident->device?->device_code ?? 'Not recorded' }}</div>
                                             </div>
                                         </div>
                                         <div class="flex flex-col items-end">
@@ -283,7 +283,7 @@
                 <div class="lg:col-span-2 bg-brand-card border border-brand-border rounded-xl flex flex-col">
                     <div class="px-5 py-4 flex items-center justify-between border-b border-brand-border">
                         <h2 class="text-xs font-bold text-brand-dark uppercase tracking-wider">RECENT INCIDENT LOGS</h2>
-                        <a href="#" class="text-[10px] text-brand-blue hover:text-blue-400">View All Logs</a>
+                        <a href="{{ route('ndrrmo.logs') }}" class="text-[10px] text-brand-blue hover:text-blue-700">View All Logs</a>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -295,7 +295,6 @@
                                     <th class="px-5 py-3 font-medium">Location</th>
                                     <th class="px-5 py-3 font-medium">Device ID</th>
                                     <th class="px-5 py-3 font-medium">Status</th>
-                                    <th class="px-5 py-3 font-medium">Responded By</th>
                                     <th class="px-5 py-3 font-medium text-center">Action</th>
                                 </tr>
                             </thead>
@@ -311,23 +310,22 @@
                                             $tagClass = 'bg-yellow-500';
                                         }
                                         
-                                        if($log->status === 'resolved') {
+                                        if($log->status === 'Resolved') {
                                             $statusClass = 'text-brand-green';
                                         }
                                     @endphp
                                     <tr class="border-b border-brand-border/50 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer" onclick="window.location.href='{{ route('ndrrmo.logs') }}'">
                                         <td class="px-5 py-3 text-brand-text">{{ $index + 1 }}</td>
-                                        <td class="px-5 py-3">{{ $log->created_at->format('M d, Y h:i A') }}</td>
+                                        <td class="px-5 py-3">{{ $log->reported_at->format('M d, Y h:i A') }}</td>
                                         <td class="px-5 py-3"><span class="{{ $tagClass }} text-white text-[9px] font-bold px-2 py-0.5 rounded">{{ $log->emergency_type }}</span></td>
-                                        <td class="px-5 py-3 text-brand-text">{{ $log->device->building ?? 'N/A' }}</td>
-                                        <td class="px-5 py-3 text-brand-text">{{ $log->device->device_code ?? 'N/A' }}</td>
+                                        <td class="px-5 py-3 text-brand-text">{{ $log->device?->building ?? 'Location not recorded' }}</td>
+                                        <td class="px-5 py-3 text-brand-text">{{ $log->device?->device_code ?? 'Not recorded' }}</td>
                                         <td class="px-5 py-3 {{ $statusClass }} font-medium capitalize">{{ $log->status }}</td>
-                                        <td class="px-5 py-3 text-brand-text">{{ $log->responded_by ?? '-' }}</td>
-                                        <td class="px-5 py-3 text-center"><button class="text-brand-blue hover:text-blue-400"><svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></button></td>
+                                        <td class="px-5 py-3 text-center"><a href="{{ route('ndrrmo.logs') }}" class="text-brand-blue hover:text-blue-700" aria-label="View incident log"><svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></a></td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="8" class="px-5 py-8 text-center text-brand-text">No recent incident logs found.</td>
+                                        <td colspan="7" class="px-5 py-8 text-center text-brand-text">No recent incident logs found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -336,13 +334,7 @@
                     <!-- Pagination Footer -->
                     <div class="px-5 py-3 border-t border-brand-border flex items-center justify-between text-xs text-brand-text mt-auto">
                         <div>Showing 1 to {{ $recentLogs->count() }} of {{ $totalIncidents }} entries</div>
-                        <div class="flex items-center space-x-1">
-                            <button class="w-6 h-6 rounded flex items-center justify-center hover:bg-brand-hover text-brand-text">&lt;</button>
-                            <button class="w-6 h-6 rounded flex items-center justify-center bg-brand-blue text-white">1</button>
-                            <button class="w-6 h-6 rounded flex items-center justify-center hover:bg-brand-hover">2</button>
-                            <button class="w-6 h-6 rounded flex items-center justify-center hover:bg-brand-hover">3</button>
-                            <button class="w-6 h-6 rounded flex items-center justify-center hover:bg-brand-hover text-brand-text">&gt;</button>
-                        </div>
+                        <a href="{{ route('ndrrmo.logs') }}" class="font-bold text-brand-blue hover:text-blue-700">Open complete log</a>
                     </div>
                 </div>
 
@@ -356,27 +348,24 @@
                             $cCount = $stats['Critical'] ?? 0;
                             $mCount = $stats['Medical'] ?? 0;
                             $pCount = $stats['Public Safety'] ?? 0;
-                            $fCount = $stats['Facility & Hazard'] ?? 0;
-                            $totalStats = $cCount + $mCount + $pCount + $fCount;
-                            $totalStats = $totalStats > 0 ? $totalStats : 1; // avoid division by zero
+                            $totalStats = $cCount + $mCount + $pCount;
+                            $percentageBase = max($totalStats, 1);
                             
-                            $cPct = ($cCount / $totalStats) * 100;
-                            $mPct = ($mCount / $totalStats) * 100;
-                            $fPct = ($fCount / $totalStats) * 100;
-                            $pPct = ($pCount / $totalStats) * 100;
+                            $cPct = ($cCount / $percentageBase) * 100;
+                            $mPct = ($mCount / $percentageBase) * 100;
+                            $pPct = ($pCount / $percentageBase) * 100;
                             
                             $cEnd = $cPct;
                             $mEnd = $cEnd + $mPct;
-                            $fEnd = $mEnd + $fPct;
                         @endphp
                         <!-- Donut Chart -->
                         <div class="relative w-24 h-24 shrink-0">
                             <!-- CSS pure donut chart hack using conic-gradient -->
-                            <div class="w-full h-full rounded-full" style="background: conic-gradient(#EF4444 0% {{ $cEnd }}%, #F59E0B {{ $cEnd }}% {{ $mEnd }}%, #10B981 {{ $mEnd }}% {{ $fEnd }}%, #EAB308 {{ $fEnd }}% 100%);"></div>
+                            <div class="w-full h-full rounded-full" style="background: {{ $totalStats > 0 ? "conic-gradient(#EF4444 0% {$cEnd}%, #F59E0B {$cEnd}% {$mEnd}%, #EAB308 {$mEnd}% 100%)" : '#e2e8f0' }};"></div>
                             <!-- Inner circle for donut -->
                             <div class="absolute inset-2 bg-brand-card rounded-full flex flex-col items-center justify-center">
-                                <span class="text-xl font-bold text-brand-dark leading-none">{{ $totalIncidents }}</span>
-                                <span class="text-[10px] text-brand-text mt-1">Total</span>
+                                <span class="text-xl font-bold text-brand-dark leading-none">{{ $totalStats }}</span>
+                                <span class="text-[10px] text-brand-text mt-1">Today</span>
                             </div>
                         </div>
                         
@@ -390,10 +379,6 @@
                                 <div class="flex items-center"><span class="w-2 h-2 rounded-full bg-brand-orange mr-2"></span><span class="text-brand-text">Medical Emergency</span></div>
                                 <div class="text-brand-dark font-medium">{{ $mCount }} ({{ round($mPct, 1) }}%)</div>
                             </div>
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="flex items-center"><span class="w-2 h-2 rounded-full bg-brand-green mr-2"></span><span class="text-brand-text">Facility & Hazard</span></div>
-                                <div class="text-brand-dark font-medium">{{ $fCount }} ({{ round($fPct, 1) }}%)</div>
-                            </div>
                             <div class="flex justify-between items-center">
                                 <div class="flex items-center"><span class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span><span class="text-brand-text">Public Safety</span></div>
                                 <div class="text-brand-dark font-medium">{{ $pCount }} ({{ round($pPct, 1) }}%)</div>
@@ -402,11 +387,6 @@
                     </div>
 
                     <!-- Response Status -->
-                    @php
-                        $pending = \App\Models\Incident::where('status', 'pending')->count();
-                        $responding = \App\Models\Incident::where('status', 'responding')->count();
-                        $resolved = \App\Models\Incident::where('status', 'resolved')->count();
-                    @endphp
                     <div class="p-5 flex-1 flex flex-col">
                         <h3 class="text-[10px] font-bold text-brand-text uppercase tracking-wider mb-4">RESPONSE STATUS</h3>
                         <div class="flex justify-between items-center mb-3">
@@ -414,28 +394,28 @@
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                                 <span class="text-brand-text text-xs">Pending</span>
                             </div>
-                            <span class="text-brand-orange font-bold">{{ $pending }}</span>
+                            <span class="text-brand-orange font-bold">{{ $stats['Pending'] }}</span>
                         </div>
                         <div class="flex justify-between items-center mb-3">
                             <div class="flex items-center text-brand-blue">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                                 <span class="text-brand-text text-xs">Responding</span>
                             </div>
-                            <span class="text-brand-blue font-bold">{{ $responding }}</span>
+                            <span class="text-brand-blue font-bold">{{ $stats['Responding'] }}</span>
                         </div>
                         <div class="flex justify-between items-center mb-3">
                             <div class="flex items-center text-brand-green">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                 <span class="text-brand-text text-xs">Resolved</span>
                             </div>
-                            <span class="text-brand-green font-bold">{{ $resolved }}</span>
+                            <span class="text-brand-green font-bold">{{ $stats['Resolved'] }}</span>
                         </div>
                         <div class="flex justify-between items-center">
                             <div class="flex items-center text-slate-500">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <span class="text-brand-text text-xs">Closed</span>
+                                <span class="text-brand-text text-xs">Acknowledged</span>
                             </div>
-                            <span class="text-brand-dark font-bold">1</span>
+                            <span class="text-brand-dark font-bold">{{ $stats['Acknowledged'] }}</span>
                         </div>
                     </div>
                 </div>

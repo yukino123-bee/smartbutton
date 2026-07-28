@@ -28,9 +28,7 @@
             </div>
         </div>
         <div class="text-3xl font-black text-slate-900 mb-1">{{ $totalIncidents }}</div>
-        <p class="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
-            <span>↑ 100% recorded & logged</span>
-        </p>
+        <p class="text-[11px] text-slate-500 font-medium">Records currently stored in the system</p>
     </div>
 
     <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs relative overflow-hidden">
@@ -113,11 +111,18 @@
     <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col items-center justify-center text-center">
         <div class="w-24 h-24 rounded-full border-4 border-emerald-500 bg-emerald-50 flex items-center justify-center mb-4 relative shadow-inner">
             <svg class="w-10 h-10 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <div class="absolute -right-2 -bottom-2 bg-emerald-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full border-2 border-white uppercase tracking-wider">OPTIMAL</div>
         </div>
-        <div class="text-xs text-slate-500 uppercase font-black tracking-wider mb-1">AVERAGE RESPONSE SPEED</div>
-        <div class="text-4xl font-black text-slate-900 mb-2">1m 45s</div>
-        <p class="text-xs text-slate-500 leading-relaxed max-w-xs">Average elapsed time from ESP32 button activation to DRRMO team dispatch acknowledgement.</p>
+        <div class="text-xs text-slate-500 uppercase font-black tracking-wider mb-1">AVERAGE RESOLUTION TIME</div>
+        <div class="text-4xl font-black text-slate-900 mb-2">
+            @if($averageResolutionSeconds !== null)
+                {{ intdiv((int) round($averageResolutionSeconds), 60) }}m {{ (int) round($averageResolutionSeconds) % 60 }}s
+            @else
+                —
+            @endif
+        </div>
+        <p class="text-xs text-slate-500 leading-relaxed max-w-xs">
+            {{ $averageResolutionSeconds !== null ? 'Calculated from report time to recorded resolution time.' : 'No resolved incident timing data is available yet.' }}
+        </p>
     </div>
 </div>
 @endsection

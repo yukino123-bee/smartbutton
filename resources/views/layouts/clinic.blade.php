@@ -193,19 +193,19 @@
             </div>
 
             <span id="global-emergency-category-badge" class="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest text-white bg-red-600 mb-3 shadow-sm">
-                CRITICAL MEDICAL EMERGENCY
+                EMERGENCY ALERT
             </span>
 
             <h3 id="global-emergency-title" class="text-2xl font-black text-slate-900 mb-2 uppercase tracking-wide">
-                CRITICAL EMERGENCY
+                Awaiting incident details
             </h3>
 
             <p id="global-emergency-location" class="text-slate-700 font-bold text-lg mb-1">
-                Engineering Building
+                Location will appear here
             </p>
 
             <p id="global-emergency-device" class="text-slate-500 text-xs font-mono mb-8">
-                Device ID: ENG-001 • Active Alarm
+                Device information will appear here
             </p>
 
             <button id="global-emergency-ack-btn" type="button" onclick="acknowledgeClinicEmergency()"
@@ -231,9 +231,10 @@
             if (currentClinicEmergency && currentClinicEmergency.id === incident.id) return;
 
             currentClinicEmergency = incident;
-            const type = incident.emergency_type || 'Critical Emergency';
-            const location = (incident.device && incident.device.building) ? incident.device.building : 'Campus Location';
-            const deviceCode = (incident.device && incident.device.device_code) ? incident.device.device_code : 'N/A';
+            const type = incident.emergency_type;
+            if (!['Critical Emergency', 'Medical Emergency'].includes(type)) return;
+            const location = (incident.device && incident.device.building) ? incident.device.building : 'Location not recorded';
+            const deviceCode = (incident.device && incident.device.device_code) ? incident.device.device_code : 'Not recorded';
 
             const overlay = document.getElementById('global-emergency-overlay');
             const backdrop = document.getElementById('global-emergency-backdrop');

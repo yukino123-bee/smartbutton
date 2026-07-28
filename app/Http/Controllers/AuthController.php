@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -37,7 +37,7 @@ class AuthController extends Controller
         ]);
 
         Auth::login($user);
-        
+
         $request->session()->regenerate();
 
         if ($user->role === 'DRRMO') {
@@ -45,6 +45,7 @@ class AuthController extends Controller
         } elseif ($user->role === 'Clinic') {
             return redirect()->intended('/clinic');
         }
+
         return redirect('/');
     }
 
@@ -54,8 +55,9 @@ class AuthController extends Controller
             'username' => ['required', 'string'],
             'password' => ['required'],
         ]);
+        $credentials['status'] = 'active';
 
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
             $role = Auth::user()->role;
             if ($role === 'DRRMO') {
@@ -63,6 +65,7 @@ class AuthController extends Controller
             } elseif ($role === 'Clinic') {
                 return redirect()->intended('/clinic');
             }
+
             return redirect('/');
         }
 
@@ -76,6 +79,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/');
     }
 }

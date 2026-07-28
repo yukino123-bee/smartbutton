@@ -29,11 +29,11 @@
     <div class="flex flex-wrap items-center gap-3 text-xs">
         <span class="px-3.5 py-2 bg-red-50 border border-red-200 text-red-700 rounded-xl font-extrabold flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
-            <span>{{ $alerts->whereIn('status', ['pending', 'Pending'])->count() }} Pending</span>
+            <span>{{ $alerts->where('status', 'Pending')->count() }} Pending</span>
         </span>
         <span class="px-3.5 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl font-extrabold flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-            <span>{{ $alerts->whereIn('status', ['acknowledged', 'Acknowledged', 'responding', 'Responding'])->count() }} In Progress</span>
+            <span>{{ $alerts->whereIn('status', ['Acknowledged', 'Responding'])->count() }} In Progress</span>
         </span>
 
         @if(!$alerts->isEmpty())
@@ -125,7 +125,7 @@
             <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-2 items-center">
                 {{-- Action Buttons --}}
                 <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
-                    @if($alert->status === 'pending')
+                    @if($alert->status === 'Pending')
                         <form id="ack-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.incidents.acknowledge', $alert->id) }}" class="flex-1" onsubmit="return confirmAction(event, 'Are you sure you want to acknowledge this alert?', 'Acknowledge Alert', 'Acknowledge', 'warning')">
                             @csrf
                             <button type="submit" class="w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">

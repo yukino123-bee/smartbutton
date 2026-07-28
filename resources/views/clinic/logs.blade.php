@@ -69,12 +69,12 @@
                         @php
                             $st = strtolower($log->status);
                         @endphp
-                        @if($st === 'resolved')
+                        @if($st === 'Resolved')
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
                                 Resolved / Treated
                             </span>
-                        @elseif($st === 'pending')
+                        @elseif($st === 'Pending')
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-red-100 text-red-800 border border-red-200 animate-pulse">
                                 <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
                                 Pending
@@ -87,7 +87,7 @@
                         @endif
                     </td>
                     <td class="px-6 py-4 text-center">
-                        @if($st !== 'resolved')
+                        @if($st !== 'Resolved')
                         <form method="POST" action="{{ route('clinic.incidents.resolve', $log->id) }}">
                             @csrf
                             <button type="submit" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] shadow-sm transition-all cursor-pointer">

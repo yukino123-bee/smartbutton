@@ -60,7 +60,7 @@
     <div class="bg-red-600 px-6 py-3.5 flex flex-wrap items-center justify-between gap-2">
         <div class="flex items-center gap-3">
             <span class="w-3 h-3 rounded-full bg-white animate-ping"></span>
-            <span class="text-white font-black text-xs md:text-sm uppercase tracking-widest">⚠ CRITICAL EMERGENCY — ACTIVE RESPONSE</span>
+            <span class="text-white font-black text-xs md:text-sm uppercase tracking-widest">⚠ {{ $activeEmergency?->emergency_type }} — ACTIVE RESPONSE</span>
         </div>
         <span id="emergency-timestamp" class="text-white text-xs font-extrabold bg-black/30 px-3.5 py-1 rounded-full">
             {{ $activeEmergency ? $activeEmergency->created_at->format('h:i A · M d, Y') : '' }}
@@ -76,16 +76,18 @@
                 🚨
             </div>
             <div class="flex-1 min-w-0">
-                <h2 class="text-2xl font-black text-slate-900 mb-2">Emergency Patient Incoming!</h2>
+                <h2 class="text-2xl font-black text-slate-900 mb-2">{{ $activeEmergency?->emergency_type }}</h2>
                 <div class="space-y-1.5 text-xs font-bold text-slate-700">
                     <div class="flex items-center gap-2">
                         <span class="text-slate-400 font-extrabold uppercase tracking-wider text-[10px]">BUILDING:</span>
-                        <span id="emergency-building" class="font-black text-slate-900 text-sm">{{ $activeEmergency->device->building ?? 'Engineering Building' }}</span>
+                        <span id="emergency-building" class="font-black text-slate-900 text-sm">{{ $activeEmergency?->device?->building ?? 'Location not recorded' }}</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="text-slate-400 font-extrabold uppercase tracking-wider text-[10px]">DEVICE:</span>
-                        <span id="emergency-device-code" class="font-mono font-black text-slate-900">{{ $activeEmergency->device->device_code ?? 'ENG-001' }}</span>
-                        <span id="emergency-device-name" class="text-slate-500 font-semibold">({{ $activeEmergency->device->room ?? 'Room N/A' }})</span>
+                        <span id="emergency-device-code" class="font-mono font-black text-slate-900">{{ $activeEmergency?->device?->device_code ?? 'Not recorded' }}</span>
+                        @if($activeEmergency?->device?->room)
+                            <span id="emergency-device-name" class="text-slate-500 font-semibold">({{ $activeEmergency->device->room }})</span>
+                        @endif
                     </div>
                 </div>
 
@@ -104,14 +106,19 @@
         {{-- Timer + Action --}}
         <div class="w-full lg:w-72 p-6 flex flex-col items-center justify-center gap-4 bg-red-50/70 shrink-0">
             <div class="text-center">
-                <p class="text-[10px] font-black text-red-700 uppercase tracking-widest mb-1">Estimated Arrival</p>
-                <p id="emergency-countdown" class="text-4xl font-black text-red-600 leading-none tabular-nums">03:00</p>
-                <p class="text-[11px] text-slate-500 font-bold mt-1">minutes</p>
+                <p class="text-[10px] font-black text-red-700 uppercase tracking-widest mb-1">Reported</p>
+                <p class="text-lg font-black text-red-600 leading-none tabular-nums">{{ $activeEmergency?->reported_at?->format('h:i A') }}</p>
+                <p class="text-[11px] text-slate-500 font-bold mt-1">{{ $activeEmergency?->reported_at?->diffForHumans() }}</p>
             </div>
-            <button id="btn-patient-arrived" onclick="resolveActiveEmergency({{ $activeEmergency->id ?? 'null' }})" class="w-full bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold py-3 px-4 rounded-2xl shadow-md shadow-red-200 transition-all flex items-center justify-center gap-2 text-xs cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                <span>Patient Arrived & Treated</span>
-            </button>
+            @if($activeEmergency)
+                <form method="POST" action="{{ $activeEmergency->status === 'Pending' ? route('clinic.incidents.acknowledge', $activeEmergency) : route('clinic.incidents.resolve', $activeEmergency) }}" class="w-full">
+                    @csrf
+                    <button id="btn-patient-arrived" type="submit" class="w-full bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold py-3 px-4 rounded-2xl shadow-md shadow-red-200 transition-all flex items-center justify-center gap-2 text-xs cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        <span>{{ $activeEmergency->status === 'Pending' ? 'Acknowledge Emergency' : 'Mark Treated & Resolved' }}</span>
+                    </button>
+                </form>
+            @endif
         </div>
     </div>
 </div>
@@ -124,7 +131,7 @@
         </div>
         <div>
             <h3 class="text-base font-black text-black">System Normal — No Active Emergency</h3>
-            <p class="text-xs font-bold text-slate-700 mt-0.5">Clinic emergency response team is on standby. All panic button devices are online.</p>
+            <p class="text-xs font-bold text-slate-700 mt-0.5">Clinic emergency response team is on standby. Device availability is monitored by DRRMO.</p>
         </div>
     </div>
     <span class="inline-flex items-center gap-1.5 bg-green-100 text-brand-green text-xs font-black px-3 py-1.5 rounded-full border border-green-300">
@@ -140,7 +147,7 @@
         <div class="px-6 py-4 flex items-center justify-between border-b border-slate-200 bg-slate-50">
             <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-brand-red animate-pulse"></span>
-                <h2 class="text-xs font-black text-black uppercase tracking-wider">Active Critical Alerts</h2>
+                <h2 class="text-xs font-black text-black uppercase tracking-wider">Active Medical & Critical Alerts</h2>
             </div>
             <a href="{{ route('clinic.alerts') }}" class="text-[11px] text-brand-blue hover:underline font-extrabold">View All →</a>
         </div>
@@ -162,20 +169,23 @@
                     <tr class="bg-red-50/60 hover:bg-red-100/50 transition-colors" id="incident-row-{{ $incident->id }}">
                         <td class="px-5 py-4 text-black font-bold row-no">{{ $index + 1 }}</td>
                         <td class="px-5 py-4 font-black text-black">{{ $incident->created_at->format('h:i A') }}</td>
-                        <td class="px-5 py-4 font-bold text-black">{{ $incident->device->building ?? 'Campus Building' }}</td>
-                        <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">{{ $incident->device->device_code ?? 'N/A' }}</td>
-                        <td class="px-5 py-4"><span class="inline-flex items-center bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full">Critical Emergency</span></td>
+                        <td class="px-5 py-4 font-bold text-black">{{ $incident->device?->building ?? 'Location not recorded' }}</td>
+                        <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">{{ $incident->device?->device_code ?? 'Not recorded' }}</td>
+                        <td class="px-5 py-4"><span class="inline-flex items-center bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full">{{ $incident->emergency_type }}</span></td>
                         <td class="px-5 py-4"><span class="inline-flex items-center gap-1.5 text-brand-red font-black"><span class="w-2 h-2 rounded-full bg-brand-red animate-pulse"></span>{{ ucfirst($incident->status) }}</span></td>
                         <td class="px-5 py-4 text-center">
-                            <button onclick="resolveActiveEmergency({{ $incident->id }})" class="bg-brand-blue hover:bg-blue-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm">
-                                Acknowledge
-                            </button>
+                            <form method="POST" action="{{ $incident->status === 'Pending' ? route('clinic.incidents.acknowledge', $incident) : route('clinic.incidents.resolve', $incident) }}">
+                                @csrf
+                                <button type="submit" class="bg-brand-blue hover:bg-blue-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-sm">
+                                    {{ $incident->status === 'Pending' ? 'Acknowledge' : 'Resolve' }}
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     @empty
                     <tr id="no-active-alerts-row">
                         <td colspan="7" class="px-5 py-8 text-center text-slate-700 font-bold">
-                            No active critical alerts right now.
+                            No active medical or critical alerts right now.
                         </td>
                     </tr>
                     @endforelse
@@ -208,11 +218,11 @@
                     <tr class="hover:bg-slate-100/70 transition-colors" id="history-row-{{ $incident->id }}">
                         <td class="px-5 py-4 text-black font-bold row-no">{{ $index + 1 }}</td>
                         <td class="px-5 py-4 font-black text-black">{{ $incident->created_at->format('h:i A') }}</td>
-                        <td class="px-5 py-4 font-bold text-black">{{ $incident->device->building ?? 'Campus Building' }}</td>
-                        <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">{{ $incident->device->device_code ?? 'N/A' }}</td>
+                        <td class="px-5 py-4 font-bold text-black">{{ $incident->device?->building ?? 'Location not recorded' }}</td>
+                        <td class="px-5 py-4 text-black font-mono font-bold text-[11px]">{{ $incident->device?->device_code ?? 'Not recorded' }}</td>
                         <td class="px-5 py-4"><span class="inline-flex items-center bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full">{{ $incident->emergency_type }}</span></td>
                         <td class="px-5 py-4 status-cell">
-                            @if($incident->status === 'resolved')
+                            @if($incident->status === 'Resolved')
                                 <span class="inline-flex items-center gap-1.5 text-brand-green font-black"><span class="w-2 h-2 rounded-full bg-brand-green"></span>Resolved</span>
                             @else
                                 <span class="inline-flex items-center gap-1.5 text-black font-bold"><span class="w-2 h-2 rounded-full bg-slate-600"></span>{{ ucfirst($incident->status) }}</span>
@@ -234,78 +244,5 @@
         </div>
     </div>
 </div>
-
-<script>
-    window.currentEmergencyId = {{ $activeEmergency->id ?? 'null' }};
-    window.countdownInterval = null;
-
-    window.resolveActiveEmergency = function(id) {
-        const incidentId = id || window.currentEmergencyId;
-        if (incidentId) {
-            fetch('/clinic/incidents/' + incidentId + '/resolve', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(res => res.json())
-            .then(data => console.log('Resolved:', data))
-            .catch(err => console.error(err));
-
-            // Remove row from Active Critical Alerts table
-            const row = document.getElementById('incident-row-' + incidentId);
-            if (row) row.remove();
-
-            // Check if active alerts table is empty
-            const tbody = document.getElementById('active-alerts-tbody');
-            if (tbody && tbody.querySelectorAll('tr[id^="incident-row-"]').length === 0) {
-                tbody.innerHTML = `
-                <tr id="no-active-alerts-row">
-                    <td colspan="7" class="px-5 py-8 text-center text-slate-700 font-bold">
-                        No active critical alerts right now.
-                    </td>
-                </tr>`;
-            }
-
-            // Update status in history table
-            const histRow = document.getElementById('history-row-' + incidentId);
-            if (histRow) {
-                const statusCell = histRow.querySelector('.status-cell');
-                if (statusCell) {
-                    statusCell.innerHTML = `<span class="inline-flex items-center gap-1.5 text-brand-green font-black"><span class="w-2 h-2 rounded-full bg-brand-green"></span>Resolved</span>`;
-                }
-            }
-        }
-
-        // Hide active banner, show standby banner
-        document.getElementById('active-emergency-banner')?.classList.add('hidden');
-        document.getElementById('no-emergency-banner')?.classList.remove('hidden');
-
-        // Update stats
-        const activeEl = document.getElementById('stat-active-alerts');
-        const treatedEl = document.getElementById('stat-treated');
-        const resolvedEl = document.getElementById('stat-resolved');
-
-        if (activeEl) {
-            let num = parseInt(activeEl.textContent || '0');
-            activeEl.textContent = Math.max(0, isNaN(num) ? 0 : num - 1);
-        }
-        if (treatedEl) {
-            let num = parseInt(treatedEl.textContent || '0');
-            treatedEl.textContent = isNaN(num) ? 1 : num + 1;
-        }
-        if (resolvedEl) {
-            let num = parseInt(resolvedEl.textContent || '0');
-            resolvedEl.textContent = isNaN(num) ? 1 : num + 1;
-        }
-
-        if (window.updateAlertBadges) {
-            let cur = parseInt(document.getElementById('sidebar-alert-badge')?.textContent || '0');
-            window.updateAlertBadges(Math.max(0, isNaN(cur) ? 0 : cur - 1));
-        }
-    };
-</script>
 
 @endsection

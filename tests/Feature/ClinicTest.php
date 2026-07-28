@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\User;
 use App\Models\Device;
 use App\Models\Incident;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -38,7 +38,7 @@ test('clinic staff can acknowledge and resolve incidents', function () {
     $incident = Incident::create([
         'device_id' => $device->id,
         'emergency_type' => 'Medical Emergency',
-        'status' => 'pending',
+        'status' => 'Pending',
     ]);
 
     $this->actingAs($user)
@@ -52,6 +52,7 @@ test('clinic staff can acknowledge and resolve incidents', function () {
         ->assertRedirect();
 
     expect($incident->fresh()->status)->toBe('Resolved');
+    expect($incident->fresh()->resolved_at)->not->toBeNull();
 });
 
 test('clinic user can export excel report', function () {

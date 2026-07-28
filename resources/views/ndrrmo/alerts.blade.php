@@ -24,10 +24,10 @@
     <div class="flex flex-wrap items-center gap-3 text-xs">
         {{-- Counter Badges --}}
         <span class="px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg font-semibold flex items-center">
-            <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse mr-2"></span> {{ $alerts->where('status', 'pending')->count() }} Pending
+            <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse mr-2"></span> {{ $alerts->where('status', 'Pending')->count() }} Pending
         </span>
         <span class="px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg font-semibold flex items-center">
-            <span class="w-2 h-2 rounded-full bg-blue-600 mr-2"></span> {{ $alerts->where('status', 'responding')->count() }} Responding
+            <span class="w-2 h-2 rounded-full bg-blue-600 mr-2"></span> {{ $alerts->where('status', 'Responding')->count() }} Responding
         </span>
 
         @if(!$alerts->isEmpty())
