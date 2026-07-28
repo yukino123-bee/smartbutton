@@ -79,7 +79,19 @@
                     .leaflet-popup-content-wrapper { background-color: #ffffff; color: #334155; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); padding: 0; }
                     .leaflet-popup-tip { background-color: #ffffff; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; }
                     .leaflet-popup-content { margin: 0; }
-                    .custom-marker { background: none; border: none; }
+                    .custom-marker { background: none; border: none; overflow: visible; }
+                    .map-pin {
+                        filter: drop-shadow(0 3px 2px rgba(15, 23, 42, 0.55)) drop-shadow(0 0 5px rgba(255, 255, 255, 0.95));
+                    }
+                    .map-pin-ground {
+                        position: absolute;
+                        bottom: 1px;
+                        width: 22px;
+                        height: 7px;
+                        border-radius: 9999px;
+                        background: rgba(15, 23, 42, 0.45);
+                        filter: blur(2px);
+                    }
                 </style>
                 
                 <script>
@@ -96,16 +108,19 @@
                             return L.divIcon({
                                 className: 'custom-marker',
                                 html: `
-                                    <div class="relative flex items-center justify-center w-8 h-8">
-                                        ${pulseClass ? `<span class="absolute w-full h-full rounded-full ${pulseClass} opacity-75"></span>` : ''}
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="relative z-10 w-8 h-8 ${colorClass} drop-shadow-md">
-                                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                                    <div class="relative flex h-14 w-12 items-start justify-center">
+                                        ${pulseClass ? `<span class="absolute top-1 h-10 w-10 rounded-full ${pulseClass} opacity-70"></span>` : '<span class="absolute top-1 h-10 w-10 rounded-full bg-white/70 ring-2 ring-white"></span>'}
+                                        <span class="map-pin-ground"></span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="map-pin relative z-10 h-12 w-12 ${colorClass}" aria-hidden="true">
+                                            <path stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round" paint-order="stroke" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                                            <circle cx="12" cy="9" r="3.2" fill="#ffffff"/>
+                                            <circle cx="12" cy="9" r="1.45" fill="currentColor"/>
                                         </svg>
                                     </div>
                                 `,
-                                iconSize: [32, 32],
-                                iconAnchor: [16, 32],
-                                popupAnchor: [0, -32]
+                                iconSize: [48, 56],
+                                iconAnchor: [24, 54],
+                                popupAnchor: [0, -52]
                             });
                         };
 

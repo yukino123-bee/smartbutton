@@ -101,11 +101,6 @@
                 <span class="font-bold text-[13px]">Incident Logs</span>
             </a>
 
-            <a href="{{ route('clinic.profile') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('clinic.profile') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
-                <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                <span class="font-bold text-[13px]">Profile</span>
-            </a>
-
         </div>
 
         <div class="p-3 border-t border-slate-200/80 mt-auto">
