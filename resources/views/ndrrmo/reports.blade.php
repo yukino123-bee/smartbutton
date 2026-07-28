@@ -117,7 +117,7 @@
         </div>
         <div class="text-xs text-slate-500 uppercase font-black tracking-wider mb-1">AVERAGE RESPONSE SPEED</div>
         <div class="text-4xl font-black text-slate-900 mb-2">1m 45s</div>
-        <p class="text-xs text-slate-500 leading-relaxed max-w-xs">Average elapsed time from ESP32 button activation to NDRRMO team dispatch acknowledgement.</p>
+        <p class="text-xs text-slate-500 leading-relaxed max-w-xs">Average elapsed time from ESP32 button activation to DRRMO team dispatch acknowledgement.</p>
     </div>
 </div>
 @endsection

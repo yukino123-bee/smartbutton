@@ -2,7 +2,7 @@
 
 @section('content')
 
-{{-- ===== STAT CARDS ROW (NDRRMO Layout) ===== --}}
+{{-- ===== STAT CARDS ROW (DRRMO Layout) ===== --}}
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 text-black">
 
     {{-- Active Alerts --}}
@@ -91,7 +91,7 @@
 
                 {{-- Checklist --}}
                 <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 border-t border-slate-100">
-                    @foreach(['Prepare medical stretcher', 'Alert clinic doctor/nurses', 'Prepare oxygen & first aid', 'Coordinate with NDRRMO'] as $item)
+                    @foreach(['Prepare medical stretcher', 'Alert clinic doctor/nurses', 'Prepare oxygen & first aid', 'Coordinate with DRRMO'] as $item)
                     <div class="flex items-center gap-2 text-[11px] font-bold text-slate-700">
                         <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                         <span>{{ $item }}</span>

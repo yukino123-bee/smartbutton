@@ -81,8 +81,8 @@
             
             <div class="mt-8 text-center text-xs text-brand-text">
                 <p>Test Accounts:</p>
-                <p class="mt-1 font-medium">NDRRMO: ndrrmo / password</p>
-                <p class="font-medium">Clinic: clinic / password</p>
+                <p class="mt-1 font-medium">DRRMO: gquiling / Greg@JHCSC2026</p>
+                <p class="font-medium">Clinic: apatigayon / Anzeille@JHCSC2026</p>
             </div>
         </div>
     </div>

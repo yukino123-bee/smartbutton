@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('fullname');
             $table->string('username')->unique();
             $table->string('password');
-            $table->string('role'); // NDRRMO / Clinic
+            $table->string('role'); // DRRMO / Clinic
             $table->string('status')->default('active');
             $table->rememberToken();
             $table->timestamps();

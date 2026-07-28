@@ -113,7 +113,7 @@ class NdrrmoController extends Controller
 
         \App\Models\Notification::create([
             'incident_id' => $incident->id,
-            'recipient'   => 'NDRRMO',
+            'recipient'   => 'DRRMO',
             'channel'     => 'Dashboard',
             'status'      => 'Acknowledged',
             'sent_at'     => now(),
@@ -138,7 +138,7 @@ class NdrrmoController extends Controller
 
         \App\Models\Notification::create([
             'incident_id' => $incident->id,
-            'recipient'   => 'NDRRMO',
+            'recipient'   => 'DRRMO',
             'channel'     => 'Dashboard',
             'status'      => 'Dispatched',
             'sent_at'     => now(),
@@ -163,7 +163,7 @@ class NdrrmoController extends Controller
 
         \App\Models\Notification::create([
             'incident_id' => $incident->id,
-            'recipient'   => 'NDRRMO',
+            'recipient'   => 'DRRMO',
             'channel'     => 'Dashboard',
             'status'      => 'Resolved',
             'sent_at'     => now(),

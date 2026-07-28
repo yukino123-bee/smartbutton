@@ -8,7 +8,7 @@ use App\Http\Controllers\ProfileController;
 Route::get('/', function () {
     if (auth()->check()) {
         $role = auth()->user()->role;
-        if ($role === 'NDRRMO') {
+        if ($role === 'DRRMO') {
             return redirect('/ndrrmo');
         } elseif ($role === 'Clinic') {
             return redirect('/clinic');
@@ -23,7 +23,7 @@ Route::post('/register', [AuthController::class, 'register'])->middleware('guest
 Route::post('/login', [AuthController::class, 'authenticate'])->middleware('guest');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
-Route::middleware(['auth', 'role:NDRRMO'])->prefix('ndrrmo')->name('ndrrmo.')->group(function () {
+Route::middleware(['auth', 'role:DRRMO'])->prefix('ndrrmo')->name('ndrrmo.')->group(function () {
     Route::get('/', [\App\Http\Controllers\NdrrmoController::class, 'dashboard'])->name('dashboard');
     Route::get('/alerts', [\App\Http\Controllers\NdrrmoController::class, 'alerts'])->name('alerts');
     Route::get('/logs', [\App\Http\Controllers\NdrrmoController::class, 'logs'])->name('logs');

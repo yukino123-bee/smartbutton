@@ -16,7 +16,7 @@ CREATE TABLE `users` (
   `fullname` VARCHAR(255) NOT NULL,
   `username` VARCHAR(255) UNIQUE NOT NULL,
   `password` VARCHAR(255) NOT NULL,
-  `role` VARCHAR(255) NOT NULL, -- NDRRMO / Clinic
+  `role` VARCHAR(255) NOT NULL, -- DRRMO / Clinic
   `status` VARCHAR(255) NOT NULL DEFAULT 'active',
   `remember_token` VARCHAR(100) NULL,
   `created_at` TIMESTAMP NULL DEFAULT NULL,
@@ -110,10 +110,10 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Dumping data for table `users`
 -- --------------------------------------------------------
 INSERT INTO `users` (`id`, `fullname`, `username`, `password`, `role`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'NDRRMO Administrator', 'ndrrmo', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'NDRRMO', 'active', NOW(), NOW()),
-(2, 'Clinic Administrator', 'clinic', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Clinic', 'active', NOW(), NOW());
+(1, 'Greg Lorenze Dominguez Quiling', 'gquiling', '$2y$12$q3obnHhujVFk4lEBgfPM5eEf.oJA1US4uhdp0Ts2Z5aQCsA.ObtwK', 'DRRMO', 'active', NOW(), NOW()),
+(2, 'Anzeille Mae E. Patigayon', 'apatigayon', '$2y$12$2Q.xTu.XVIiso.KByuLvf.oYD/Tl.YPhpM.1EHld/FtKmK8ENkzsW', 'Clinic', 'active', NOW(), NOW());
 
--- Note: The password hash above is the bcrypt representation of the password 'password'.
+-- The password hashes above match the default credentials documented in README.md.
 
 -- --------------------------------------------------------
 -- Dumping data for table `devices`

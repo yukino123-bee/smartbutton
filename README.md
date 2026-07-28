@@ -61,8 +61,8 @@ The app will be available at **http://localhost:8000**
 
 | Role    | Username | Password |
 |---------|----------|----------|
-| Clinic  | clinic   | password |
-| NDRRMO  | ndrrmo   | password |
+| Clinic  | apatigayon | Anzeille@JHCSC2026 |
+| DRRMO   | gquiling | Greg@JHCSC2026 |
 
 ---
 

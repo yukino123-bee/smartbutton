@@ -3,12 +3,12 @@
 #include <WiFi.h>
 
 // --- Configuration ---
-const char *ssid = "tandocADMIN 2.4ghz";
-const char *password = "tandocjesse123";
+const char *ssid = "missA";
+const char *password = "12345678";
 
 // Endpoints
-const char *api_url = "http://192.168.100.151:8000/api/emergency";
-const char *status_url = "http://192.168.100.151:8000/api/device/status?device_id=ENG-001";
+const char *api_url = "http://192.168.137.9:8000/api/emergency";
+const char *status_url = "http://192.168.137.9:8000/api/device/status?device_id=ENG-001";
 
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "ENG-001"; // E-Building

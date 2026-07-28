@@ -47,10 +47,10 @@ class DeviceController extends Controller
             'status' => 'Pending',
         ]);
 
-        // Create notifications log for both NDRRMO and Clinic
+        // Create notifications log for both DRRMO and Clinic
         Notification::create([
             'incident_id' => $incident->id,
-            'recipient'   => 'NDRRMO',
+            'recipient'   => 'DRRMO',
             'channel'     => 'Dashboard',
             'status'      => 'Delivered',
             'sent_at'     => now(),
@@ -189,7 +189,7 @@ class DeviceController extends Controller
 
                     Notification::create([
                         'incident_id' => $incident->id,
-                        'recipient' => 'NDRRMO',
+                        'recipient' => 'DRRMO',
                         'channel' => 'SMS Backup',
                         'status' => 'Delivered',
                         'sent_at' => now(),

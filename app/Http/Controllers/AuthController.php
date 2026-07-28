@@ -24,7 +24,7 @@ class AuthController extends Controller
         $validated = $request->validate([
             'fullname' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'unique:users'],
-            'role' => ['required', 'string', 'in:NDRRMO,Clinic'],
+            'role' => ['required', 'string', 'in:DRRMO,Clinic'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
@@ -40,7 +40,7 @@ class AuthController extends Controller
         
         $request->session()->regenerate();
 
-        if ($user->role === 'NDRRMO') {
+        if ($user->role === 'DRRMO') {
             return redirect()->intended('/ndrrmo');
         } elseif ($user->role === 'Clinic') {
             return redirect()->intended('/clinic');
@@ -58,7 +58,7 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
             $role = Auth::user()->role;
-            if ($role === 'NDRRMO') {
+            if ($role === 'DRRMO') {
                 return redirect()->intended('/ndrrmo');
             } elseif ($role === 'Clinic') {
                 return redirect()->intended('/clinic');

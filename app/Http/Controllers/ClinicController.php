@@ -148,7 +148,7 @@ class ClinicController extends Controller
 
         Notification::create([
             'incident_id' => $incident->id,
-            'recipient'   => 'NDRRMO',
+            'recipient'   => 'DRRMO',
             'channel'     => 'Dashboard',
             'status'      => 'Acknowledged by Clinic',
             'sent_at'     => now(),
@@ -181,7 +181,7 @@ class ClinicController extends Controller
 
         Notification::create([
             'incident_id' => $incident->id,
-            'recipient'   => 'NDRRMO',
+            'recipient'   => 'DRRMO',
             'channel'     => 'Dashboard',
             'status'      => 'Resolved by Clinic',
             'sent_at'     => now(),

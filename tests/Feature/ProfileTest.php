@@ -13,7 +13,7 @@ test('guests are redirected from profile routes', function () {
 
 test('ndrrmo user can view profile page', function () {
     $user = User::factory()->create([
-        'role' => 'NDRRMO',
+        'role' => 'DRRMO',
         'status' => 'active',
     ]);
 
@@ -39,7 +39,7 @@ test('administrator can update profile details', function () {
     $user = User::factory()->create([
         'fullname' => 'Old Name',
         'username' => 'oldusername',
-        'role' => 'NDRRMO',
+        'role' => 'DRRMO',
     ]);
 
     $this->actingAs($user)
@@ -58,7 +58,7 @@ test('administrator can update profile details', function () {
 test('administrator can update password', function () {
     $user = User::factory()->create([
         'password' => Hash::make('oldpassword123'),
-        'role' => 'NDRRMO',
+        'role' => 'DRRMO',
     ]);
 
     $this->actingAs($user)
