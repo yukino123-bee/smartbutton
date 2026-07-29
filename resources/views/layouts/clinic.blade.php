@@ -121,7 +121,7 @@
         <header class="h-16 bg-white/80 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10 text-black">
             <div class="flex items-baseline space-x-2">
                 <h1 class="text-lg font-black text-black uppercase tracking-wider">CLINIC DASHBOARD</h1>
-                <span class="text-xs font-bold text-black">Clinic Side</span>
+
             </div>
             
             <div class="flex items-center space-x-6">
