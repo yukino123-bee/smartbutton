@@ -47,15 +47,25 @@ class DeviceController extends Controller
         // Update device last_seen status
         $device->update(['last_seen' => now()]);
 
+        $needClinic = $request->has('need_clinic') ? $request->boolean('need_clinic') : true;
+
+        $remarks = null;
+        if ($emergencyType === Incident::TYPE_MEDICAL) {
+            $remarks = $needClinic 
+                ? 'Medical Emergency (Witness requested Clinic Aid)' 
+                : 'Medical Emergency (Witness indicated No Clinic Aid needed)';
+        }
+
         // Create incident record
         $incident = Incident::create([
             'device_id' => $device->id,
             'emergency_type' => $emergencyType,
             'reported_at' => $validated['timestamp'] ?? now(),
             'status' => 'Pending',
+            'remarks' => $remarks,
         ]);
 
-        // Create notifications log for both DRRMO and Clinic
+        // Create notifications log for DRRMO
         Notification::create([
             'incident_id' => $incident->id,
             'recipient' => 'DRRMO',
@@ -64,7 +74,8 @@ class DeviceController extends Controller
             'sent_at' => now(),
         ]);
 
-        if ($emergencyType === Incident::TYPE_CRITICAL) {
+        // Notify Clinic if Critical, or if Medical AND need_clinic is true
+        if ($emergencyType === Incident::TYPE_CRITICAL || ($emergencyType === Incident::TYPE_MEDICAL && $needClinic)) {
             Notification::create([
                 'incident_id' => $incident->id,
                 'recipient' => 'Clinic',
@@ -75,12 +86,13 @@ class DeviceController extends Controller
         }
 
         // Broadcast the event to WebSockets
-        broadcast(new EmergencyReported($incident))->toOthers();
+        broadcast(new EmergencyReported($incident));
 
         return response()->json([
             'status' => 'success',
             'message' => 'Emergency alert received and processed.',
             'incident_id' => $incident->id,
+            'need_clinic' => $needClinic,
         ], 201);
     }
 
@@ -104,11 +116,22 @@ class DeviceController extends Controller
             ->latest('reported_at')
             ->first();
 
+        $latestIncident = Incident::where('device_id', $device->id)
+            ->latest('reported_at')
+            ->first();
+
+        $drrmoResponded = false;
+        if ($latestIncident && in_array($latestIncident->status, ['Acknowledged', 'Responding', 'Resolved'], true)) {
+            $drrmoResponded = true;
+        }
+
         return response()->json([
             'device_code' => $deviceCode,
             'has_pending' => (bool) $pendingIncident,
-            'status' => $pendingIncident ? 'pending' : 'normal',
-            'incident_id' => $pendingIncident ? $pendingIncident->id : null,
+            'status' => $pendingIncident ? 'pending' : ($latestIncident ? strtolower($latestIncident->status) : 'normal'),
+            'incident_id' => $pendingIncident ? $pendingIncident->id : ($latestIncident ? $latestIncident->id : null),
+            'incident_status' => $latestIncident ? $latestIncident->status : null,
+            'drrmo_responded' => $drrmoResponded,
         ]);
     }
 
@@ -210,7 +233,7 @@ class DeviceController extends Controller
                         'sent_at' => now(),
                     ]);
 
-                    if ($emergencyType === Incident::TYPE_CRITICAL) {
+                    if (in_array($emergencyType, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)) {
                         Notification::create([
                             'incident_id' => $incident->id,
                             'recipient' => 'Clinic',

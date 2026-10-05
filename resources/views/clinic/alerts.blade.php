@@ -17,6 +17,11 @@
     <div id="bulk-inputs"></div>
 </form>
 
+{{-- Acknowledge All Form --}}
+<form id="ack-all-clinic-form" method="POST" action="{{ route('clinic.alerts.acknowledge-all') }}" class="hidden">
+    @csrf
+</form>
+
 {{-- Header Row --}}
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
     <div>
@@ -38,6 +43,14 @@
             <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
             <span>{{ $alerts->whereIn('status', ['Acknowledged', 'Responding'])->count() }} In Progress</span>
         </span>
+
+        @if($alerts->where('status', 'Pending')->count() > 1)
+        <button type="submit" form="ack-all-clinic-form"
+                class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold transition-all shadow-xs cursor-pointer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            <span>Acknowledge All ({{ $alerts->where('status', 'Pending')->count() }})</span>
+        </button>
+        @endif
 
         @if(!$alerts->isEmpty())
         <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>

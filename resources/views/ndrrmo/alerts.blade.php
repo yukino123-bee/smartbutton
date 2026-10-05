@@ -11,6 +11,10 @@
 <script>setTimeout(() => document.getElementById('flash-msg')?.remove(), 4000)</script>
 @endif
 
+<form id="ack-all-form" method="POST" action="{{ route('ndrrmo.alerts.acknowledge-all') }}" class="hidden">
+@csrf
+</form>
+
 <form id="bulk-form" method="POST" action="{{ route('ndrrmo.alerts.bulk-delete') }}">
 @csrf
 
@@ -29,6 +33,14 @@
         <span class="px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg font-semibold flex items-center">
             <span class="w-2 h-2 rounded-full bg-blue-600 mr-2"></span> {{ $alerts->where('status', 'Responding')->count() }} Responding
         </span>
+
+        @if($alerts->where('status', 'Pending')->count() > 1)
+        <button type="submit" form="ack-all-form"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold transition-all shadow-sm cursor-pointer">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            <span>Acknowledge All ({{ $alerts->where('status', 'Pending')->count() }})</span>
+        </button>
+        @endif
 
         @if(!$alerts->isEmpty())
         <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
@@ -160,7 +172,7 @@
 
             {{-- Dynamic Action Buttons --}}
             <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-col gap-2">
-                @if($alert->emergency_type === 'Medical Emergency' && !$alert->notifications->where('recipient', 'Clinic')->count())
+                @if(!$alert->notifications->where('recipient', 'Clinic')->count())
                     <button type="button" onclick="notifyClinic({{ $alert->id }})" class="w-full py-2 px-3 text-xs font-bold text-orange-700 bg-orange-100 border border-orange-300 hover:bg-orange-200 rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                         <span>Notify Clinic for Assistance</span>

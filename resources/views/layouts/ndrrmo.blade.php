@@ -120,11 +120,24 @@
                 <span class="font-bold text-[13px]">Device Status</span>
             </a>
 
+            <a id="nav-ndrrmo-sms" href="{{ route('ndrrmo.sms') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.sms') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+                <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                <span class="font-bold text-[13px]">SMS Logs</span>
+            </a>
+
             <a id="nav-ndrrmo-reports" href="{{ route('ndrrmo.reports') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.reports') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 <span class="font-bold text-[13px]">Incident Reports</span>
             </a>
 
+            <p class="text-[10px] font-black text-black uppercase tracking-widest px-3 mb-1 mt-3">Testing & Tools</p>
+            <a id="nav-simulator" href="{{ route('simulator') }}" target="_blank" class="flex items-center justify-between px-3.5 py-2.5 text-slate-800 font-bold hover:bg-white hover:text-amber-600 hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200 rounded-xl transition-all duration-200 group">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-3 text-amber-500 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span class="font-bold text-[13px]">ESP32 Simulator</span>
+                </div>
+                <span class="bg-amber-100 text-amber-800 border border-amber-300 text-[9px] font-black px-1.5 py-0.5 rounded-md">LIVE</span>
+            </a>
         </div>
 
         <div class="p-3 border-t border-slate-200/80 mt-auto">
@@ -204,55 +217,104 @@
         </div>
     </main>
 
-    {{-- Global Emergency Siren, Screen Flash Overlay with Map Location & Voice Announcement Modal --}}
-    <div id="global-emergency-overlay" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4 transition-all duration-300 select-none">
-        <div id="global-emergency-backdrop" class="absolute inset-0 animate-pulse bg-red-600/60 backdrop-blur-md"></div>
-        
-        <div id="global-emergency-modal" class="relative z-10 w-full max-w-lg bg-white border-4 border-red-600 rounded-3xl shadow-2xl overflow-hidden p-6 text-center transform transition-all scale-100">
-            <div class="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center animate-bounce bg-red-600 shadow-lg" id="global-emergency-icon-box">
-                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
-            </div>
+    {{-- Viewport Perimeter Warning Border (Non-blocking: operator can see & click everything) --}}
+    <div id="global-emergency-perimeter" class="fixed inset-0 pointer-events-none z-[9980] border-4 border-red-600 shadow-[inset_0_0_45px_rgba(220,38,38,0.45)] animate-pulse hidden"></div>
 
-            <span id="global-emergency-category-badge" class="inline-block px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest text-white bg-red-600 mb-2 shadow-sm">
-                EMERGENCY ALERT
-            </span>
-
-            <h3 id="global-emergency-title" class="text-xl font-black text-slate-900 mb-1 uppercase tracking-wide">
-                Awaiting incident details
-            </h3>
-
-            <p id="global-emergency-location" class="text-slate-800 font-extrabold text-base mb-0.5">
-                Location will appear here
-            </p>
-
-            <p id="global-emergency-device" class="text-slate-500 text-xs font-mono mb-3">
-                Device information will appear here
-            </p>
-
-            {{-- Map Location Display Container --}}
-            <div id="modal-emergency-map-container" class="relative w-full h-44 rounded-2xl overflow-hidden border-2 border-red-500 shadow-md mb-4 bg-slate-100 z-0">
-                <div id="modal-emergency-map" class="w-full h-full"></div>
-                <div class="absolute bottom-2 left-2 z-[1000] bg-slate-900/90 text-white text-[10px] font-black px-2.5 py-1 rounded-md backdrop-blur-xs flex items-center gap-1.5 border border-slate-700">
-                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                    <span id="modal-map-coords-text">INCIDENT MAP LOCATION</span>
+    {{-- Non-Blocking Top Floating Emergency Command HUD --}}
+    <div id="global-emergency-overlay" class="fixed top-3 left-1/2 -translate-x-1/2 z-[9990] w-full max-w-4xl px-3 pointer-events-none hidden transition-all duration-300">
+        <div id="global-emergency-modal" class="pointer-events-auto bg-white/95 backdrop-blur-md border-2 border-red-600 rounded-2xl shadow-2xl overflow-hidden transition-all flex flex-col">
+            
+            {{-- Top Ribbon Bar --}}
+            <div id="hud-header" class="bg-red-600 px-4 py-2.5 flex items-center justify-between text-white shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-3 h-3 rounded-full bg-white animate-ping"></span>
+                    <span id="global-emergency-category-badge" class="font-black text-xs uppercase tracking-wider">🚨 EMERGENCY ALERT</span>
+                    <span id="hud-multi-counter" class="hidden bg-black/30 text-white text-[10px] font-black px-2 py-0.5 rounded-full">Alert 1 of 1</span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    {{-- Mute Siren Toggle --}}
+                    <button type="button" id="hud-mute-btn" onclick="toggleMuteSiren()" title="Mute/Unmute Siren Audio" class="px-2.5 py-1 bg-black/25 hover:bg-black/45 text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer">
+                        <span id="hud-mute-icon">🔊</span>
+                        <span id="hud-mute-text">Mute Siren</span>
+                    </button>
+                    {{-- Fly to Map button --}}
+                    <button type="button" id="hud-fly-map-btn" onclick="flyToCurrentIncidentMap()" title="Locate on Map" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 text-[11px] font-black rounded-lg transition-all flex items-center gap-1 cursor-pointer">
+                        <span>🗺️</span>
+                        <span>Fly to Map</span>
+                    </button>
+                    {{-- Minimize/Expand toggle --}}
+                    <button type="button" id="hud-toggle-minimize" onclick="toggleHudMinimized()" title="Minimize / Expand HUD" class="w-7 h-7 flex items-center justify-center bg-black/25 hover:bg-black/40 text-white rounded-lg transition-all cursor-pointer">
+                        <span id="hud-minimize-icon">▲</span>
+                    </button>
                 </div>
             </div>
 
-            <button id="global-emergency-ack-btn" type="button" onclick="acknowledgeActiveEmergency()"
-                    class="w-full py-3.5 px-6 rounded-2xl font-extrabold text-white text-sm shadow-xl bg-red-600 hover:bg-red-700 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                </svg>
-                <span>ACKNOWLEDGE & STOP ALARM</span>
-            </button>
+            {{-- Collapsible HUD Body --}}
+            <div id="hud-body" class="p-4 flex flex-col gap-3">
+                {{-- Multi-alert header banner (shown when > 1 unhandled alerts) --}}
+                <div id="multi-alert-header" class="hidden mb-1 p-2 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-black text-red-700 uppercase" id="multi-alert-count-text">2 UNHANDLED ALERTS</span>
+                        <div id="multi-alert-tabs" class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar"></div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button type="button" onclick="navigateEmergency(-1)" class="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-800 text-[11px] font-black rounded-md border border-slate-300 cursor-pointer">◀</button>
+                        <span id="multi-alert-step-text" class="text-[11px] font-black text-slate-700 px-1">1/2</span>
+                        <button type="button" onclick="navigateEmergency(1)" class="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-800 text-[11px] font-black rounded-md border border-slate-300 cursor-pointer">▶</button>
+                    </div>
+                </div>
+
+                {{-- Alert Summary Row --}}
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                    <div class="flex items-center gap-3">
+                        <div id="global-emergency-icon-box" class="w-11 h-11 rounded-xl bg-red-100 border border-red-300 text-red-600 flex items-center justify-center font-black text-lg shrink-0">
+                            🚨
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <h3 id="global-emergency-title" class="font-black text-slate-900 text-sm uppercase">EMERGENCY ALERT</h3>
+                                <span id="hud-status-badge" class="px-2 py-0.2 rounded-full text-[10px] font-black bg-red-100 text-red-700 animate-pulse">PENDING RESPONSE</span>
+                            </div>
+                            <p id="global-emergency-location" class="font-extrabold text-slate-900 text-sm">Location loading...</p>
+                            <p id="global-emergency-device" class="text-[11px] text-slate-500 font-mono">Device ID loading...</p>
+                        </div>
+                    </div>
+
+                    {{-- Actions on HUD --}}
+                    <div class="flex flex-wrap items-center gap-2 shrink-0">
+                        <button id="global-emergency-ack-btn" type="button" onclick="acknowledgeActiveEmergency()"
+                                class="py-2 px-3.5 rounded-xl font-extrabold text-white text-xs shadow-md bg-red-600 hover:bg-red-700 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                            <span id="global-emergency-ack-btn-text">ACKNOWLEDGE</span>
+                        </button>
+
+                        <button id="global-emergency-dispatch-btn" type="button" onclick="quickDispatchCurrentIncident()"
+                                class="py-2 px-3.5 rounded-xl font-extrabold text-white text-xs shadow-md bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            <span>DISPATCH</span>
+                        </button>
+
+                        <button id="global-emergency-false-btn" type="button" onclick="quickFalseAlarmCurrentIncident()"
+                                class="py-2 px-3 rounded-xl font-bold text-slate-700 text-xs bg-white border border-slate-300 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer">
+                            <span>⚠️ False Alarm</span>
+                        </button>
+
+                        <button id="global-emergency-ack-all-btn" type="button" onclick="acknowledgeAllActiveEmergencies()"
+                                class="hidden py-2 px-3 rounded-xl font-bold text-slate-800 text-xs bg-slate-200 hover:bg-slate-300 active:scale-95 transition-all cursor-pointer">
+                            <span id="global-emergency-ack-all-text">ACK ALL</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Scripts -->
     <script>
-        let currentActiveEmergency = null;
+        window.activeEmergencyIncidents = [];
+        window.currentEmergencyIndex = 0;
+        let isAckInProgress = false;
         let webAudioCtx = null;
         let sirenOscillator = null;
         let sirenGainNode = null;
@@ -261,9 +323,97 @@
 
         function triggerScreenFlashAndAlarm(incident) {
             if (!incident || !incident.id) return;
-            if (currentActiveEmergency && currentActiveEmergency.id === incident.id) return; // already active
 
-            currentActiveEmergency = incident;
+            if (incident.status === 'Resolved' || incident.status !== 'Pending') {
+                window.activeEmergencyIncidents = window.activeEmergencyIncidents.filter(i => i.id !== incident.id);
+                if (window.activeEmergencyIncidents.length === 0) {
+                    closeEmergencyModal();
+                } else {
+                    if (window.currentEmergencyIndex >= window.activeEmergencyIncidents.length) {
+                        window.currentEmergencyIndex = 0;
+                    }
+                    renderActiveEmergencyModal();
+                }
+
+                // If on NDRRMO dashboard or alerts, reload smoothly so stepper and badges reflect latest step
+                if (window.location.pathname.startsWith('/ndrrmo')) {
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 600);
+                }
+                return;
+            }
+
+            const existingIdx = window.activeEmergencyIncidents.findIndex(i => i.id === incident.id);
+            if (existingIdx === -1) {
+                window.activeEmergencyIncidents.push(incident);
+                const type = incident.emergency_type || 'Emergency';
+                const loc = (incident.device && incident.device.building) ? incident.device.building : 'Campus';
+                speakEmergencyAnnouncement(`Urgent Alert! ${type} detected at ${loc}! Respond immediately!`);
+            } else {
+                window.activeEmergencyIncidents[existingIdx] = incident;
+            }
+            renderActiveEmergencyModal();
+        }
+
+        function syncEmergencyIncidents(pendingIncidents) {
+            if (!Array.isArray(pendingIncidents)) return;
+            if (pendingIncidents.length === 0) {
+                if (window.activeEmergencyIncidents.length > 0) {
+                    window.activeEmergencyIncidents = [];
+                    closeEmergencyModal();
+                }
+                return;
+            }
+
+            const currentIds = window.activeEmergencyIncidents.map(i => i.id).sort().join(',');
+            const newIds = pendingIncidents.map(i => i.id).sort().join(',');
+
+            if (currentIds !== newIds) {
+                const hadZero = window.activeEmergencyIncidents.length === 0;
+                window.activeEmergencyIncidents = [...pendingIncidents];
+                if (window.currentEmergencyIndex >= window.activeEmergencyIncidents.length) {
+                    window.currentEmergencyIndex = Math.max(0, window.activeEmergencyIncidents.length - 1);
+                }
+                renderActiveEmergencyModal();
+
+                if (hadZero && window.activeEmergencyIncidents.length > 0) {
+                    const first = window.activeEmergencyIncidents[0];
+                    const type = first.emergency_type || 'Emergency';
+                    const loc = (first.device && first.device.building) ? first.device.building : 'Campus';
+                    speakEmergencyAnnouncement(`Urgent Alert! ${type} detected at ${loc}! Respond immediately!`);
+                }
+            }
+        }
+
+        function navigateEmergency(step) {
+            if (window.activeEmergencyIncidents.length <= 1) return;
+            window.currentEmergencyIndex = (window.currentEmergencyIndex + step + window.activeEmergencyIncidents.length) % window.activeEmergencyIncidents.length;
+            renderActiveEmergencyModal();
+        }
+
+        function selectEmergencyIndex(idx) {
+            if (idx >= 0 && idx < window.activeEmergencyIncidents.length) {
+                window.currentEmergencyIndex = idx;
+                renderActiveEmergencyModal();
+            }
+        }
+
+        function renderActiveEmergencyModal() {
+            if (!window.activeEmergencyIncidents || window.activeEmergencyIncidents.length === 0) {
+                closeEmergencyModal();
+                return;
+            }
+
+            if (window.currentEmergencyIndex >= window.activeEmergencyIncidents.length) {
+                window.currentEmergencyIndex = Math.max(0, window.activeEmergencyIncidents.length - 1);
+            }
+
+            const total = window.activeEmergencyIncidents.length;
+            const currentIdx = window.currentEmergencyIndex;
+            const incident = window.activeEmergencyIncidents[currentIdx];
+            if (!incident) return;
+
             const type = incident.emergency_type || 'Emergency Alert';
             const location = (incident.device && incident.device.building) ? incident.device.building : 'Location not recorded';
             const deviceCode = (incident.device && incident.device.device_code) ? incident.device.device_code : 'Not recorded';
@@ -280,89 +430,240 @@
             const locEl = document.getElementById('global-emergency-location');
             const devEl = document.getElementById('global-emergency-device');
             const ackBtn = document.getElementById('global-emergency-ack-btn');
+            const ackBtnText = document.getElementById('global-emergency-ack-btn-text');
+            const ackAllBtn = document.getElementById('global-emergency-ack-all-btn');
+            const ackAllText = document.getElementById('global-emergency-ack-all-text');
             const coordsText = document.getElementById('modal-map-coords-text');
             const mapContainer = document.getElementById('modal-emergency-map-container');
 
-            let bgClass = 'bg-red-600/70';
-            let badgeClass = 'bg-red-600';
-            let borderClass = 'border-red-600';
+            const multiHeader = document.getElementById('multi-alert-header');
+            const multiCountText = document.getElementById('multi-alert-count-text');
+            const multiStepText = document.getElementById('multi-alert-step-text');
+            const multiTabs = document.getElementById('multi-alert-tabs');
+            const perimeter = document.getElementById('global-emergency-perimeter');
+            const hudCounter = document.getElementById('hud-multi-counter');
+            const hudHeader = document.getElementById('hud-header');
+            const statusBadge = document.getElementById('hud-status-badge');
+
+            let headerBg = 'bg-red-600';
+            let badgeBg = 'bg-red-600';
+            let borderCls = 'border-red-600';
 
             if (type.includes('Medical')) {
-                bgClass = 'bg-orange-500/70';
-                badgeClass = 'bg-orange-500';
-                borderClass = 'border-orange-500';
+                headerBg = 'bg-orange-600';
+                badgeBg = 'bg-orange-600';
+                borderCls = 'border-orange-500';
             } else if (type.includes('Public Safety') || type.includes('Facility')) {
-                bgClass = 'bg-amber-500/70';
-                badgeClass = 'bg-amber-500';
-                borderClass = 'border-amber-500';
+                headerBg = 'bg-amber-600';
+                badgeBg = 'bg-amber-600';
+                borderCls = 'border-amber-500';
             }
 
-            if (backdrop) backdrop.className = `absolute inset-0 animate-pulse ${bgClass} backdrop-blur-md`;
-            if (modal) modal.className = `relative z-10 w-full max-w-lg bg-white border-4 ${borderClass} rounded-3xl shadow-2xl overflow-hidden p-6 text-center transform transition-all scale-100`;
-            if (iconBox) iconBox.className = `w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center animate-bounce ${badgeClass} shadow-lg`;
-            if (badge) { badge.className = `inline-block px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest text-white ${badgeClass} mb-2 shadow-sm`; badge.textContent = type; }
+            if (perimeter) {
+                perimeter.classList.remove('hidden');
+            }
+
+            if (modal) {
+                modal.className = `pointer-events-auto bg-white/95 backdrop-blur-md border-2 ${borderCls} rounded-2xl shadow-2xl overflow-hidden transition-all flex flex-col`;
+            }
+            if (hudHeader) {
+                hudHeader.className = `${headerBg} px-4 py-2.5 flex items-center justify-between text-white shrink-0`;
+            }
+            if (badge) {
+                badge.textContent = `🚨 ${type.toUpperCase()}`;
+            }
             if (title) title.textContent = type.toUpperCase();
             if (locEl) locEl.textContent = location;
-            if (devEl) devEl.textContent = `Device ID: ${deviceCode} • Active Alarm`;
-            if (mapContainer) mapContainer.classList.toggle('hidden', !hasCoordinates);
-            if (coordsText && hasCoordinates) coordsText.textContent = `INCIDENT LOCATION (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
-            if (ackBtn) ackBtn.className = `w-full py-3.5 px-6 rounded-2xl font-extrabold text-white text-sm shadow-xl ${badgeClass} hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer`;
+            if (devEl) devEl.textContent = `Device ID: ${deviceCode} • Reported ${incident.reported_at ? new Date(incident.reported_at).toLocaleTimeString() : 'Just now'}`;
+            if (statusBadge) {
+                statusBadge.textContent = (incident.status || 'PENDING').toUpperCase();
+            }
+
+            // Multi-alert UI controls
+            if (total > 1) {
+                if (multiHeader) multiHeader.classList.remove('hidden');
+                if (hudCounter) {
+                    hudCounter.classList.remove('hidden');
+                    hudCounter.textContent = `Alert ${currentIdx + 1} of ${total}`;
+                }
+                if (multiCountText) multiCountText.textContent = `${total} UNHANDLED ALERTS`;
+                if (multiStepText) multiStepText.textContent = `${currentIdx + 1}/${total}`;
+
+                if (multiTabs) {
+                    multiTabs.innerHTML = '';
+                    window.activeEmergencyIncidents.forEach((inc, idx) => {
+                        const tabBtn = document.createElement('button');
+                        tabBtn.type = 'button';
+                        tabBtn.onclick = () => selectEmergencyIndex(idx);
+                        const bld = (inc.device && inc.device.building) ? inc.device.building : 'Alert';
+                        const isCurrent = idx === currentIdx;
+                        tabBtn.className = isCurrent
+                            ? `px-2.5 py-0.5 rounded-lg text-[11px] font-black text-white ${badgeBg} shadow-xs shrink-0 ring-1 ring-white cursor-pointer`
+                            : 'px-2.5 py-0.5 rounded-lg text-[11px] font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 shrink-0 cursor-pointer';
+                        tabBtn.textContent = `#${idx + 1}: ${bld}`;
+                        multiTabs.appendChild(tabBtn);
+                    });
+                }
+
+                if (ackBtnText) ackBtnText.textContent = `ACK THIS (#${currentIdx + 1})`;
+                if (ackAllBtn) ackAllBtn.classList.remove('hidden');
+                if (ackAllText) ackAllText.textContent = `ACK ALL (${total})`;
+            } else {
+                if (multiHeader) multiHeader.classList.add('hidden');
+                if (hudCounter) hudCounter.classList.add('hidden');
+                if (ackBtnText) ackBtnText.textContent = 'ACKNOWLEDGE';
+                if (ackAllBtn) ackAllBtn.classList.add('hidden');
+            }
 
             if (overlay) {
                 overlay.classList.remove('hidden');
-                overlay.classList.add('flex');
+                overlay.classList.add('block');
             }
 
-            // Render Mini Map inside Modal
-            if (hasCoordinates && typeof L !== 'undefined') {
-                setTimeout(() => {
-                    if (window.modalLeafletMap) {
-                        try { window.modalLeafletMap.remove(); } catch(e) {}
-                        window.modalLeafletMap = null;
-                    }
-                    const container = document.getElementById('modal-emergency-map');
-                    if (container) {
-                        container.innerHTML = '';
-                        const modalMap = L.map('modal-emergency-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 18);
-                        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                            maxZoom: 19
-                        }).addTo(modalMap);
-
-                        const emergencyIcon = L.divIcon({
-                            className: 'custom-marker',
-                            html: `
-                                <div class="relative flex items-center justify-center w-10 h-10">
-                                    <span class="absolute w-full h-full rounded-full bg-red-600 animate-ping opacity-85"></span>
-                                    <div class="relative z-10 w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg border-2 border-white font-black text-sm">
-                                        🚨
-                                    </div>
-                                </div>
-                            `,
-                            iconSize: [40, 40],
-                            iconAnchor: [20, 20],
-                            popupAnchor: [0, -20]
-                        });
-
-                        const marker = L.marker([lat, lng], { icon: emergencyIcon }).addTo(modalMap);
-                        marker.bindPopup(`<div class="p-2 font-black text-xs text-red-600">🚨 EMERGENCY ACTIVE<br><span class="text-slate-900 font-bold">${location} (${deviceCode})</span></div>`).openPopup();
-
-                        // Pulsing radius circle around incident location
-                        L.circle([lat, lng], {
-                            color: '#dc2626',
-                            fillColor: '#ef4444',
-                            fillOpacity: 0.4,
-                            radius: 30
-                        }).addTo(modalMap);
-
-                        window.modalLeafletMap = modalMap;
-                        setTimeout(() => modalMap.invalidateSize(), 300);
-                    }
-                }, 200);
-            }
-
-            // Start Audio Siren & Voice Speech
             startEmergencySirenAudio();
-            speakEmergencyAnnouncement(`Urgent Alert! ${type} detected at ${location}! Please respond immediately!`);
+        }
+
+        // Toggle Mute Siren Audio
+        window.isSirenMuted = false;
+        function toggleMuteSiren() {
+            window.isSirenMuted = !window.isSirenMuted;
+            const muteIcon = document.getElementById('hud-mute-icon');
+            const muteText = document.getElementById('hud-mute-text');
+            if (window.isSirenMuted) {
+                stopEmergencySirenAudio();
+                stopVoiceSpeech();
+                if (muteIcon) muteIcon.textContent = '🔇';
+                if (muteText) muteText.textContent = 'Unmute';
+            } else {
+                startEmergencySirenAudio();
+                if (muteIcon) muteIcon.textContent = '🔊';
+                if (muteText) muteText.textContent = 'Mute Siren';
+            }
+        }
+
+        // Toggle HUD Minimized (Slim Ribbon vs Full Card)
+        window.isHudMinimized = false;
+        function toggleHudMinimized() {
+            window.isHudMinimized = !window.isHudMinimized;
+            const body = document.getElementById('hud-body');
+            const icon = document.getElementById('hud-minimize-icon');
+            if (window.isHudMinimized) {
+                if (body) body.classList.add('hidden');
+                if (icon) icon.textContent = '▼';
+            } else {
+                if (body) body.classList.remove('hidden');
+                if (icon) icon.textContent = '▲';
+            }
+        }
+
+        // Fly to Map Location
+        function flyToCurrentIncidentMap() {
+            const incident = window.activeEmergencyIncidents[window.currentEmergencyIndex];
+            if (!incident || !incident.device) return;
+
+            const lat = incident.device.latitude ? parseFloat(incident.device.latitude) : null;
+            const lng = incident.device.longitude ? parseFloat(incident.device.longitude) : null;
+
+            if (lat && lng && window.ndrrmoCampusMap) {
+                // Scroll to campus map container if present
+                const mapEl = document.getElementById('campus-map');
+                if (mapEl) {
+                    mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                setTimeout(() => {
+                    window.ndrrmoCampusMap.flyTo([lat, lng], 19, { animate: true, duration: 1.2 });
+                    if (window.deviceMarkers && window.deviceMarkers[incident.device_id]) {
+                        window.deviceMarkers[incident.device_id].openPopup();
+                    }
+                }, 300);
+            } else {
+                // If on another page, navigate to map page with incident param
+                window.location.href = `/ndrrmo/map?incident_id=${incident.id}`;
+            }
+        }
+
+        // Quick Dispatch Current Incident from HUD
+        function quickDispatchCurrentIncident() {
+            const incident = window.activeEmergencyIncidents[window.currentEmergencyIndex];
+            if (!incident) return;
+
+            const card = document.getElementById(`incident-card-${incident.id}`);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                card.classList.add('ring-4', 'ring-blue-500');
+                setTimeout(() => card.classList.remove('ring-4', 'ring-blue-500'), 2500);
+                // Also trigger dispatch modal if available
+                const dispatchModalBtn = document.getElementById(`open-dispatch-modal-${incident.id}`);
+                if (dispatchModalBtn) dispatchModalBtn.click();
+                return;
+            }
+
+            // Direct fallback dispatch
+            const responder = prompt("Enter Dispatched Responder Name / Unit:", "DRRMO Responders Team");
+            if (responder === null) return;
+            const eta = prompt("Enter Estimated Time of Arrival (minutes):", "3");
+
+            fetch(`/ndrrmo/incidents/${incident.id}/dispatch`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    responder_name: responder || 'DRRMO Responders Team',
+                    eta_minutes: parseInt(eta) || 3
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                window.location.reload();
+            })
+            .catch(() => window.location.reload());
+        }
+
+        // Quick False Alarm handling from HUD
+        function quickFalseAlarmCurrentIncident() {
+            const incident = window.activeEmergencyIncidents[window.currentEmergencyIndex];
+            if (!incident) return;
+
+            const card = document.getElementById(`incident-card-${incident.id}`);
+            if (card) {
+                const falseBtn = document.getElementById(`open-false-alarm-modal-${incident.id}`);
+                if (falseBtn) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    falseBtn.click();
+                    return;
+                }
+            }
+
+            const reason = prompt("Classify as False Alarm / Accidental Trigger?\nEnter Reason (e.g. Accidental Push, Sensor Glitch, Campus Drill):", "Accidental Push");
+            if (reason === null) return;
+
+            fetch(`/ndrrmo/incidents/${incident.id}/resolve`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    resolution_type: 'False Alarm',
+                    false_alarm_reason: reason || 'Accidental Push',
+                    remarks: 'Marked as false alarm via Command HUD'
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                window.activeEmergencyIncidents = window.activeEmergencyIncidents.filter(i => i.id !== incident.id);
+                if (window.activeEmergencyIncidents.length === 0) {
+                    closeEmergencyModal();
+                } else {
+                    renderActiveEmergencyModal();
+                }
+                window.location.reload();
+            })
+            .catch(() => window.location.reload());
         }
 
         // Auto unlock AudioContext & SpeechSynthesis on any user click/tap
@@ -379,7 +680,7 @@
         });
 
         function startEmergencySirenAudio() {
-            if (isSirenActive) return;
+            if (isSirenActive || window.isSirenMuted) return;
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 if (!webAudioCtx) {
@@ -393,7 +694,7 @@
                 sirenGainNode = webAudioCtx.createGain();
 
                 sirenOscillator.type = 'sawtooth';
-                sirenGainNode.gain.setValueAtTime(0.4, webAudioCtx.currentTime);
+                sirenGainNode.gain.setValueAtTime(0.35, webAudioCtx.currentTime);
 
                 sirenOscillator.connect(sirenGainNode);
                 sirenGainNode.connect(webAudioCtx.destination);
@@ -429,6 +730,7 @@
         }
 
         function speakEmergencyAnnouncement(text) {
+            if (window.isSirenMuted) return;
             if (!('speechSynthesis' in window)) return;
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
@@ -437,10 +739,12 @@
             msg.volume = 1.0;
 
             msg.onend = function() {
-                if (currentActiveEmergency) {
+                if (!window.isSirenMuted && window.activeEmergencyIncidents && window.activeEmergencyIncidents.length > 0) {
                     setTimeout(() => {
-                        if (currentActiveEmergency) window.speechSynthesis.speak(msg);
-                    }, 800);
+                        if (!window.isSirenMuted && window.activeEmergencyIncidents && window.activeEmergencyIncidents.length > 0) {
+                            window.speechSynthesis.speak(msg);
+                        }
+                    }, 1500);
                 }
             };
 
@@ -454,36 +758,89 @@
         }
 
         function acknowledgeActiveEmergency() {
+            if (isAckInProgress || !window.activeEmergencyIncidents || window.activeEmergencyIncidents.length === 0) return;
+            isAckInProgress = true;
+
+            const targetIncident = window.activeEmergencyIncidents[window.currentEmergencyIndex];
+            if (!targetIncident) {
+                isAckInProgress = false;
+                return;
+            }
+
+            const targetId = targetIncident.id;
+
+            fetch(`/ndrrmo/incidents/${targetId}/acknowledge`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("[ACKNOWLEDGED] Alert acknowledged:", data);
+                window.activeEmergencyIncidents = window.activeEmergencyIncidents.filter(i => i.id !== targetId);
+
+                if (window.activeEmergencyIncidents.length === 0) {
+                    closeEmergencyModal();
+                    window.location.reload();
+                } else {
+                    if (window.currentEmergencyIndex >= window.activeEmergencyIncidents.length) {
+                        window.currentEmergencyIndex = 0;
+                    }
+                    renderActiveEmergencyModal();
+                    speakEmergencyAnnouncement(`Alert acknowledged. Warning! ${window.activeEmergencyIncidents.length} unhandled emergency alerts remain!`);
+                }
+            })
+            .catch(err => {
+                console.error("Ack error:", err);
+                window.location.reload();
+            })
+            .finally(() => {
+                isAckInProgress = false;
+            });
+        }
+
+        function acknowledgeAllActiveEmergencies() {
+            if (isAckInProgress) return;
+            isAckInProgress = true;
+
+            fetch('/ndrrmo/alerts/acknowledge-all', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("[ACKNOWLEDGED ALL] All alerts acknowledged:", data);
+                window.activeEmergencyIncidents = [];
+                closeEmergencyModal();
+                window.location.reload();
+            })
+            .catch(err => {
+                console.error("Ack all error:", err);
+                window.location.reload();
+            })
+            .finally(() => {
+                isAckInProgress = false;
+            });
+        }
+
+        function closeEmergencyModal() {
             stopEmergencySirenAudio();
             stopVoiceSpeech();
+
+            const perimeter = document.getElementById('global-emergency-perimeter');
+            if (perimeter) perimeter.classList.add('hidden');
 
             const overlay = document.getElementById('global-emergency-overlay');
             if (overlay) {
                 overlay.classList.add('hidden');
-                overlay.classList.remove('flex');
-            }
-
-            if (currentActiveEmergency && currentActiveEmergency.id) {
-                const targetId = currentActiveEmergency.id;
-                currentActiveEmergency = null;
-
-                fetch(`/ndrrmo/incidents/${targetId}/acknowledge`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    console.log("[ACKNOWLEDGED] Alert acknowledged via dashboard:", data);
-                    window.location.reload();
-                })
-                .catch(err => {
-                    console.error("Ack error:", err);
-                    window.location.reload();
-                });
+                overlay.classList.remove('block');
             }
         }
     </script>
@@ -522,6 +879,13 @@
             .listen('EmergencyReported', (e) => {
                 if (e && e.incident) {
                     triggerScreenFlashAndAlarm(e.incident);
+
+                    if (e.incident.status === 'Pending') {
+                        const sidebarBadge = document.getElementById('ndrrmo-sidebar-alert-badge');
+                        let currentCount = parseInt(sidebarBadge ? sidebarBadge.textContent || '0' : '0');
+                        if (isNaN(currentCount)) currentCount = 0;
+                        window.updateNDRRMOAlertBadges(currentCount + 1);
+                    }
                 }
             });
     </script>
@@ -667,9 +1031,13 @@
                         window.updateNDRRMOAlertBadges(data.active_alerts);
                     }
 
-                    // Auto-trigger emergency modal & audio siren if any pending incident exists
-                    if (data.latest_pending && window.triggerScreenFlashAndAlarm) {
+                    // Auto-sync emergency modal & audio siren with all pending incidents
+                    if (data.pending_incidents && window.syncEmergencyIncidents) {
+                        window.syncEmergencyIncidents(data.pending_incidents);
+                    } else if (data.latest_pending && window.triggerScreenFlashAndAlarm) {
                         window.triggerScreenFlashAndAlarm(data.latest_pending);
+                    } else if (data.active_alerts === 0 && window.activeEmergencyIncidents && window.activeEmergencyIncidents.length > 0) {
+                        window.syncEmergencyIncidents([]);
                     }
                 })
                 .catch(err => console.error(err));

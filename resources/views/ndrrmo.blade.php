@@ -53,6 +53,481 @@
                 </div>
             </div>
 
+            @if($activeIncidents->count() > 0)
+            <!-- Active Emergency Command Console with Step-by-Step Response Lifecycle -->
+            <div class="mb-6 space-y-4">
+                <div class="bg-red-600 border-2 border-red-500 rounded-3xl px-6 py-4 flex flex-wrap items-center justify-between gap-3 shadow-lg text-white">
+                    <div class="flex items-center gap-3">
+                        <span class="w-3.5 h-3.5 rounded-full bg-white animate-ping"></span>
+                        <div>
+                            <span class="font-black text-sm uppercase tracking-wider block">
+                                🚨 ACTIVE EMERGENCY COMMAND CONSOLE ({{ $activeIncidents->count() }} ACTIVE {{ Str::plural('INCIDENT', $activeIncidents->count()) }})
+                            </span>
+                            <span class="text-xs text-red-100 font-medium">
+                                Immediate disaster risk reduction & incident response in progress. Inter-agency coordination with Clinic & Campus Security active.
+                            </span>
+                        </div>
+                    </div>
+                    @if($activeIncidents->where('status', 'Pending')->count() > 1)
+                    <form method="POST" action="{{ route('ndrrmo.alerts.acknowledge-all') }}" class="shrink-0">
+                        @csrf
+                        <button type="submit" class="px-4 py-2 bg-white hover:bg-red-50 text-red-600 active:scale-95 rounded-xl font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Acknowledge All ({{ $activeIncidents->where('status', 'Pending')->count() }} Alerts)</span>
+                        </button>
+                    </form>
+                    @endif
+                </div>
+
+                <div class="grid grid-cols-1 {{ $activeIncidents->count() > 1 ? 'xl:grid-cols-2' : '' }} gap-4">
+                    @foreach($activeIncidents as $index => $incident)
+                        @php
+                            $clinicNotified = $incident->notifications->where('recipient', 'Clinic')->isNotEmpty();
+                            $clinicAck = $incident->notifications->where('recipient', 'Clinic')->where('status', 'Acknowledged')->isNotEmpty()
+                                || $incident->notifications->where('status', 'Acknowledged by Clinic')->isNotEmpty();
+                            $clinicDispatched = $incident->notifications->where('status', 'Clinic Medical Team Dispatched')->isNotEmpty();
+                            
+                            $isPending = $incident->status === 'Pending';
+                            $isAck = $incident->status === 'Acknowledged';
+                            $isResponding = $incident->status === 'Responding';
+
+                            $badgeColor = 'bg-red-600';
+                            $borderColor = 'border-red-500';
+                            if (str_contains($incident->emergency_type, 'Medical')) {
+                                $badgeColor = 'bg-orange-500';
+                                $borderColor = 'border-orange-500';
+                            } elseif (str_contains($incident->emergency_type, 'Public Safety') || str_contains($incident->emergency_type, 'Facility')) {
+                                $badgeColor = 'bg-amber-500';
+                                $borderColor = 'border-amber-500';
+                            }
+                        @endphp
+                        <div id="incident-card-{{ $incident->id }}" 
+                             x-data="{ 
+                                 openDispatch: false, 
+                                 openResolve: false, 
+                                 unitName: '{{ addslashes($incident->responder_name ?? 'DRRMO Responders Unit 1') }}', 
+                                 contact: '{{ addslashes($incident->responder_contact ?? '0917-889-1001') }}', 
+                                 eta: {{ $incident->eta_minutes ?? 3 }}, 
+                                 resolveType: 'Resolved' 
+                             }" 
+                             class="bg-white border-2 {{ $borderColor }} rounded-3xl overflow-hidden shadow-md flex flex-col justify-between transition-all duration-300">
+                            <div>
+                                {{-- Card Header --}}
+                                <div class="{{ $badgeColor }} px-5 py-3 flex items-center justify-between text-white">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
+                                        <span class="font-black text-xs uppercase tracking-wider">
+                                            Incident #{{ $incident->id }}: {{ $incident->emergency_type }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[11px] font-extrabold bg-black/25 px-2.5 py-0.5 rounded-full">
+                                            {{ $incident->reported_at->format('h:i A · M d') }}
+                                        </span>
+                                        <span class="text-[11px] font-mono font-bold bg-white/20 px-2 py-0.5 rounded-full">
+                                            {{ $incident->reported_at->diffForHumans() }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {{-- Card Body: Location & Details --}}
+                                <div class="p-5">
+                                    <div class="flex items-start gap-4 mb-3">
+                                        <div class="w-12 h-12 rounded-2xl bg-red-100 border border-red-200 flex items-center justify-center shrink-0 text-red-600 text-xl font-black shadow-xs">
+                                            🚨
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-700">
+                                                <div>
+                                                    <span class="text-slate-400 font-extrabold uppercase text-[10px] block">LOCATION</span>
+                                                    <span class="font-black text-slate-900 text-sm">{{ $incident->device?->building ?? 'Location not recorded' }}</span>
+                                                    @if($incident->device?->floor || $incident->device?->room)
+                                                        <span class="text-slate-500 text-xs block font-semibold">{{ $incident->device->floor }} · {{ $incident->device->room }}</span>
+                                                    @endif
+                                                </div>
+                                                <div>
+                                                    <span class="text-slate-400 font-extrabold uppercase text-[10px] block">DEVICE CODE</span>
+                                                    <span class="font-mono font-black text-slate-900 text-sm">{{ $incident->device?->device_code ?? 'Not recorded' }}</span>
+                                                    @if($incident->device?->latitude && $incident->device?->longitude)
+                                                        <span class="text-slate-500 text-[10px] block font-mono">GPS: {{ number_format($incident->device->latitude, 4) }}, {{ number_format($incident->device->longitude, 4) }}</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- DISPATCHED FIRST RESPONDER STRIP --}}
+                                    @if($isResponding || $incident->responder_name)
+                                    <div class="mb-3 bg-blue-50/90 border border-blue-200 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-base shrink-0 shadow-xs">
+                                                🚑
+                                            </div>
+                                            <div>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-[11px] font-black text-blue-900 uppercase">RESPONDER:</span>
+                                                    <span class="text-xs font-extrabold text-blue-700">{{ $incident->responder_name ?: 'DRRMO Responders Team' }}</span>
+                                                    @if($incident->arrived_at)
+                                                        <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center gap-1 border border-emerald-200">
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> ON SCENE ({{ $incident->arrived_at->format('h:i A') }})
+                                                        </span>
+                                                    @else
+                                                        <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black animate-pulse flex items-center gap-1 border border-blue-200">
+                                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span> EN ROUTE (ETA: {{ $incident->eta_minutes ?: 3 }}m)
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                                <div class="text-[11px] text-slate-600 flex flex-wrap items-center gap-3 mt-0.5 font-medium">
+                                                    <span>📞 {{ $incident->responder_contact ?: 'Radio Ch. 1' }}</span>
+                                                    @if($incident->dispatch_notes)
+                                                        <span>📋 {{ $incident->dispatch_notes }}</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        @if(!$incident->arrived_at)
+                                        <form method="POST" action="{{ route('ndrrmo.incidents.on-scene', $incident) }}" class="shrink-0">
+                                            @csrf
+                                            <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                                <span>Mark On Scene</span>
+                                            </button>
+                                        </form>
+                                        @endif
+                                    </div>
+                                    @endif
+
+                                    {{-- STEP-BY-STEP ACTION LIFECYCLE TRACKER --}}
+                                    <div class="border border-slate-200 rounded-2xl p-3.5 bg-slate-50/70 mb-3">
+                                        <div class="flex items-center justify-between mb-2.5">
+                                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                                <svg class="w-3.5 h-3.5 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                                5-STEP RESPONSE LIFECYCLE
+                                            </span>
+                                            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full {{ $isResponding ? 'bg-blue-100 text-blue-700 border border-blue-200' : ($isAck ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-red-100 text-red-700 border border-red-200 animate-pulse') }}">
+                                                Current: {{ strtoupper($incident->status) }}
+                                            </span>
+                                        </div>
+
+                                        {{-- 5-Step Visual Stepper Bar --}}
+                                        <div class="grid grid-cols-5 gap-1 text-center text-[10px]">
+                                            {{-- Step 1: Triggered --}}
+                                            <div class="flex flex-col items-center">
+                                                <div class="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black text-[10px] shadow-xs mb-1">✓</div>
+                                                <span class="font-extrabold text-slate-800 leading-tight">1. Triggered</span>
+                                            </div>
+
+                                            {{-- Step 2: Acknowledged --}}
+                                            <div class="flex flex-col items-center">
+                                                @if(!$isPending)
+                                                    <div class="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black text-[10px] shadow-xs mb-1">✓</div>
+                                                    <span class="font-extrabold text-slate-800 leading-tight">2. Acknowledge</span>
+                                                @else
+                                                    <div class="w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center font-black text-[10px] shadow-xs mb-1 animate-ping">2</div>
+                                                    <span class="font-extrabold text-red-600 leading-tight">2. Acknowledge</span>
+                                                @endif
+                                            </div>
+
+                                            {{-- Step 3: Dispatched --}}
+                                            <div class="flex flex-col items-center">
+                                                @if($isResponding)
+                                                    <div class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-[10px] shadow-xs mb-1 animate-pulse">✓</div>
+                                                    <span class="font-extrabold text-blue-700 leading-tight">3. Dispatch</span>
+                                                @elseif($isAck)
+                                                    <div class="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-[10px] shadow-xs mb-1">3</div>
+                                                    <span class="font-extrabold text-amber-700 leading-tight">3. Dispatch</span>
+                                                @else
+                                                    <div class="w-5 h-5 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center font-bold text-[10px] mb-1">3</div>
+                                                    <span class="font-bold text-slate-400 leading-tight">3. Dispatch</span>
+                                                @endif
+                                            </div>
+
+                                            {{-- Step 4: Inter-Agency / On Scene --}}
+                                            <div class="flex flex-col items-center">
+                                                @if($incident->arrived_at)
+                                                    <div class="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black text-[10px] shadow-xs mb-1">✓</div>
+                                                    <span class="font-extrabold text-slate-800 leading-tight">4. Inter-Agency</span>
+                                                @elseif($isResponding)
+                                                    <div class="w-5 h-5 rounded-full bg-blue-400 text-white flex items-center justify-center font-black text-[10px] mb-1 animate-pulse">4</div>
+                                                    <span class="font-extrabold text-blue-700 leading-tight">4. Inter-Agency</span>
+                                                @else
+                                                    <div class="w-5 h-5 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center font-bold text-[10px] mb-1">4</div>
+                                                    <span class="font-bold text-slate-400 leading-tight">4. Inter-Agency</span>
+                                                @endif
+                                            </div>
+
+                                            {{-- Step 5: Resolved --}}
+                                            <div class="flex flex-col items-center">
+                                                <div class="w-5 h-5 rounded-full bg-slate-200 text-slate-400 flex items-center justify-center font-bold text-[10px] mb-1">5</div>
+                                                <span class="font-bold text-slate-400 leading-tight">5. Resolution</span>
+                                            </div>
+                                        </div>
+
+                                        {{-- Connected Agencies Status Strip --}}
+                                        <div class="mt-2.5 pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="w-2 h-2 rounded-full {{ $clinicNotified ? ($clinicDispatched ? 'bg-emerald-500' : 'bg-orange-500 animate-pulse') : 'bg-slate-300' }}"></span>
+                                                <span class="font-bold text-slate-700">Clinic:</span>
+                                                @if($clinicDispatched)
+                                                    <span class="text-emerald-700 font-extrabold">Medical Dispatched</span>
+                                                @elseif($clinicAck)
+                                                    <span class="text-emerald-700 font-extrabold">Acknowledged</span>
+                                                @elseif($clinicNotified)
+                                                    <span class="text-orange-700 font-extrabold">Notified</span>
+                                                @else
+                                                    <span class="text-slate-400">Not Linked</span>
+                                                @endif
+                                            </div>
+
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="w-2 h-2 rounded-full {{ $isResponding ? 'bg-blue-600 animate-pulse' : 'bg-slate-300' }}"></span>
+                                                <span class="font-bold text-slate-700">DRRMO:</span>
+                                                <span class="font-extrabold {{ $isResponding ? 'text-blue-800' : 'text-slate-700' }}">
+                                                    {{ $incident->arrived_at ? 'On Scene Operating' : ($isResponding ? 'En Route to Location' : ($isAck ? 'Acknowledged' : 'Pending')) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {{-- TIMESTAMPED RESPONSE AUDIT TRAIL --}}
+                                    <div class="border border-slate-200 rounded-2xl p-3 bg-white mb-2">
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                                                ⏱️ RESPONSE AUDIT MILESTONES
+                                            </span>
+                                            @if($incident->ack_duration)
+                                                <span class="text-[9px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                                    Ack Time: {{ $incident->ack_duration }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px]">
+                                            <div class="bg-slate-50 border border-slate-200 rounded-lg p-1.5">
+                                                <span class="text-slate-400 font-bold block text-[9px] uppercase">1. Reported</span>
+                                                <span class="font-black text-slate-900">{{ $incident->reported_at->format('h:i:s A') }}</span>
+                                            </div>
+                                            <div class="bg-slate-50 border border-slate-200 rounded-lg p-1.5">
+                                                <span class="text-slate-400 font-bold block text-[9px] uppercase">2. Acknowledged</span>
+                                                <span class="font-black text-slate-900">{{ $incident->acknowledged_at ? $incident->acknowledged_at->format('h:i:s A') : 'Pending' }}</span>
+                                            </div>
+                                            <div class="bg-slate-50 border border-slate-200 rounded-lg p-1.5">
+                                                <span class="text-slate-400 font-bold block text-[9px] uppercase">3. Dispatched</span>
+                                                <span class="font-black text-slate-900">{{ $incident->dispatched_at ? $incident->dispatched_at->format('h:i:s A') : 'Standby' }}</span>
+                                            </div>
+                                            <div class="bg-slate-50 border border-slate-200 rounded-lg p-1.5">
+                                                <span class="text-slate-400 font-bold block text-[9px] uppercase">4. On Scene</span>
+                                                <span class="font-black text-slate-900">{{ $incident->arrived_at ? $incident->arrived_at->format('h:i:s A') : 'En Route' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Action Controls Footer --}}
+                            <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    {{-- Action 1: Acknowledge (if Pending) --}}
+                                    @if($isPending)
+                                    <form method="POST" action="{{ route('ndrrmo.incidents.acknowledge', $incident) }}">
+                                        @csrf
+                                        <button type="submit" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold py-2 px-3.5 rounded-xl text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                            <span>Acknowledge Alert</span>
+                                        </button>
+                                    </form>
+                                    @endif
+
+                                    {{-- Action 2: Open Dispatch Modal --}}
+                                    @if($isPending || $isAck)
+                                    <button type="button" id="open-dispatch-modal-{{ $incident->id }}" @click="openDispatch = true" class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold py-2 px-3.5 rounded-xl text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                        <span>Dispatch Responders</span>
+                                    </button>
+                                    @else
+                                    <button type="button" @click="openDispatch = true" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-black transition-all cursor-pointer">
+                                        <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                                        Update Dispatch ({{ $incident->responder_name }})
+                                    </button>
+                                    @endif
+
+                                    {{-- Action 3: Notify Clinic (if not notified) --}}
+                                    @if(!$clinicNotified)
+                                    <form method="POST" action="{{ route('ndrrmo.incidents.notify-clinic', $incident) }}">
+                                        @csrf
+                                        <button type="submit" class="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-extrabold py-2 px-3.5 rounded-xl text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                            <span>Notify Clinic</span>
+                                        </button>
+                                    </form>
+                                    @endif
+                                </div>
+
+                                {{-- Action 4: Resolve / False Alarm Modal Button --}}
+                                <div class="flex items-center gap-2">
+                                    <button type="button" id="open-false-alarm-modal-{{ $incident->id }}" @click="resolveType = 'False Alarm'; openResolve = true" class="bg-white border border-slate-300 hover:bg-slate-100 active:scale-95 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs shadow-xs transition-all cursor-pointer">
+                                        ⚠️ False Alarm
+                                    </button>
+
+                                    <button type="button" @click="resolveType = 'Resolved'; openResolve = true" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold py-2 px-4 rounded-xl text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span>Mark Incident Resolved</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {{-- MODAL 1: DISPATCH ASSIGNMENT MODAL --}}
+                            <div x-show="openDispatch" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" @click.self="openDispatch = false">
+                                <div class="bg-white border-2 border-blue-500 rounded-3xl p-6 shadow-2xl w-full max-w-lg text-slate-800" @click.stop>
+                                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-black text-lg">
+                                                🚑
+                                            </div>
+                                            <div>
+                                                <h3 class="font-black text-sm text-slate-900 uppercase">Dispatch First Responders</h3>
+                                                <p class="text-xs text-slate-500">Incident #{{ $incident->id }} · {{ $incident->device?->building }}</p>
+                                            </div>
+                                        </div>
+                                        <button type="button" @click="openDispatch = false" class="text-slate-400 hover:text-slate-600 font-black text-lg cursor-pointer">✕</button>
+                                    </div>
+
+                                    <form method="POST" action="{{ route('ndrrmo.incidents.dispatch', $incident) }}" class="space-y-4">
+                                        @csrf
+                                        {{-- Presets --}}
+                                        <div>
+                                            <label class="block text-[11px] font-black uppercase text-slate-500 mb-1.5">1-Click Quick Presets</label>
+                                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                                <button type="button" @click="unitName = 'DRRMO Responders Unit 1'; contact = '0917-889-1001'; eta = 3;" class="p-2.5 border border-slate-200 rounded-xl text-left hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
+                                                    <span class="font-extrabold text-slate-800 block text-xs">DRRMO Unit 1</span>
+                                                    <span class="text-[10px] text-slate-500">ETA 3 mins · Radio Ch. 1</span>
+                                                </button>
+                                                <button type="button" @click="unitName = 'Campus Security Patrol Alpha'; contact = '0918-223-4002'; eta = 2;" class="p-2.5 border border-slate-200 rounded-xl text-left hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
+                                                    <span class="font-extrabold text-slate-800 block text-xs">Security Patrol</span>
+                                                    <span class="text-[10px] text-slate-500">ETA 2 mins · Security</span>
+                                                </button>
+                                                <button type="button" @click="unitName = 'Emergency Medical Team'; contact = '0920-555-8888'; eta = 4;" class="p-2.5 border border-slate-200 rounded-xl text-left hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
+                                                    <span class="font-extrabold text-slate-800 block text-xs">Medical Team</span>
+                                                    <span class="text-[10px] text-slate-500">ETA 4 mins · Clinic</span>
+                                                </button>
+                                                <button type="button" @click="unitName = 'JHCSC Fire & Rescue Unit'; contact = '0999-123-9999'; eta = 5;" class="p-2.5 border border-slate-200 rounded-xl text-left hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
+                                                    <span class="font-extrabold text-slate-800 block text-xs">Fire & Rescue</span>
+                                                    <span class="text-[10px] text-slate-500">ETA 5 mins · Fire/Hazard</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div>
+                                                <label class="block text-[11px] font-black uppercase text-slate-700 mb-1">Responder / Unit Name</label>
+                                                <input type="text" name="responder_name" x-model="unitName" required class="w-full text-xs font-bold px-3 py-2 border border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none" placeholder="e.g. Officer Santos - DRRMO Team">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[11px] font-black uppercase text-slate-700 mb-1">Contact / Radio</label>
+                                                <input type="text" name="responder_contact" x-model="contact" class="w-full text-xs font-bold px-3 py-2 border border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none" placeholder="e.g. 0917-123-4567 / Radio Ch. 1">
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-[11px] font-black uppercase text-slate-700 mb-1">Estimated Arrival (ETA in Minutes)</label>
+                                            <input type="number" name="eta_minutes" x-model="eta" min="1" max="120" required class="w-full text-xs font-bold px-3 py-2 border border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none" placeholder="e.g. 3">
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-[11px] font-black uppercase text-slate-700 mb-1">Dispatch Instructions / Notes</label>
+                                            <textarea name="dispatch_notes" rows="2" class="w-full text-xs font-semibold px-3 py-2 border border-slate-300 rounded-xl focus:border-blue-500 focus:outline-none" placeholder="e.g. Bring spine board, clear east entrance corridor"></textarea>
+                                        </div>
+
+                                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                                            <button type="button" @click="openDispatch = false" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs rounded-xl cursor-pointer">Cancel</button>
+                                            <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer">Confirm & Dispatch</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            {{-- MODAL 2: RESOLUTION & FALSE ALARM MODAL --}}
+                            <div x-show="openResolve" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" @click.self="openResolve = false">
+                                <div class="bg-white border-2 border-emerald-500 rounded-3xl p-6 shadow-2xl w-full max-w-lg text-slate-800" @click.stop>
+                                    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-lg">
+                                                🏁
+                                            </div>
+                                            <div>
+                                                <h3 class="font-black text-sm text-slate-900 uppercase">Incident Resolution & Classification</h3>
+                                                <p class="text-xs text-slate-500">Incident #{{ $incident->id }} · {{ $incident->device?->building }}</p>
+                                            </div>
+                                        </div>
+                                        <button type="button" @click="openResolve = false" class="text-slate-400 hover:text-slate-600 font-black text-lg cursor-pointer">✕</button>
+                                    </div>
+
+                                    <form method="POST" action="{{ route('ndrrmo.incidents.resolve', $incident) }}" class="space-y-4">
+                                        @csrf
+                                        {{-- Classification Radio Buttons --}}
+                                        <div>
+                                            <label class="block text-[11px] font-black uppercase text-slate-500 mb-1.5">Classification Type</label>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <label :class="resolveType === 'Resolved' ? 'border-emerald-600 bg-emerald-50 text-emerald-900 shadow-xs' : 'border-slate-200 bg-white text-slate-700'" class="p-2.5 border-2 rounded-xl text-center cursor-pointer font-extrabold text-xs transition-all flex flex-col items-center gap-1">
+                                                    <input type="radio" name="resolution_type" value="Resolved" x-model="resolveType" class="sr-only">
+                                                    <span>✅ Real Event</span>
+                                                    <span class="text-[9px] font-normal text-slate-500">Resolved Normally</span>
+                                                </label>
+                                                <label :class="resolveType === 'False Alarm' ? 'border-amber-600 bg-amber-50 text-amber-900 shadow-xs' : 'border-slate-200 bg-white text-slate-700'" class="p-2.5 border-2 rounded-xl text-center cursor-pointer font-extrabold text-xs transition-all flex flex-col items-center gap-1">
+                                                    <input type="radio" name="resolution_type" value="False Alarm" x-model="resolveType" class="sr-only">
+                                                    <span>⚠️ False Alarm</span>
+                                                    <span class="text-[9px] font-normal text-slate-500">Accidental Trigger</span>
+                                                </label>
+                                                <label :class="resolveType === 'Drill' ? 'border-purple-600 bg-purple-50 text-purple-900 shadow-xs' : 'border-slate-200 bg-white text-slate-700'" class="p-2.5 border-2 rounded-xl text-center cursor-pointer font-extrabold text-xs transition-all flex flex-col items-center gap-1">
+                                                    <input type="radio" name="resolution_type" value="Drill" x-model="resolveType" class="sr-only">
+                                                    <span>🛡️ Campus Drill</span>
+                                                    <span class="text-[9px] font-normal text-slate-500">Simulation Exercise</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        {{-- False Alarm Reason --}}
+                                        <div x-show="resolveType === 'False Alarm'" class="space-y-2">
+                                            <label class="block text-[11px] font-black uppercase text-amber-800">False Alarm Reason</label>
+                                            <select name="false_alarm_reason" class="w-full text-xs font-bold px-3 py-2 border border-amber-300 rounded-xl bg-amber-50/50 focus:outline-none">
+                                                <option value="Accidental button push by student / staff">Accidental button push by student / staff</option>
+                                                <option value="Sensor / hardware glitch">Sensor / hardware glitch</option>
+                                                <option value="Curiosity / unintended test">Curiosity / unintended test</option>
+                                                <option value="Prank / unverified report">Prank / unverified report</option>
+                                                <option value="Maintenance / inspection trigger">Maintenance / inspection trigger</option>
+                                            </select>
+                                        </div>
+
+                                        {{-- Drill Type --}}
+                                        <div x-show="resolveType === 'Drill'" class="space-y-2">
+                                            <label class="block text-[11px] font-black uppercase text-purple-800">Campus Drill Type</label>
+                                            <select name="remarks" class="w-full text-xs font-bold px-3 py-2 border border-purple-300 rounded-xl bg-purple-50/50 focus:outline-none">
+                                                <option value="Quarterly Earthquake Drill (NSED)">Quarterly Earthquake Drill (NSED)</option>
+                                                <option value="Fire Evacuation Drill">Fire Evacuation Drill</option>
+                                                <option value="Campus DRRMO Rapid Response Simulation">Campus DRRMO Rapid Response Simulation</option>
+                                                <option value="Active Incident / Lockdown Drill">Active Incident / Lockdown Drill</option>
+                                            </select>
+                                        </div>
+
+                                        {{-- Real Emergency Summary --}}
+                                        <div x-show="resolveType === 'Resolved'">
+                                            <label class="block text-[11px] font-black uppercase text-slate-700 mb-1">Resolution Summary & Action Taken</label>
+                                            <textarea name="remarks" rows="2" class="w-full text-xs font-semibold px-3 py-2 border border-slate-300 rounded-xl focus:border-emerald-500 focus:outline-none" placeholder="e.g. Incident neutralized, all students accounted for, building secured."></textarea>
+                                        </div>
+
+                                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                                            <button type="button" @click="openResolve = false" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs rounded-xl cursor-pointer">Cancel</button>
+                                            <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer">Submit Resolution</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
             <!-- Middle Row: Map and Alerts/Actions -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <!-- Map Section -->
@@ -97,6 +572,7 @@
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
                         const map = L.map('campus-map').setView([7.708601, 123.292456], 18);
+                        window.ndrrmoCampusMap = map;
                         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                             attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
                             maxZoom: 19

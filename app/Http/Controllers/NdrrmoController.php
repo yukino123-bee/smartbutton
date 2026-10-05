@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\EmergencyReported;
 use App\Models\Device;
 use App\Models\Incident;
 use App\Models\Notification;
@@ -11,7 +12,7 @@ class NdrrmoController extends Controller
 {
     public function dashboard()
     {
-        $activeIncidents = Incident::with('device')->active()->latest('reported_at')->get();
+        $activeIncidents = Incident::with(['device', 'notifications'])->active()->latest('reported_at')->get();
         $totalIncidents = Incident::count();
         $resolvedIncidents = Incident::resolved()->count();
         $devicesList = Device::all();
@@ -129,7 +130,10 @@ class NdrrmoController extends Controller
     {
         $incident->load('device');
         abort_unless($incident->status === 'Pending', 409, 'Only pending incidents can be acknowledged.');
-        $incident->update(['status' => 'Acknowledged']);
+        $incident->update([
+            'status' => 'Acknowledged',
+            'acknowledged_at' => $incident->acknowledged_at ?? now(),
+        ]);
 
         Notification::create([
             'incident_id' => $incident->id,
@@ -138,6 +142,19 @@ class NdrrmoController extends Controller
             'status' => 'Acknowledged',
             'sent_at' => now(),
         ]);
+
+        if (in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
+            || $incident->notifications()->where('recipient', 'Clinic')->exists()) {
+            Notification::create([
+                'incident_id' => $incident->id,
+                'recipient' => 'Clinic',
+                'channel' => 'Dashboard',
+                'status' => 'Acknowledged by DRRMO',
+                'sent_at' => now(),
+            ]);
+        }
+
+        broadcast(new EmergencyReported($incident))->toOthers();
 
         if (request()->wantsJson()) {
             return response()->json([
@@ -150,9 +167,52 @@ class NdrrmoController extends Controller
         return redirect()->back()->with('success', 'Incident acknowledged.');
     }
 
+    public function acknowledgeAll(Request $request)
+    {
+        $pendingIncidents = Incident::with('device')->where('status', 'Pending')->get();
+
+        foreach ($pendingIncidents as $incident) {
+            $incident->update([
+                'status' => 'Acknowledged',
+                'acknowledged_at' => $incident->acknowledged_at ?? now(),
+            ]);
+
+            Notification::create([
+                'incident_id' => $incident->id,
+                'recipient' => 'DRRMO',
+                'channel' => 'Dashboard',
+                'status' => 'Acknowledged',
+                'sent_at' => now(),
+            ]);
+
+            if (in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
+                || $incident->notifications()->where('recipient', 'Clinic')->exists()) {
+                Notification::create([
+                    'incident_id' => $incident->id,
+                    'recipient' => 'Clinic',
+                    'channel' => 'Dashboard',
+                    'status' => 'Acknowledged by DRRMO',
+                    'sent_at' => now(),
+                ]);
+            }
+
+            broadcast(new \App\Events\EmergencyReported($incident))->toOthers();
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => $pendingIncidents->count().' alert(s) acknowledged.',
+                'count' => $pendingIncidents->count(),
+            ]);
+        }
+
+        return redirect()->back()->with('success', $pendingIncidents->count().' alert(s) acknowledged.');
+    }
+
     public function notifyClinic(Incident $incident)
     {
-        abort_unless($incident->emergency_type === Incident::TYPE_MEDICAL, 404);
+        abort_unless(in_array($incident->emergency_type, Incident::EMERGENCY_TYPES, true), 404);
 
         Notification::firstOrCreate([
             'incident_id' => $incident->id,
@@ -163,24 +223,44 @@ class NdrrmoController extends Controller
             'sent_at' => now(),
         ]);
 
-        broadcast(new \App\Events\EmergencyReported($incident))->toOthers();
+        broadcast(new EmergencyReported($incident))->toOthers();
 
         if (request()->wantsJson()) {
             return response()->json([
                 'status' => 'success',
-                'message' => 'Clinic notified successfully.'
+                'message' => 'Clinic notified successfully.',
             ]);
         }
 
         return redirect()->back()->with('success', 'Clinic notified successfully.');
     }
 
-    public function dispatchIncident(Incident $incident)
+    public function dispatchIncident(Request $request, Incident $incident)
     {
-        abort_unless(in_array($incident->status, ['Pending', 'Acknowledged'], true), 409, 'Incident cannot be dispatched from its current status.');
+        abort_unless(in_array($incident->status, ['Pending', 'Acknowledged', 'Responding'], true), 409, 'Incident cannot be dispatched from its current status.');
+
+        $validated = $request->validate([
+            'responder_name' => 'nullable|string|max:150',
+            'responder_contact' => 'nullable|string|max:100',
+            'eta_minutes' => 'nullable|integer|min:1|max:120',
+            'dispatch_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $responderName = $validated['responder_name'] ?? ($incident->responder_name ?: 'DRRMO Responders Team');
+        $etaMinutes = $validated['eta_minutes'] ?? ($incident->eta_minutes ?: 3);
+        $responderContact = $validated['responder_contact'] ?? $incident->responder_contact;
+        $dispatchNotes = $validated['dispatch_notes'] ?? $incident->dispatch_notes;
+
         $incident->update([
             'status' => 'Responding',
+            'dispatched_at' => $incident->dispatched_at ?? now(),
+            'acknowledged_at' => $incident->acknowledged_at ?? now(),
+            'responder_name' => $responderName,
+            'responder_contact' => $responderContact,
+            'eta_minutes' => $etaMinutes,
+            'dispatch_notes' => $dispatchNotes,
         ]);
+        $incident->load('device');
 
         Notification::create([
             'incident_id' => $incident->id,
@@ -190,42 +270,138 @@ class NdrrmoController extends Controller
             'sent_at' => now(),
         ]);
 
+        if (in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
+            || $incident->notifications()->where('recipient', 'Clinic')->exists()) {
+            Notification::create([
+                'incident_id' => $incident->id,
+                'recipient' => 'Clinic',
+                'channel' => 'Dashboard',
+                'status' => 'DRRMO Responders Dispatched',
+                'sent_at' => now(),
+            ]);
+        }
+
+        broadcast(new EmergencyReported($incident))->toOthers();
+
         if (request()->wantsJson()) {
             return response()->json([
                 'status' => 'success',
-                'message' => 'Responders dispatched.',
+                'message' => "Responders dispatched: {$responderName} (ETA: {$etaMinutes} mins).",
                 'incident' => $incident,
             ]);
         }
 
-        return redirect()->back()->with('success', 'Responders dispatched.');
+        return redirect()->back()->with('success', "Responders dispatched: {$responderName} (ETA: {$etaMinutes} mins).");
     }
 
-    public function resolveIncident(Incident $incident)
+    public function onSceneIncident(Incident $incident)
     {
-        abort_if($incident->status === 'Resolved', 409, 'Incident is already resolved.');
         $incident->update([
-            'status' => 'Resolved',
-            'resolved_at' => now(),
+            'arrived_at' => now(),
+            'status' => 'Responding',
         ]);
+        $incident->load('device');
 
         Notification::create([
             'incident_id' => $incident->id,
             'recipient' => 'DRRMO',
             'channel' => 'Dashboard',
-            'status' => 'Resolved',
+            'status' => 'Responders Arrived On Scene',
             'sent_at' => now(),
         ]);
+
+        if (in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
+            || $incident->notifications()->where('recipient', 'Clinic')->exists()) {
+            Notification::create([
+                'incident_id' => $incident->id,
+                'recipient' => 'Clinic',
+                'channel' => 'Dashboard',
+                'status' => 'DRRMO On Scene',
+                'sent_at' => now(),
+            ]);
+        }
+
+        broadcast(new EmergencyReported($incident))->toOthers();
 
         if (request()->wantsJson()) {
             return response()->json([
                 'status' => 'success',
-                'message' => 'Incident marked resolved and recorded.',
+                'message' => 'Responders confirmed on scene.',
                 'incident' => $incident,
             ]);
         }
 
-        return redirect()->back()->with('success', 'Incident marked resolved and recorded.');
+        return redirect()->back()->with('success', 'Responders confirmed on scene.');
+    }
+
+    public function resolveIncident(Request $request, Incident $incident)
+    {
+        abort_if($incident->status === 'Resolved', 409, 'Incident is already resolved.');
+
+        $validated = $request->validate([
+            'resolution_type' => 'nullable|string|in:Resolved,False Alarm,Drill',
+            'remarks' => 'nullable|string|max:1000',
+            'resolution_notes' => 'nullable|string|max:1000',
+            'false_alarm_reason' => 'nullable|string|max:255',
+            'patient_name' => 'nullable|string|max:150',
+            'patient_id_number' => 'nullable|string|max:50',
+            'triage_level' => 'nullable|string|max:30',
+            'treatment_summary' => 'nullable|string|max:1000',
+            'disposition' => 'nullable|string|max:100',
+        ]);
+
+        $resType = $validated['resolution_type'] ?? 'Resolved';
+        $remarks = $validated['remarks'] ?? $validated['resolution_notes'] ?? $incident->remarks;
+        if ($resType !== 'Resolved' && !empty($validated['false_alarm_reason'])) {
+            $remarks = ($remarks ? $remarks . ' · ' : '') . "[{$resType}] " . $validated['false_alarm_reason'];
+        }
+
+        $incident->update([
+            'status' => 'Resolved',
+            'resolved_at' => now(),
+            'resolution_type' => $resType,
+            'false_alarm_reason' => $validated['false_alarm_reason'] ?? null,
+            'remarks' => $remarks,
+            'patient_name' => $validated['patient_name'] ?? $incident->patient_name,
+            'patient_id_number' => $validated['patient_id_number'] ?? $incident->patient_id_number,
+            'triage_level' => $validated['triage_level'] ?? $incident->triage_level,
+            'treatment_summary' => $validated['treatment_summary'] ?? $incident->treatment_summary,
+            'disposition' => $validated['disposition'] ?? $incident->disposition,
+        ]);
+        $incident->load('device');
+
+        Notification::create([
+            'incident_id' => $incident->id,
+            'recipient' => 'DRRMO',
+            'channel' => 'Dashboard',
+            'status' => $resType === 'Resolved' ? 'Resolved' : "Resolved ({$resType})",
+            'sent_at' => now(),
+        ]);
+
+        if (in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
+            || $incident->notifications()->where('recipient', 'Clinic')->exists()) {
+            Notification::create([
+                'incident_id' => $incident->id,
+                'recipient' => 'Clinic',
+                'channel' => 'Dashboard',
+                'status' => $resType === 'Resolved' ? 'Resolved by DRRMO' : "Resolved by DRRMO ({$resType})",
+                'sent_at' => now(),
+            ]);
+        }
+
+        broadcast(new EmergencyReported($incident))->toOthers();
+
+        $msg = $resType === 'Resolved' ? 'Incident marked resolved and recorded.' : "Incident logged as {$resType}.";
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => $msg,
+                'incident' => $incident,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $msg);
     }
 
     public function sms()
@@ -240,9 +416,20 @@ class NdrrmoController extends Controller
 
     public function reports()
     {
-        $stats = Incident::selectRaw('status, count(*) as count')
+        $rawStats = Incident::selectRaw('status, count(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status');
+
+        $stats = [
+            'pending' => $rawStats['Pending'] ?? $rawStats['pending'] ?? 0,
+            'acknowledged' => $rawStats['Acknowledged'] ?? $rawStats['acknowledged'] ?? 0,
+            'responding' => $rawStats['Responding'] ?? $rawStats['responding'] ?? 0,
+            'resolved' => $rawStats['Resolved'] ?? $rawStats['resolved'] ?? 0,
+            'Pending' => $rawStats['Pending'] ?? $rawStats['pending'] ?? 0,
+            'Acknowledged' => $rawStats['Acknowledged'] ?? $rawStats['acknowledged'] ?? 0,
+            'Responding' => $rawStats['Responding'] ?? $rawStats['responding'] ?? 0,
+            'Resolved' => $rawStats['Resolved'] ?? $rawStats['resolved'] ?? 0,
+        ];
 
         $typeStats = Incident::selectRaw('emergency_type, count(*) as count')
             ->groupBy('emergency_type')
@@ -260,10 +447,10 @@ class NdrrmoController extends Controller
     public function statsJson()
     {
         $devices = Device::all();
-        $latestPending = Incident::with('device')
+        $pendingIncidents = Incident::with('device')
             ->where('status', 'Pending')
             ->latest('reported_at')
-            ->first();
+            ->get();
 
         return response()->json([
             'active_alerts' => Incident::active()->count(),
@@ -271,10 +458,11 @@ class NdrrmoController extends Controller
             'resolved_incidents' => Incident::resolved()->count(),
             'devices_online' => $devices->filter->is_online->count(),
             'total_devices' => $devices->count(),
-            'pending' => Incident::where('status', 'Pending')->count(),
+            'pending' => $pendingIncidents->count(),
             'responding' => Incident::where('status', 'Responding')->count(),
             'resolved' => Incident::resolved()->count(),
-            'latest_pending' => $latestPending,
+            'latest_pending' => $pendingIncidents->first(),
+            'pending_incidents' => $pendingIncidents,
         ]);
     }
 

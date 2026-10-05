@@ -7,8 +7,8 @@ const char *ssid = "tandocADMIN 2.4ghz";
 const char *password = "tandocjesse123";
 
 // Endpoints
-const char *api_url = "http://192.168.100.151:8000/api/emergency";
-const char *status_url = "http://192.168.100.151:8000/api/device/status?device_id=LIB-001";
+const char *api_url = "http://192.168.100.169:8000/api/emergency";
+const char *status_url = "http://192.168.100.169:8000/api/device/status?device_id=LIB-001";
 
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "LIB-001"; // Campus Library
@@ -17,13 +17,17 @@ const char *DEVICE_CODE = "LIB-001"; // Campus Library
 const char *EMERGENCY_PHONE_NUMBER = "+639187439096";
 
 // --- Hardware Pins ---
-const int BTN_CRITICAL = 14;   // Critical Emergency
-const int BTN_MEDICAL = 12;    // Medical Emergency
-const int BTN_SUSPICIOUS = 27; // Suspicious Person
+const int BTN_CRITICAL = 14;   // Center Big Red Button: Critical Emergency
+const int BTN_MEDICAL = 12;    // Center Small Button: Medical Emergency
+const int BTN_SUSPICIOUS = 27; // Center Small Button: Public Safety Emergency
 
-const int LED_RED = 2;   // Error / Sending / Active Alarm Indicator
-const int LED_GREEN = 4; // Ready / Online Indicator
-const int BUZZER = 5;    // Audio Feedback / SOS Alarm
+// Side Box Buttons for Clinic Aid Selection (when Medical is pressed)
+const int BTN_CLINIC_YES = 32; // Side Top Button: Need Clinic Aid
+const int BTN_CLINIC_NO  = 33; // Side Bottom Button: No Clinic Aid Needed
+
+const int LED_RED = 2;   // Top Red Indicator: Alarm Active / Error
+const int LED_GREEN = 4; // Top Green Indicator: Ready / Online
+const int BUZZER = 5;    // Center Audio Buzzer: Feedback / SOS Alarm
 
 // GSM Module Pins (SIM800L) connected to ESP32 Hardware Serial 2
 #define SIM800L_RX 16
@@ -51,20 +55,17 @@ Button buttons[] = {
   { BTN_CRITICAL,   HIGH, HIGH, 0, false },
   { BTN_MEDICAL,    HIGH, HIGH, 0, false },
   { BTN_SUSPICIOUS, HIGH, HIGH, 0, false },
+  { BTN_CLINIC_YES, HIGH, HIGH, 0, false },
+  { BTN_CLINIC_NO,  HIGH, HIGH, 0, false },
 };
-const int NUM_BUTTONS = 3;
-const char* emergencyTypes[] = {
-  "Critical Emergency",
-  "Medical Emergency",
-  "Public Safety Emergency"
-};
+const int NUM_BUTTONS = 5;
 
 // Function Declarations
 void beepBuzzer(int times, int durationMs);
 void soundSOSPattern();
 void checkAcknowledgeStatus();
-void triggerAlarm(String emergencyType);
-void sendPanicAlert(String emergencyType);
+void triggerAlarm(String emergencyType, bool needClinic = true);
+void sendPanicAlert(String emergencyType, bool needClinic = true);
 void initSIM800L();
 void sendSMS(String message);
 String sendATCommand(String command, String expectedResponse, unsigned long timeoutMs);
@@ -83,6 +84,8 @@ void setup() {
   pinMode(BTN_CRITICAL, INPUT_PULLUP);
   pinMode(BTN_MEDICAL, INPUT_PULLUP);
   pinMode(BTN_SUSPICIOUS, INPUT_PULLUP);
+  pinMode(BTN_CLINIC_YES, INPUT_PULLUP);
+  pinMode(BTN_CLINIC_NO, INPUT_PULLUP);
 
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
@@ -134,15 +137,21 @@ void loop() {
     Serial2.write(c);
   }
 
-  // If the device is currently alarming (alert sent, awaiting dashboard acknowledgment)
+  // If the device is currently alarming (alert sent, awaiting DRRMO acknowledgment)
   if (isDeviceAlarming) {
     digitalWrite(LED_RED, HIGH);
     digitalWrite(LED_GREEN, LOW);
 
-    // Play one SOS pattern sequence
-    soundSOSPattern();
+    // Pulse buzzer every 1 second until DRRMO responds
+    static unsigned long lastBeepPulse = 0;
+    if (now - lastBeepPulse >= 1000) {
+      lastBeepPulse = now;
+      digitalWrite(BUZZER, HIGH);
+      delay(150);
+      digitalWrite(BUZZER, LOW);
+    }
 
-    // Check server status to see if admin acknowledged the alert
+    // Check server status to see if DRRMO acknowledged the alert
     if (now - lastStatusCheckTime >= STATUS_CHECK_INTERVAL) {
       lastStatusCheckTime = now;
       checkAcknowledgeStatus();
@@ -155,7 +164,7 @@ void loop() {
     }
   }
 
-  // Read physical panic buttons
+  // Read physical panic and side buttons
   for (int i = 0; i < NUM_BUTTONS; i++) {
     Button &btn = buttons[i];
     bool reading = digitalRead(btn.pin);
@@ -173,12 +182,47 @@ void loop() {
       bool prevStable = btn.stableState;
       btn.stableState = reading;
 
-      // Falling edge (HIGH → LOW) = actual button press
+      // Falling edge (HIGH -> LOW) = actual button press
       if (prevStable == HIGH && btn.stableState == LOW && !btn.triggered) {
         if ((now - lastAlertTime) >= COOLDOWN_MS) {
           btn.triggered  = true;
           lastAlertTime  = now;
-          triggerAlarm(emergencyTypes[i]);
+
+          if (btn.pin == BTN_CRITICAL) {
+            triggerAlarm("Critical Emergency", true);
+          } else if (btn.pin == BTN_SUSPICIOUS) {
+            triggerAlarm("Public Safety Emergency", false);
+          } else if (btn.pin == BTN_CLINIC_YES) {
+            // Direct press on Side Top button
+            triggerAlarm("Medical Emergency", true);
+          } else if (btn.pin == BTN_CLINIC_NO) {
+            // Direct press on Side Bottom button
+            triggerAlarm("Medical Emergency", false);
+          } else if (btn.pin == BTN_MEDICAL) {
+            // Medical center button pressed: prompt for clinic aid selection for 2.5 seconds
+            Serial.println("\n[MEDICAL ALERT] Medical button pressed!");
+            Serial.println("  Press Side Top (GPIO 32) for Clinic Aid, or Side Bottom (GPIO 33) for No Clinic Aid.");
+            beepBuzzer(2, 80);
+
+            bool needClinic = true; // default
+            unsigned long waitStart = millis();
+            while (millis() - waitStart < 2500) {
+              if (digitalRead(BTN_CLINIC_NO) == LOW) {
+                needClinic = false;
+                Serial.println("[CLINIC AID]: Side Bottom pressed -> NO Clinic Aid needed.");
+                beepBuzzer(2, 60);
+                break;
+              }
+              if (digitalRead(BTN_CLINIC_YES) == LOW) {
+                needClinic = true;
+                Serial.println("[CLINIC AID]: Side Top pressed -> YES Clinic Aid requested.");
+                beepBuzzer(1, 150);
+                break;
+              }
+              delay(20);
+            }
+            triggerAlarm("Medical Emergency", needClinic);
+          }
         } else {
           Serial.println("[COOLDOWN] Alert suppressed, too soon.");
         }
@@ -189,8 +233,11 @@ void loop() {
   delay(10);
 }
 
-void triggerAlarm(String emergencyType) {
+void triggerAlarm(String emergencyType, bool needClinic) {
     Serial.println("\n🚨 [ALARM TRIGGERED] Panic Button Pressed: " + emergencyType);
+    if (emergencyType == "Medical Emergency") {
+      Serial.println("   Clinic Aid Required: " + String(needClinic ? "YES" : "NO"));
+    }
 
     // Immediate local feedback
     digitalWrite(LED_GREEN, LOW);
@@ -198,10 +245,10 @@ void triggerAlarm(String emergencyType) {
     beepBuzzer(2, 150);
 
     // Process Alert
-    sendPanicAlert(emergencyType);
+    sendPanicAlert(emergencyType, needClinic);
 }
 
-void sendPanicAlert(String emergencyType) {
+void sendPanicAlert(String emergencyType, bool needClinic) {
   bool apiSuccess = false;
 
   // 1. Send via Web API if WiFi is connected
@@ -212,7 +259,8 @@ void sendPanicAlert(String emergencyType) {
     http.addHeader("Accept", "application/json");
 
     String payload = "{\"device_id\":\"" + String(DEVICE_CODE) +
-                     "\", \"emergency_category\":\"" + emergencyType + "\"}";
+                     "\", \"emergency_category\":\"" + emergencyType +
+                     "\", \"need_clinic\":" + (needClinic ? "true" : "false") + "}";
 
     Serial.println("[API] Sending Payload: " + payload);
 
@@ -221,10 +269,10 @@ void sendPanicAlert(String emergencyType) {
     if (httpResponseCode > 0) {
       Serial.println("[API SUCCESS] HTTP Code: " + String(httpResponseCode));
       Serial.println("[API Response]: " + http.getString());
-      beepBuzzer(1, 500);
+      beepBuzzer(1, 400);
       apiSuccess = true;
 
-      // Enable active SOS alarming until dashboard acknowledges!
+      // Enable active SOS alarming until DRRMO responds!
       isDeviceAlarming = true;
       lastStatusCheckTime = millis();
     } else {
@@ -239,8 +287,11 @@ void sendPanicAlert(String emergencyType) {
   // 2. ALWAYS Send SMS Notification via SIM800L for EVERY Alert Trigger
   Serial.println("\n[GSM ALERT] Transmitting SMS notification via SIM800L Module...");
   String smsMessage = "JHCSC SMART PANIC ALERT!\nDevice: " + String(DEVICE_CODE) +
-                      "\nCategory: " + emergencyType +
-                      "\nStatus: Immediate Response Required!";
+                      "\nCategory: " + emergencyType;
+  if (emergencyType == "Medical Emergency") {
+    smsMessage += "\nClinic Aid: " + String(needClinic ? "YES" : "NO");
+  }
+  smsMessage += "\nStatus: Immediate Response Required!";
   
   sendSMS(smsMessage);
 }
@@ -432,16 +483,17 @@ void checkAcknowledgeStatus() {
   int httpCode = http.GET();
   if (httpCode == 200) {
     String payload = http.getString();
-    // If pending is false, admin acknowledged the alert on dashboard!
-    if (payload.indexOf("\"has_pending\":false") >= 0 || payload.indexOf("\"has_pending\": false") >= 0) {
-      if (isDeviceAlarming) {
-        Serial.println("\n[ACKNOWLEDGED] Alert acknowledged on dashboard! Stopping device SOS alarm.");
-        isDeviceAlarming = false;
+    bool responded = (payload.indexOf("\"drrmo_responded\":true") >= 0 || payload.indexOf("\"drrmo_responded\": true") >= 0);
+    bool noPending = (payload.indexOf("\"has_pending\":false") >= 0 || payload.indexOf("\"has_pending\": false") >= 0);
 
-        digitalWrite(LED_RED, LOW);
-        digitalWrite(LED_GREEN, HIGH);
-        beepBuzzer(2, 200); // 2 confirmation beeps
-      }
+    if (isDeviceAlarming && (responded || noPending)) {
+      Serial.println("\n[ACKNOWLEDGED] DRRMO responded to alert! Stopping device buzzer.");
+      isDeviceAlarming = false;
+
+      digitalWrite(BUZZER, LOW);
+      digitalWrite(LED_RED, LOW);
+      digitalWrite(LED_GREEN, HIGH);
+      beepBuzzer(3, 120); // 3 confirmation beeps to notify witness that DRRMO responded!
     }
   }
   http.end();

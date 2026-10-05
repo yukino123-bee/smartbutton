@@ -151,6 +151,7 @@ test('all DRRMO navigation pages render with database-backed empty states', func
     '/ndrrmo/logs',
     '/ndrrmo/map',
     '/ndrrmo/devices',
+    '/ndrrmo/sms',
     '/ndrrmo/reports',
 ]);
 
@@ -173,4 +174,54 @@ test('inactive users cannot authenticate', function () {
 test('public self-registration is disabled', function () {
     $this->get('/register')->assertNotFound();
     $this->post('/register', [])->assertNotFound();
+});
+
+test('DRRMO can notify clinic for medical backup on an incident', function () {
+    $drrmo = User::factory()->create(['role' => 'DRRMO']);
+    $device = systemDevice();
+    $incident = Incident::create([
+        'device_id' => $device->id,
+        'emergency_type' => Incident::TYPE_PUBLIC_SAFETY,
+        'status' => 'Pending',
+    ]);
+
+    $this->actingAs($drrmo)
+        ->post("/ndrrmo/incidents/{$incident->id}/notify-clinic")
+        ->assertRedirect();
+
+    expect(Notification::whereBelongsTo($incident)->where('recipient', 'Clinic')->exists())->toBeTrue();
+});
+
+test('DRRMO can manage devices through CRUD operations', function () {
+    $drrmo = User::factory()->create(['role' => 'DRRMO']);
+
+    $this->actingAs($drrmo)->post('/ndrrmo/devices', [
+        'device_code' => 'NEW-001',
+        'building' => 'Administration',
+        'floor' => '2nd Floor',
+        'room' => 'Office 201',
+        'latitude' => 7.712000,
+        'longitude' => 123.294000,
+        'status' => 'active',
+    ])->assertRedirect('/ndrrmo/devices');
+
+    $device = Device::where('device_code', 'NEW-001')->firstOrFail();
+
+    $this->actingAs($drrmo)->put("/ndrrmo/devices/{$device->id}", [
+        'device_code' => 'NEW-001',
+        'building' => 'Administration Building',
+        'floor' => '2nd Floor',
+        'room' => 'Office 202',
+        'latitude' => 7.712000,
+        'longitude' => 123.294000,
+        'status' => 'maintenance',
+    ])->assertRedirect('/ndrrmo/devices');
+
+    expect($device->fresh()->room)->toBe('Office 202')
+        ->and($device->fresh()->status)->toBe('maintenance');
+
+    $this->actingAs($drrmo)->delete("/ndrrmo/devices/{$device->id}")
+        ->assertRedirect('/ndrrmo/devices');
+
+    expect(Device::find($device->id))->toBeNull();
 });

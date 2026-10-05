@@ -61,7 +61,7 @@
                         @endif
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
-                        @if($sms->status === 'delivered' || $sms->status === 'sent')
+                        @if(in_array(strtolower($sms->status), ['delivered', 'sent'], true))
                         <span class="text-brand-green bg-brand-green/10 border border-brand-green/20 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider flex items-center w-max">
                             <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                             Sent
