@@ -13,8 +13,13 @@ const char *status_url = "http://192.168.100.169:8000/api/device/status?device_i
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "LIB-001"; // Campus Library
 
-// Emergency Contact Phone Number for SMS Alerts (Supports local 09... or international +63...)
-const char *EMERGENCY_PHONE_NUMBER = "+639187439096";
+// Emergency Contact Phone Numbers for Ready-to-Deploy Responders & Personnel
+const char *EMERGENCY_PHONE_NUMBERS[] = {
+  "+639927090622", // Primary Ready-to-deploy Personnel (DITO)
+  "+639563559186", // Secondary Ready-to-deploy Personnel (Globe)
+  "+639187439096"  // DRRMO Officer
+};
+const int NUM_EMERGENCY_RECIPIENTS = 3;
 
 // --- Hardware Pins ---
 const int BTN_CRITICAL = 14;   // Center Big Red Button: Critical Emergency
@@ -35,6 +40,7 @@ const int BUZZER = 5;    // Center Audio Buzzer: Feedback / SOS Alarm
 
 // --- Alarm State & Status Polling ---
 bool isDeviceAlarming = false;
+bool confirmationMode = false; // Live Dispatch Mode: Physical buttons dispatch real emergency alerts via WiFi / GSM
 unsigned long lastStatusCheckTime = 0;
 const unsigned long STATUS_CHECK_INTERVAL = 1500; // Check server every 1.5 seconds
 
@@ -67,7 +73,8 @@ void checkAcknowledgeStatus();
 void triggerAlarm(String emergencyType, bool needClinic = true);
 void sendPanicAlert(String emergencyType, bool needClinic = true);
 void initSIM800L();
-void sendSMS(String message);
+void sendSMS(String message, String targetNum = "");
+void sendEmergencySMSAlert(String message);
 String sendATCommand(String command, String expectedResponse, unsigned long timeoutMs);
 
 void setup() {
@@ -96,16 +103,14 @@ void setup() {
   digitalWrite(LED_GREEN, LOW);
   digitalWrite(BUZZER, LOW);
 
-  // Initialize SIM800L GSM Modem
-  initSIM800L();
-
-  // Connect to WiFi
+  // 1. Connect to WiFi first for immediate network connection and Green indicator
   Serial.print("Connecting to WiFi (" + String(ssid) + ")");
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
   int wifiAttempts = 0;
-  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 20) {
-    delay(500);
+  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 25) {
+    delay(400);
     Serial.print(".");
     wifiAttempts++;
   }
@@ -115,13 +120,31 @@ void setup() {
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
 
-    // Connected State: Red OFF, Green ON
+    // Connected State: Red OFF, Green ON immediately!
     digitalWrite(LED_RED, LOW);
     digitalWrite(LED_GREEN, HIGH);
   } else {
     Serial.println("\n[WiFi WARNING] WiFi Connection Failed! Running in Standalone GSM Mode.");
     digitalWrite(LED_RED, HIGH);
     digitalWrite(LED_GREEN, LOW);
+  }
+
+  // 2. Initialize SIM800L GSM Modem
+  initSIM800L();
+
+  // Ensure Green LED stays ON if WiFi connected
+  if (WiFi.status() == WL_CONNECTED) {
+    digitalWrite(LED_RED, LOW);
+    digitalWrite(LED_GREEN, HIGH);
+  }
+
+  // 3. Initialize button states after pin modes and pull-ups settle to prevent false boot triggers
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    bool state = digitalRead(buttons[i].pin);
+    buttons[i].lastReading = state;
+    buttons[i].stableState = state;
+    buttons[i].lastChangeTime = millis();
+    buttons[i].triggered = (state == LOW);
   }
 
   // Short beep to indicate system readiness
@@ -131,10 +154,87 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  // Serial Passthrough for manual debugging from Serial Monitor
+  // Serial Passthrough and Interactive Command Support
+  static String serialCmdBuffer = "";
   while (Serial.available()) {
     char c = Serial.read();
-    Serial2.write(c);
+    if (c == '\r' || c == '\n') {
+      if (serialCmdBuffer.length() > 0) {
+        serialCmdBuffer.trim();
+        if (serialCmdBuffer.equalsIgnoreCase("TEST_SMS")) {
+          Serial.println("\n>>> [MANUAL TEST] Triggering test SMS via SIM800L...");
+          sendSMS("TEST ALERT from JHCSC Smart Panic Button (" + String(DEVICE_CODE) + ")!\nSIM800L GSM Module Functional Verification.");
+        } else if (serialCmdBuffer.equalsIgnoreCase("GSM_STATUS")) {
+          Serial.println("\n>>> [GSM STATUS CHECK]");
+          sendATCommand("AT", "OK", 1000);
+          sendATCommand("AT+CPIN?", "OK", 1000);
+          sendATCommand("AT+CSQ", "OK", 1000);
+          sendATCommand("AT+CBC", "OK", 1000);
+          sendATCommand("AT+CREG?", "OK", 1000);
+          sendATCommand("AT+COPS?", "OK", 2000);
+          sendATCommand("AT+CSCA?", "OK", 1000);
+        } else if (serialCmdBuffer.equalsIgnoreCase("TEST_LEDS")) {
+          Serial.println("\n>>> [LED TEST] Testing LEDs...");
+          Serial.println("  1. Driving Green LED (GPIO 4) HIGH for 2s...");
+          digitalWrite(LED_RED, LOW);
+          digitalWrite(LED_GREEN, HIGH);
+          delay(2000);
+          Serial.println("  2. Driving Red LED (GPIO 2) HIGH for 2s...");
+          digitalWrite(LED_GREEN, LOW);
+          digitalWrite(LED_RED, HIGH);
+          delay(2000);
+          Serial.println("  3. Driving Green LED (GPIO 4) LOW for 2s (in case module is active-LOW)...");
+          digitalWrite(LED_RED, HIGH);
+          digitalWrite(LED_GREEN, LOW);
+          delay(2000);
+          Serial.println("  [LED TEST] Complete. Restoring normal state.");
+          digitalWrite(LED_GREEN, HIGH);
+          digitalWrite(LED_RED, LOW);
+        } else if (serialCmdBuffer.equalsIgnoreCase("PIN_STATUS")) {
+          Serial.println("\n>>> [PIN STATUS]");
+          Serial.println("  Mode: " + String(confirmationMode ? "CONFIRMATION MODE (Alerts & Siren Muted)" : "LIVE DISPATCH MODE"));
+          Serial.println("  WiFi Status: " + String(WiFi.status() == WL_CONNECTED ? "CONNECTED" : "DISCONNECTED"));
+          Serial.println("  isDeviceAlarming: " + String(isDeviceAlarming ? "TRUE (ALARM ACTIVE)" : "FALSE (IDLE)"));
+          Serial.println("  LED_GREEN (GPIO 4): " + String(digitalRead(LED_GREEN) == HIGH ? "DRIVEN HIGH (3.3V)" : "DRIVEN LOW (0V)"));
+          Serial.println("  LED_RED (GPIO 2): " + String(digitalRead(LED_RED) == HIGH ? "DRIVEN HIGH (3.3V)" : "DRIVEN LOW (0V)"));
+          Serial.println("  BTN_CRITICAL (GPIO 14): " + String(digitalRead(BTN_CRITICAL) == LOW ? "PRESSED (LOW/GND)" : "IDLE (HIGH/3.3V)"));
+          Serial.println("  BTN_MEDICAL (GPIO 12): " + String(digitalRead(BTN_MEDICAL) == LOW ? "PRESSED (LOW/GND)" : "IDLE (HIGH/3.3V)"));
+          Serial.println("  BTN_SUSPICIOUS (GPIO 27): " + String(digitalRead(BTN_SUSPICIOUS) == LOW ? "PRESSED (LOW/GND)" : "IDLE (HIGH/3.3V)"));
+          Serial.println("  BTN_CLINIC_YES (GPIO 32): " + String(digitalRead(BTN_CLINIC_YES) == LOW ? "PRESSED (LOW/GND)" : "IDLE (HIGH/3.3V)"));
+          Serial.println("  BTN_CLINIC_NO (GPIO 33): " + String(digitalRead(BTN_CLINIC_NO) == LOW ? "PRESSED (LOW/GND)" : "IDLE (HIGH/3.3V)"));
+        } else if (serialCmdBuffer.equalsIgnoreCase("CONFIRMATION_MODE") || serialCmdBuffer.equalsIgnoreCase("TEST_MODE")) {
+          confirmationMode = true;
+          Serial.println("[MODE] Confirmation Mode ENABLED: Alerts, sirens, and SMS muted during testing.");
+        } else if (serialCmdBuffer.equalsIgnoreCase("LIVE_MODE") || serialCmdBuffer.equalsIgnoreCase("ALERT_MODE")) {
+          confirmationMode = false;
+          Serial.println("[MODE] Live Mode ENABLED: Emergency dispatch, alarms, and SMS are now ACTIVE.");
+        } else if (serialCmdBuffer.equalsIgnoreCase("GREEN_HIGH")) {
+          digitalWrite(LED_GREEN, HIGH);
+          Serial.println("[LED] GPIO 4 (Green LED) set to HIGH");
+        } else if (serialCmdBuffer.equalsIgnoreCase("GREEN_LOW")) {
+          digitalWrite(LED_GREEN, LOW);
+          Serial.println("[LED] GPIO 4 (Green LED) set to LOW");
+        } else if (serialCmdBuffer.equalsIgnoreCase("RED_HIGH")) {
+          digitalWrite(LED_RED, HIGH);
+          Serial.println("[LED] GPIO 2 (Red LED) set to HIGH");
+        } else if (serialCmdBuffer.equalsIgnoreCase("RED_LOW")) {
+          digitalWrite(LED_RED, LOW);
+          Serial.println("[LED] GPIO 2 (Red LED) set to LOW");
+        } else {
+          // Forward raw AT command directly to SIM800L
+          Serial2.println(serialCmdBuffer);
+        }
+        serialCmdBuffer = "";
+      }
+    } else {
+      serialCmdBuffer += c;
+    }
+  }
+
+  // Echo any incoming bytes from SIM800L back to USB Serial Monitor
+  while (Serial2.available()) {
+    char c = Serial2.read();
+    Serial.write(c);
   }
 
   // If the device is currently alarming (alert sent, awaiting DRRMO acknowledgment)
@@ -157,6 +257,15 @@ void loop() {
       checkAcknowledgeStatus();
     }
   } else {
+    // Idle Ready State: Solid Green ON when WiFi connected, Red OFF
+    if (WiFi.status() == WL_CONNECTED) {
+      digitalWrite(LED_GREEN, HIGH);
+      digitalWrite(LED_RED, LOW);
+    } else {
+      digitalWrite(LED_GREEN, LOW);
+      digitalWrite(LED_RED, HIGH);
+    }
+
     // Idle Heartbeat (send every 60 seconds to stay online on dashboard)
     if (now - lastStatusCheckTime >= 60000) {
       lastStatusCheckTime = now;
@@ -192,35 +301,69 @@ void loop() {
             triggerAlarm("Critical Emergency", true);
           } else if (btn.pin == BTN_SUSPICIOUS) {
             triggerAlarm("Public Safety Emergency", false);
-          } else if (btn.pin == BTN_CLINIC_YES) {
-            // Direct press on Side Top button
-            triggerAlarm("Medical Emergency", true);
-          } else if (btn.pin == BTN_CLINIC_NO) {
-            // Direct press on Side Bottom button
-            triggerAlarm("Medical Emergency", false);
+          } else if (btn.pin == BTN_CLINIC_YES || btn.pin == BTN_CLINIC_NO) {
+            // Dormant when idle: Only active when Medical Alert is triggered first!
+            Serial.println("\nℹ️ [CLINIC BUTTON INACTIVE] Press Center Medical Button (GPIO 12) first to initiate a Medical Emergency.");
+            beepBuzzer(1, 30); // Very short gentle chirp to indicate button is received but dormant
           } else if (btn.pin == BTN_MEDICAL) {
-            // Medical center button pressed: prompt for clinic aid selection for 2.5 seconds
-            Serial.println("\n[MEDICAL ALERT] Medical button pressed!");
-            Serial.println("  Press Side Top (GPIO 32) for Clinic Aid, or Side Bottom (GPIO 33) for No Clinic Aid.");
-            beepBuzzer(2, 80);
+            // Medical center button pressed: prompt for clinic aid selection for 5 seconds
+            Serial.println("\n🚨 [MEDICAL ALERT TRIGGERED] Awaiting Clinic Aid Selection:");
+            Serial.println("   -> Press Side Top (GPIO 32) if Clinic Assistance is REQUIRED");
+            Serial.println("   -> Press Side Bottom (GPIO 33) if Clinic Assistance is NOT NEEDED (First Aid Only)");
+            Serial.println("   (Device will listen for 5 seconds; defaults to Clinic YES if no button pressed)");
+
+            // Visual and audio prompt: 2 alert beeps
+            beepBuzzer(2, 90);
 
             bool needClinic = true; // default
+            bool buttonSelected = false;
             unsigned long waitStart = millis();
-            while (millis() - waitStart < 2500) {
+
+            while (millis() - waitStart < 5000) {
+              // Rapid pulse red indicator during selection window
+              if ((millis() - waitStart) % 500 < 250) {
+                digitalWrite(LED_RED, HIGH);
+                digitalWrite(LED_GREEN, LOW);
+              } else {
+                digitalWrite(LED_RED, LOW);
+                digitalWrite(LED_GREEN, HIGH);
+              }
+
+              // Check Clinic NO Button (GPIO 33)
               if (digitalRead(BTN_CLINIC_NO) == LOW) {
-                needClinic = false;
-                Serial.println("[CLINIC AID]: Side Bottom pressed -> NO Clinic Aid needed.");
-                beepBuzzer(2, 60);
-                break;
+                delay(30); // debounce
+                if (digitalRead(BTN_CLINIC_NO) == LOW) {
+                  needClinic = false;
+                  buttonSelected = true;
+                  Serial.println("\n✅ [CLINIC SELECTION]: GPIO 33 Pressed -> NO Clinic Assistance Needed (DRRMO / First Aid Only).");
+                  beepBuzzer(2, 70);
+                  break;
+                }
               }
+
+              // Check Clinic YES Button (GPIO 32)
               if (digitalRead(BTN_CLINIC_YES) == LOW) {
-                needClinic = true;
-                Serial.println("[CLINIC AID]: Side Top pressed -> YES Clinic Aid requested.");
-                beepBuzzer(1, 150);
-                break;
+                delay(30); // debounce
+                if (digitalRead(BTN_CLINIC_YES) == LOW) {
+                  needClinic = true;
+                  buttonSelected = true;
+                  Serial.println("\n🚨 [CLINIC SELECTION]: GPIO 32 Pressed -> Clinic Assistance is REQUIRED!");
+                  beepBuzzer(1, 200);
+                  break;
+                }
               }
-              delay(20);
+
+              delay(15);
             }
+
+            if (!buttonSelected) {
+              Serial.println("\n⏱️ [CLINIC SELECTION TIMEOUT]: No selection received in 5s. Defaulting to Clinic Aid: REQUIRED.");
+            }
+
+            // Restore solid Green before dispatch
+            digitalWrite(LED_GREEN, HIGH);
+            digitalWrite(LED_RED, LOW);
+
             triggerAlarm("Medical Emergency", needClinic);
           }
         } else {
@@ -234,6 +377,17 @@ void loop() {
 }
 
 void triggerAlarm(String emergencyType, bool needClinic) {
+    if (confirmationMode) {
+      Serial.println("\n🔔 [BUTTON CONFIRMED - NO ALERT DISPATCHED]");
+      Serial.println("   Detected Event: " + emergencyType);
+      if (emergencyType == "Medical Emergency") {
+        Serial.println("   Clinic Aid Flag: " + String(needClinic ? "YES" : "NO"));
+      }
+      Serial.println("   (Device is in Confirmation Mode. Live alerts, alarms, and SMS are suppressed.)");
+      beepBuzzer(1, 50); // Single gentle 50ms click
+      return;
+    }
+
     Serial.println("\n🚨 [ALARM TRIGGERED] Panic Button Pressed: " + emergencyType);
     if (emergencyType == "Medical Emergency") {
       Serial.println("   Clinic Aid Required: " + String(needClinic ? "YES" : "NO"));
@@ -251,54 +405,66 @@ void triggerAlarm(String emergencyType, bool needClinic) {
 void sendPanicAlert(String emergencyType, bool needClinic) {
   bool apiSuccess = false;
 
-  // 1. Send via Web API if WiFi is connected
+  // 1. Primary Path: Send via Web API if WiFi is connected
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
     http.begin(api_url);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Accept", "application/json");
+    http.setTimeout(4000); // 4-second timeout to avoid long blocking
 
     String payload = "{\"device_id\":\"" + String(DEVICE_CODE) +
                      "\", \"emergency_category\":\"" + emergencyType +
                      "\", \"need_clinic\":" + (needClinic ? "true" : "false") + "}";
 
-    Serial.println("[API] Sending Payload: " + payload);
+    Serial.println("[API] Sending Payload to Server: " + payload);
 
     int httpResponseCode = http.POST(payload);
 
-    if (httpResponseCode > 0) {
-      Serial.println("[API SUCCESS] HTTP Code: " + String(httpResponseCode));
+    if (httpResponseCode >= 200 && httpResponseCode < 300) {
+      Serial.println("[API SUCCESS] Alert received by DRRMO Server! HTTP Code: " + String(httpResponseCode));
       Serial.println("[API Response]: " + http.getString());
       beepBuzzer(1, 400);
       apiSuccess = true;
 
-      // Enable active SOS alarming until DRRMO responds!
+      // Enable active SOS alarming until DRRMO responds
       isDeviceAlarming = true;
       lastStatusCheckTime = millis();
     } else {
-      Serial.println("[API ERROR] HTTP Request Failed. Error Code: " + String(httpResponseCode));
+      Serial.println("[API ERROR] Server request failed! HTTP Code: " + String(httpResponseCode));
     }
 
     http.end();
   } else {
-    Serial.println("[API WARNING] WiFi Disconnected!");
+    Serial.println("[API WARNING] WiFi is DISCONNECTED!");
   }
 
-  // 2. ALWAYS Send SMS Notification via SIM800L for EVERY Alert Trigger
-  Serial.println("\n[GSM ALERT] Transmitting SMS notification via SIM800L Module...");
-  String smsMessage = "JHCSC SMART PANIC ALERT!\nDevice: " + String(DEVICE_CODE) +
-                      "\nCategory: " + emergencyType;
-  if (emergencyType == "Medical Emergency") {
-    smsMessage += "\nClinic Aid: " + String(needClinic ? "YES" : "NO");
+  // 2. Offline Fallback: If WiFi is disconnected OR API failed, send SMS via SIM800L to ready-to-deploy personnel
+  if (!apiSuccess) {
+    Serial.println("\n🚨 [GSM FAILOVER ACTIVATED] WiFi/Internet unavailable! Dispatching Emergency SMS via SIM800L to ready-to-deploy personnel...");
+    
+    // Enable local alarming so people nearby know the alarm was triggered
+    isDeviceAlarming = true;
+
+    String smsMessage = "JHCSC PANIC ALERT (OFFLINE)!\n"
+                        "Device: " + String(DEVICE_CODE) + " (Campus Library)\n"
+                        "Category: " + emergencyType;
+    if (emergencyType == "Medical Emergency") {
+      smsMessage += "\nClinic Aid: " + String(needClinic ? "REQUIRED" : "NOT REQUIRED");
+    }
+    smsMessage += "\nNotice: WiFi/Server DOWN! Immediate response required!";
+
+    // Send SMS alert to all configured ready-to-deploy personnel
+    sendEmergencySMSAlert(smsMessage);
+  } else {
+    Serial.println("[GSM] Alert already delivered via Web API. SMS suppressed to conserve load.");
   }
-  smsMessage += "\nStatus: Immediate Response Required!";
-  
-  sendSMS(smsMessage);
 }
 
 // Robust Helper function to execute AT commands and log real-time serial feedback
 String sendATCommand(String command, String expectedResponse, unsigned long timeoutMs) {
   while (Serial2.available()) Serial2.read(); // flush serial buffer
+  delay(50);
 
   Serial.print("[AT SEND]: ");
   Serial.println(command);
@@ -316,6 +482,7 @@ String sendATCommand(String command, String expectedResponse, unsigned long time
     if (expectedResponse.length() > 0 && response.indexOf(expectedResponse) >= 0) {
       break;
     }
+    delay(5);
   }
   return response;
 }
@@ -328,43 +495,86 @@ void initSIM800L() {
   
   // Try 9600 baud rate sync
   bool modemReady = false;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 5; i++) {
     String res = sendATCommand("AT", "OK", 1000);
     if (res.indexOf("OK") >= 0) {
       modemReady = true;
       break;
     }
-    delay(200);
+    delay(300);
   }
 
-  // If 9600 didn't work, try 115200 and lock baud rate to 9600
+  // If 9600 didn't work, try 115200 and switch baud rate to 9600
   if (!modemReady) {
     Serial.println("[SIM800L] Retrying modem sync at 115200 baud...");
     Serial2.begin(115200, SERIAL_8N1, SIM800L_RX, SIM800L_TX);
-    delay(200);
+    delay(300);
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 5; i++) {
       String res = sendATCommand("AT", "OK", 1000);
       if (res.indexOf("OK") >= 0) {
-        Serial.println("[SIM800L] Responded at 115200! Locking baud rate to 9600...");
+        Serial.println("[SIM800L] Responded at 115200! Setting baud rate to 9600...");
         sendATCommand("AT+IPR=9600", "OK", 1000);
-        delay(200);
+        delay(300);
         Serial2.begin(9600, SERIAL_8N1, SIM800L_RX, SIM800L_TX);
         modemReady = true;
         break;
       }
-      delay(200);
+      delay(300);
     }
   }
 
   if (modemReady) {
-    Serial.println("\n[SIM800L SUCCESS] Modem Online! Configuring SMS Parameters...");
-    sendATCommand("AT+CMGF=1", "OK", 1000);           // Set Text Mode
-    sendATCommand("AT+CSCS=\"GSM\"", "OK", 1000);       // Set Character Set to GSM
-    sendATCommand("AT+CSMP=17,167,0,0", "OK", 1000);   // Set SMS Text Mode Parameters
-    sendATCommand("AT+CPIN?", "OK", 1000);             // Check SIM card lock status
-    sendATCommand("AT+CREG?", "OK", 1000);             // Check network registration (1,1 or 1,5 = registered)
-    sendATCommand("AT+CSQ", "OK", 1000);              // Check signal quality
+    Serial.println("\n[SIM800L SUCCESS] Modem Online! Configuring GSM Parameters...");
+    
+    // Enable verbose error reporting (+CMEE=2) for human-readable error descriptions
+    sendATCommand("AT+CMEE=2", "OK", 1000);
+    delay(150);
+
+    // Set Text Mode for SMS
+    sendATCommand("AT+CMGF=1", "OK", 1000);
+    delay(150);
+
+    // Set Character Set to GSM 7-bit
+    sendATCommand("AT+CSCS=\"GSM\"", "OK", 1000);
+    delay(150);
+
+    // Check SIM card readiness
+    Serial.println("[SIM800L] Checking SIM card readiness...");
+    for (int i = 0; i < 5; i++) {
+      String cpinRes = sendATCommand("AT+CPIN?", "OK", 1500);
+      if (cpinRes.indexOf("READY") >= 0) {
+        Serial.println("  [SIM Card Status]: READY!");
+        break;
+      }
+      delay(1000);
+    }
+
+    // Check Signal Quality (AT+CSQ)
+    sendATCommand("AT+CSQ", "OK", 1500);
+    delay(150);
+
+    // Check Battery / Supply Voltage (AT+CBC)
+    sendATCommand("AT+CBC", "OK", 1500);
+    delay(150);
+
+    // Check Network Registration (AT+CREG?)
+    Serial.println("[SIM800L] Checking cellular network registration status...");
+    String cregRes = sendATCommand("AT+CREG?", "OK", 1000);
+    if (cregRes.indexOf("+CREG: 0,1") >= 0 || cregRes.indexOf("+CREG: 0,5") >= 0 ||
+        cregRes.indexOf("+CREG: 1,1") >= 0 || cregRes.indexOf("+CREG: 1,5") >= 0) {
+      Serial.println("  [Cellular Network]: Registered on GSM Network!");
+    } else {
+      Serial.println("  [Cellular Network Status]: Searching / Standby (" + cregRes + ")");
+    }
+
+    // Check Operator Name (AT+COPS?)
+    sendATCommand("AT+COPS?", "OK", 2000);
+    delay(150);
+
+    // Check SMS Center (SMSC)
+    sendATCommand("AT+CSCA?", "OK", 1500);
+
     Serial.println("[SIM800L] GSM Initialization Finished Successfully!\n");
   } else {
     Serial.println("\n[SIM800L ERROR ❌] Modem did NOT respond to AT commands!");
@@ -376,23 +586,38 @@ void initSIM800L() {
   }
 }
 
+// Send SMS alerts to all designated ready-to-deploy personnel
+void sendEmergencySMSAlert(String message) {
+  for (int i = 0; i < NUM_EMERGENCY_RECIPIENTS; i++) {
+    Serial.println("\n[GSM DISPATCH " + String(i + 1) + "/" + String(NUM_EMERGENCY_RECIPIENTS) + "] -> " + String(EMERGENCY_PHONE_NUMBERS[i]));
+    sendSMS(message, EMERGENCY_PHONE_NUMBERS[i]);
+    delay(500);
+  }
+}
+
 // Helper function to handle SIM800L SMS with full prompt & delivery checks
-void sendSMS(String message) {
+void sendSMS(String message, String targetNum) {
+  if (targetNum.length() == 0) {
+    targetNum = EMERGENCY_PHONE_NUMBERS[0];
+  }
+
   Serial.println("\n==========================================");
   Serial.println("[SMS TRANSMISSION START]");
-  Serial.println("[Recipient Original]: " + String(EMERGENCY_PHONE_NUMBER));
+  Serial.println("[Recipient]: " + targetNum);
   Serial.println("[Message Payload]:\n" + message);
   Serial.println("==========================================");
 
-  // 1. Set Text Mode
+  // 1. Ensure Text Mode
   sendATCommand("AT+CMGF=1", "OK", 1000);
+  delay(100);
 
   // Clear serial input buffer
   while (Serial2.available()) Serial2.read();
 
-  // 2. Format Phone Number to International Standard (+63...) if provided as local (09...)
-  String targetNum = String(EMERGENCY_PHONE_NUMBER);
+  // 2. Format Phone Number to International Standard (+63...)
   targetNum.trim();
+  targetNum.replace(" ", "");
+  targetNum.replace("-", "");
   if (targetNum.startsWith("0")) {
     targetNum = "+63" + targetNum.substring(1);
   }
@@ -404,12 +629,12 @@ void sendSMS(String message) {
   Serial.println("[SMS] Sending AT Command: " + cmgsCmd);
   Serial2.println(cmgsCmd);
 
-  // 4. Wait for '>' prompt character from SIM800L (up to 4 seconds)
+  // 4. Wait for '>' prompt character from SIM800L (up to 5 seconds)
   unsigned long startPrompt = millis();
   bool promptReady = false;
   String promptBuffer = "";
 
-  while (millis() - startPrompt < 4000) {
+  while (millis() - startPrompt < 5000) {
     while (Serial2.available()) {
       char c = Serial2.read();
       promptBuffer += c;
@@ -425,28 +650,31 @@ void sendSMS(String message) {
 
   if (promptReady) {
     Serial.println("\n[SMS SUCCESS] '>' Prompt received from SIM800L! Transmitting message body...");
-    delay(150);
+    delay(200);
 
     // 5. Send Message Content
     Serial2.print(message);
-    delay(200);
+    delay(300);
 
     // 6. Send Ctrl+Z (ASCII 26) to commit and send SMS
     Serial2.write(26);
     Serial.println("\n[SMS] Ctrl+Z (0x1A) sent! Waiting for GSM network delivery confirmation (+CMGS / OK)...");
 
-    // 7. Wait for GSM Network transmission response (up to 12 seconds)
+    // 7. Wait for GSM Network transmission response (up to 20 seconds)
     unsigned long startSend = millis();
     bool delivered = false;
     String modemOutput = "";
 
-    while (millis() - startSend < 12000) {
+    while (millis() - startSend < 20000) {
       while (Serial2.available()) {
         char c = Serial2.read();
         modemOutput += c;
         Serial.write(c);
-        if (modemOutput.indexOf("+CMGS:") >= 0 || modemOutput.indexOf("OK") >= 0) {
+        if (modemOutput.indexOf("+CMGS:") >= 0 || modemOutput.indexOf("\nOK") >= 0) {
           delivered = true;
+          break;
+        }
+        if (modemOutput.indexOf("ERROR") >= 0) {
           break;
         }
       }
@@ -460,14 +688,12 @@ void sendSMS(String message) {
     } else {
       Serial.println("\n[SMS FAILED ❌] Network response timeout or error!");
       Serial.println("[Modem Output Log]: " + modemOutput);
-      Serial.println("[TROUBLESHOOTING]:");
-      Serial.println("  1. SIM Card Balance: Ensure SIM has SMS load/credits.");
-      Serial.println("  2. SIM Registration: Check if SIM card is activated & registered with NTC.");
-      Serial.println("  3. Power Supply: SIM800L reboots if voltage drops below 3.7V during 2A TX burst!");
+      beepBuzzer(3, 80);
     }
   } else {
     Serial.println("\n[SMS ERROR ❌] Modem failed to send '>' prompt!");
     Serial.println("[Modem Output Log]: " + promptBuffer);
+    beepBuzzer(3, 80);
   }
   Serial.println("==========================================\n");
 }

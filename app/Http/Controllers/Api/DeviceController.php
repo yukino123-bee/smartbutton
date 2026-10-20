@@ -21,6 +21,7 @@ class DeviceController extends Controller
         $validated = $request->validate([
             'device_id' => 'required|string',
             'emergency_category' => ['required', 'string', Rule::in(Incident::EMERGENCY_TYPES)],
+            'need_clinic' => ['nullable', 'boolean'],
             'timestamp' => ['nullable', 'date', 'before_or_equal:now'],
         ]);
 
@@ -60,6 +61,7 @@ class DeviceController extends Controller
         $incident = Incident::create([
             'device_id' => $device->id,
             'emergency_type' => $emergencyType,
+            'need_clinic' => $needClinic,
             'reported_at' => $validated['timestamp'] ?? now(),
             'status' => 'Pending',
             'remarks' => $remarks,

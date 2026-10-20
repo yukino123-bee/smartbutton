@@ -156,6 +156,36 @@
                                         </div>
                                     </div>
 
+                                    {{-- EMERGENCY LEVEL & CLINIC ASSISTANCE STRIP --}}
+                                    <div class="mb-3 flex flex-wrap items-center gap-2">
+                                        @if($incident->emergency_type === \App\Models\Incident::TYPE_MEDICAL)
+                                            @if($incident->need_clinic)
+                                                <span class="px-2.5 py-1 rounded-xl bg-red-100 text-red-800 border border-red-300 text-xs font-black flex items-center gap-1.5 shadow-xs">
+                                                    <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                                                    🏥 CLINIC AID: REQUIRED
+                                                </span>
+                                            @else
+                                                <span class="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 border border-slate-300 text-xs font-black flex items-center gap-1.5 shadow-xs">
+                                                    🩺 CLINIC AID: NOT NEEDED (FIRST AID ONLY)
+                                                </span>
+                                            @endif
+                                        @elseif($incident->emergency_type === \App\Models\Incident::TYPE_CRITICAL)
+                                            <span class="px-2.5 py-1 rounded-xl bg-red-100 text-red-900 border border-red-300 text-xs font-black flex items-center gap-1.5 shadow-xs">
+                                                🚨 HIGH PRIORITY · CLINIC & DRRMO DISPATCH
+                                            </span>
+                                        @else
+                                            <span class="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black flex items-center gap-1.5 shadow-xs">
+                                                🛡️ PUBLIC SAFETY & SECURITY RESPONSE
+                                            </span>
+                                        @endif
+
+                                        @if(str_contains($incident->remarks ?? '', 'SMS Backup'))
+                                            <span class="px-2 py-0.5 rounded-lg bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-black flex items-center gap-1">
+                                                📡 GSM SMS Cell Backup
+                                            </span>
+                                        @endif
+                                    </div>
+
                                     {{-- DISPATCHED FIRST RESPONDER STRIP --}}
                                     @if($isResponding || $incident->responder_name)
                                     <div class="mb-3 bg-blue-50/90 border border-blue-200 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">

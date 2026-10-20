@@ -80,6 +80,7 @@ class SimulatorController extends Controller
 
         $createdIncidents = [];
         $categoriesList = Incident::EMERGENCY_TYPES;
+        $needClinic = $request->boolean('need_clinic', true);
 
         foreach ($activeDevices as $index => $device) {
             $device->update(['last_seen' => now()]);
@@ -88,9 +89,12 @@ class SimulatorController extends Controller
                 ? $categoriesList[$index % count($categoriesList)]
                 : $category;
 
+            $incidentNeedClinic = $emergencyType === Incident::TYPE_CRITICAL ? true : ($emergencyType === Incident::TYPE_MEDICAL ? $needClinic : false);
+
             $incident = Incident::create([
                 'device_id' => $device->id,
                 'emergency_type' => $emergencyType,
+                'need_clinic' => $incidentNeedClinic,
                 'reported_at' => now(),
                 'status' => 'Pending',
                 'remarks' => 'Triggered via ESP32 Multi-Location Simulator',
@@ -105,8 +109,8 @@ class SimulatorController extends Controller
                 'sent_at' => now(),
             ]);
 
-            // Create Clinic notification if Medical or Critical
-            if (in_array($emergencyType, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)) {
+            // Create Clinic notification if Critical, or if Medical AND need_clinic is true
+            if ($emergencyType === Incident::TYPE_CRITICAL || ($emergencyType === Incident::TYPE_MEDICAL && $incidentNeedClinic)) {
                 Notification::create([
                     'incident_id' => $incident->id,
                     'recipient' => 'Clinic',

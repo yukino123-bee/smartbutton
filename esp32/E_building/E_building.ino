@@ -3,12 +3,12 @@
 #include <WiFi.h>
 
 // --- Configuration ---
-const char *ssid = "JOHN";
-const char *password = "12345678";
+const char *ssid = "tandocADMIN 2.4ghz";
+const char *password = "tandocjesse123";
 
 // Endpoints
-const char *api_url = "http://192.168.137.61:8000/api/emergency";
-const char *status_url = "http://192.168.137.61:8000/api/device/status?device_id=ENG-001";
+const char *api_url = "http://192.168.100.169:8000/api/emergency";
+const char *status_url = "http://192.168.100.169:8000/api/device/status?device_id=ENG-001";
 
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "ENG-001"; // E-Building
@@ -32,6 +32,7 @@ const int BUZZER = 5;    // Audio Feedback / SOS Alarm
 
 // --- Alarm State & Status Polling ---
 bool isDeviceAlarming = false;
+bool confirmationMode = true;
 unsigned long lastStatusCheckTime = 0;
 const unsigned long STATUS_CHECK_INTERVAL = 1500; // Check server every 1.5 seconds
 
@@ -122,6 +123,15 @@ void setup() {
     digitalWrite(LED_GREEN, LOW);
   }
 
+  // Initialize button states after pin modes and pull-ups settle to prevent false boot triggers
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    bool state = digitalRead(buttons[i].pin);
+    buttons[i].lastReading = state;
+    buttons[i].stableState = state;
+    buttons[i].lastChangeTime = millis();
+    buttons[i].triggered = (state == LOW);
+  }
+
   // Short beep to indicate system readiness
   beepBuzzer(1, 200);
 }
@@ -191,6 +201,14 @@ void loop() {
 }
 
 void triggerAlarm(String emergencyType) {
+    if (confirmationMode) {
+      Serial.println("\n🔔 [BUTTON CONFIRMED - NO ALERT DISPATCHED]");
+      Serial.println("   Detected Event: " + emergencyType);
+      Serial.println("   (Device is in Confirmation Mode. Live alerts, alarms, and SMS are suppressed.)");
+      beepBuzzer(1, 50);
+      return;
+    }
+
     Serial.println("\n🚨 [ALARM TRIGGERED] Panic Button Pressed: " + emergencyType);
 
     // Immediate local feedback

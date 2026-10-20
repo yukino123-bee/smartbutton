@@ -189,3 +189,47 @@ test('full emergency lifecycle synchronizes between ndrrmo and clinic', function
     expect(Notification::where('incident_id', $incident->id)->where('recipient', 'DRRMO')->where('status', 'Resolved')->exists())->toBeTrue()
         ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'Clinic')->where('status', 'Resolved by DRRMO')->exists())->toBeTrue();
 });
+
+test('api emergency creates medical alert with need_clinic true and notifies clinic', function () {
+    Event::fake([EmergencyReported::class]);
+    $device = makeDevice('DEV-MED-YES');
+
+    $response = $this->postJson('/api/emergency', [
+        'device_id' => 'DEV-MED-YES',
+        'emergency_category' => Incident::TYPE_MEDICAL,
+        'need_clinic' => true,
+    ]);
+
+    $response->assertCreated()
+        ->assertJson(['status' => 'success', 'need_clinic' => true]);
+
+    $incident = Incident::latest('id')->first();
+    expect($incident->need_clinic)->toBeTrue()
+        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'Clinic')->exists())->toBeTrue()
+        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'DRRMO')->exists())->toBeTrue();
+});
+
+test('api emergency creates medical alert with need_clinic false and suppresses clinic notification', function () {
+    Event::fake([EmergencyReported::class]);
+    $device = makeDevice('DEV-MED-NO');
+
+    $response = $this->postJson('/api/emergency', [
+        'device_id' => 'DEV-MED-NO',
+        'emergency_category' => Incident::TYPE_MEDICAL,
+        'need_clinic' => false,
+    ]);
+
+    $response->assertCreated()
+        ->assertJson(['status' => 'success', 'need_clinic' => false]);
+
+    $incident = Incident::latest('id')->first();
+    expect($incident->need_clinic)->toBeFalse()
+        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'Clinic')->exists())->toBeFalse()
+        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'DRRMO')->exists())->toBeTrue();
+
+    $ndrrmoUser = User::factory()->create(['role' => 'DRRMO']);
+    $this->actingAs($ndrrmoUser)
+        ->get('/ndrrmo')
+        ->assertSuccessful()
+        ->assertSee('CLINIC AID: NOT NEEDED');
+});

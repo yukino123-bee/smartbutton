@@ -31,7 +31,7 @@ class Incident extends Model
     public const TRIAGE_BLACK = 'Black - Expectant';
 
     protected $fillable = [
-        'device_id', 'emergency_type', 'reported_at', 'status', 'remarks', 'resolved_at',
+        'device_id', 'emergency_type', 'need_clinic', 'reported_at', 'status', 'remarks', 'resolved_at',
         'responder_name', 'responder_contact', 'eta_minutes', 'dispatch_notes',
         'resolution_type', 'false_alarm_reason',
         'patient_name', 'patient_id_number', 'triage_level', 'treatment_summary', 'disposition',
@@ -39,6 +39,7 @@ class Incident extends Model
     ];
 
     protected $casts = [
+        'need_clinic' => 'boolean',
         'reported_at' => 'datetime',
         'acknowledged_at' => 'datetime',
         'dispatched_at' => 'datetime',
@@ -78,12 +79,14 @@ class Incident extends Model
     public function scopeClinicRelevant(Builder $query): Builder
     {
         return $query->where(function (Builder $q) {
-            $q->whereIn('emergency_type', [
-                self::TYPE_CRITICAL,
-                self::TYPE_MEDICAL,
-            ])->orWhereHas('notifications', function ($sub) {
-                $sub->where('recipient', 'Clinic');
-            });
+            $q->where('emergency_type', self::TYPE_CRITICAL)
+              ->orWhere(function (Builder $sub) {
+                  $sub->where('emergency_type', self::TYPE_MEDICAL)
+                      ->where('need_clinic', true);
+              })
+              ->orWhereHas('notifications', function ($sub) {
+                  $sub->where('recipient', 'Clinic');
+              });
         });
     }
 

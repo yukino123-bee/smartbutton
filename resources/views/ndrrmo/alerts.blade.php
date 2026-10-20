@@ -146,8 +146,21 @@
             <div class="p-4 flex-1 flex flex-col justify-between space-y-4">
                 <div>
                     <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1.5">INCIDENT TYPE</div>
-                    <div class="inline-block px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wide {{ $typeBadge }}">
-                        {{ $alert->emergency_type }}
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="inline-block px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wide {{ $typeBadge }}">
+                            {{ $alert->emergency_type }}
+                        </div>
+                        @if($alert->emergency_type === \App\Models\Incident::TYPE_MEDICAL)
+                            @if($alert->need_clinic)
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-red-100 text-red-800 border border-red-300">
+                                    🏥 CLINIC AID REQUIRED
+                                </span>
+                            @else
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-300">
+                                    🩺 NO CLINIC NEEDED
+                                </span>
+                            @endif
+                        @endif
                     </div>
                 </div>
 

@@ -147,6 +147,26 @@
                         </div>
                     </div>
 
+                    {{-- CLINIC AID REQUIREMENT STRIP --}}
+                    <div class="mb-3 flex flex-wrap items-center gap-2">
+                        @if($incident->need_clinic)
+                            <span class="px-2.5 py-1 rounded-xl bg-red-100 text-red-800 border border-red-300 text-xs font-black flex items-center gap-1.5 shadow-xs">
+                                <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                                🏥 WITNESS CONFIRMED: CLINIC AID REQUIRED
+                            </span>
+                        @else
+                            <span class="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 border border-slate-300 text-xs font-black flex items-center gap-1.5 shadow-xs">
+                                🩺 FIRST AID ONLY (NO CLINIC DISPATCH NEEDED)
+                            </span>
+                        @endif
+
+                        @if(str_contains($incident->remarks ?? '', 'SMS Backup'))
+                            <span class="px-2 py-0.5 rounded-lg bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-black flex items-center gap-1">
+                                📡 GSM SMS Cell Backup
+                            </span>
+                        @endif
+                    </div>
+
                     {{-- DISPATCHED MEDICAL TEAM STRIP --}}
                     @if($isResponding || $incident->responder_name)
                     <div class="mb-4 bg-blue-50/90 border border-blue-200 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -600,6 +620,15 @@
                             <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black {{ $isResponding ? 'bg-blue-100 text-blue-700 border border-blue-200' : ($isAck ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-red-100 text-red-700 border border-red-200 animate-pulse') }}">
                                 {{ strtoupper($incident?->status ?? 'PENDING') }}
                             </span>
+                            @if($activeEmergency?->need_clinic)
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 text-red-800 border border-red-300">
+                                    🏥 CLINIC AID REQUIRED
+                                </span>
+                            @else
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-300">
+                                    🩺 FIRST AID ONLY
+                                </span>
+                            @endif
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold text-slate-700">
                             <div>
