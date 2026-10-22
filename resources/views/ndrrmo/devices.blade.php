@@ -122,7 +122,7 @@
 
 <!-- Add Device Modal -->
 <div id="addDeviceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/50 backdrop-blur-sm transition-opacity">
-    <div class="bg-brand-card border border-brand-border rounded-xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
+    <div class="panel w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
         <div class="p-4 border-b border-brand-border flex justify-between items-center bg-brand-bg">
             <h3 class="text-lg font-bold text-brand-dark flex items-center">
                 <svg class="w-5 h-5 mr-2 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -182,7 +182,7 @@
 
 <!-- Edit Device Modal -->
 <div id="editDeviceModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/50 backdrop-blur-sm transition-opacity">
-    <div class="bg-brand-card border border-brand-border rounded-xl w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
+    <div class="panel w-full max-w-md overflow-hidden shadow-2xl transform transition-all">
         <div class="p-4 border-b border-brand-border flex justify-between items-center bg-brand-bg">
             <h3 class="text-lg font-bold text-brand-dark flex items-center">
                 <svg class="w-5 h-5 mr-2 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>

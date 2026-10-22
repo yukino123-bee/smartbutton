@@ -143,8 +143,7 @@ class NdrrmoController extends Controller
             'sent_at' => now(),
         ]);
 
-        if (in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
-            || $incident->notifications()->where('recipient', 'Clinic')->exists()) {
+        if ($incident->involvesClinic()) {
             Notification::create([
                 'incident_id' => $incident->id,
                 'recipient' => 'Clinic',
@@ -185,8 +184,7 @@ class NdrrmoController extends Controller
                 'sent_at' => now(),
             ]);
 
-            if (in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
-                || $incident->notifications()->where('recipient', 'Clinic')->exists()) {
+            if ($incident->involvesClinic()) {
                 Notification::create([
                     'incident_id' => $incident->id,
                     'recipient' => 'Clinic',
@@ -196,7 +194,7 @@ class NdrrmoController extends Controller
                 ]);
             }
 
-            broadcast(new \App\Events\EmergencyReported($incident))->toOthers();
+            broadcast(new EmergencyReported($incident))->toOthers();
         }
 
         if ($request->wantsJson()) {
@@ -270,8 +268,7 @@ class NdrrmoController extends Controller
             'sent_at' => now(),
         ]);
 
-        if (in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
-            || $incident->notifications()->where('recipient', 'Clinic')->exists()) {
+        if ($incident->involvesClinic()) {
             Notification::create([
                 'incident_id' => $incident->id,
                 'recipient' => 'Clinic',
@@ -296,6 +293,8 @@ class NdrrmoController extends Controller
 
     public function onSceneIncident(Incident $incident)
     {
+        abort_unless($incident->status === 'Responding', 409, 'Only dispatched incidents can be marked on scene.');
+
         $incident->update([
             'arrived_at' => now(),
             'status' => 'Responding',
@@ -310,8 +309,7 @@ class NdrrmoController extends Controller
             'sent_at' => now(),
         ]);
 
-        if (in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
-            || $incident->notifications()->where('recipient', 'Clinic')->exists()) {
+        if ($incident->involvesClinic()) {
             Notification::create([
                 'incident_id' => $incident->id,
                 'recipient' => 'Clinic',
@@ -352,8 +350,8 @@ class NdrrmoController extends Controller
 
         $resType = $validated['resolution_type'] ?? 'Resolved';
         $remarks = $validated['remarks'] ?? $validated['resolution_notes'] ?? $incident->remarks;
-        if ($resType !== 'Resolved' && !empty($validated['false_alarm_reason'])) {
-            $remarks = ($remarks ? $remarks . ' · ' : '') . "[{$resType}] " . $validated['false_alarm_reason'];
+        if ($resType !== 'Resolved' && ! empty($validated['false_alarm_reason'])) {
+            $remarks = ($remarks ? $remarks.' · ' : '')."[{$resType}] ".$validated['false_alarm_reason'];
         }
 
         $incident->update([
@@ -378,8 +376,7 @@ class NdrrmoController extends Controller
             'sent_at' => now(),
         ]);
 
-        if (in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
-            || $incident->notifications()->where('recipient', 'Clinic')->exists()) {
+        if ($incident->involvesClinic()) {
             Notification::create([
                 'incident_id' => $incident->id,
                 'recipient' => 'Clinic',

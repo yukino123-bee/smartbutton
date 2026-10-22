@@ -143,8 +143,7 @@ class ClinicController extends Controller
 
     public function acknowledgeIncident(Incident $incident)
     {
-        $isClinicRelevant = in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
-            || $incident->notifications()->where('recipient', 'Clinic')->exists();
+        $isClinicRelevant = $incident->involvesClinic();
         abort_unless($isClinicRelevant, 404);
 
         if ($incident->status === 'Pending') {
@@ -229,8 +228,7 @@ class ClinicController extends Controller
 
     public function dispatchIncident(Request $request, Incident $incident)
     {
-        $isClinicRelevant = in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
-            || $incident->notifications()->where('recipient', 'Clinic')->exists();
+        $isClinicRelevant = $incident->involvesClinic();
         abort_unless($isClinicRelevant, 404);
 
         abort_unless(in_array($incident->status, ['Pending', 'Acknowledged', 'Responding'], true), 409, 'Incident cannot be dispatched from its current status.');
@@ -289,9 +287,9 @@ class ClinicController extends Controller
 
     public function onSceneIncident(Incident $incident)
     {
-        $isClinicRelevant = in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
-            || $incident->notifications()->where('recipient', 'Clinic')->exists();
+        $isClinicRelevant = $incident->involvesClinic();
         abort_unless($isClinicRelevant, 404);
+        abort_unless($incident->status === 'Responding', 409, 'Only dispatched incidents can be marked on scene.');
 
         $incident->update([
             'arrived_at' => now(),
@@ -330,8 +328,7 @@ class ClinicController extends Controller
 
     public function resolveIncident(Request $request, Incident $incident)
     {
-        $isClinicRelevant = in_array($incident->emergency_type, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)
-            || $incident->notifications()->where('recipient', 'Clinic')->exists();
+        $isClinicRelevant = $incident->involvesClinic();
         abort_unless($isClinicRelevant, 404);
 
         if ($incident->status === 'Resolved') {
@@ -360,8 +357,8 @@ class ClinicController extends Controller
 
         $resType = $validated['resolution_type'] ?? 'Resolved';
         $remarks = $validated['remarks'] ?? $validated['resolution_notes'] ?? $incident->remarks;
-        if ($resType !== 'Resolved' && !empty($validated['false_alarm_reason'])) {
-            $remarks = ($remarks ? $remarks . ' · ' : '') . "[{$resType}] " . $validated['false_alarm_reason'];
+        if ($resType !== 'Resolved' && ! empty($validated['false_alarm_reason'])) {
+            $remarks = ($remarks ? $remarks.' · ' : '')."[{$resType}] ".$validated['false_alarm_reason'];
         }
 
         $incident->update([

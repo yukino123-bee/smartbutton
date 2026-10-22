@@ -22,12 +22,17 @@ class Incident extends Model
     ];
 
     public const RESOLUTION_RESOLVED = 'Resolved';
+
     public const RESOLUTION_FALSE_ALARM = 'False Alarm';
+
     public const RESOLUTION_DRILL = 'Drill';
 
     public const TRIAGE_RED = 'Red - Immediate';
+
     public const TRIAGE_YELLOW = 'Yellow - Delayed';
+
     public const TRIAGE_GREEN = 'Green - Minor';
+
     public const TRIAGE_BLACK = 'Black - Expectant';
 
     protected $fillable = [
@@ -62,7 +67,7 @@ class Incident extends Model
     {
         return $query->where(function ($q) {
             $q->whereNull('resolution_type')
-              ->orWhere('resolution_type', self::RESOLUTION_RESOLVED);
+                ->orWhere('resolution_type', self::RESOLUTION_RESOLVED);
         });
     }
 
@@ -76,17 +81,24 @@ class Incident extends Model
         return $query->where('resolution_type', self::RESOLUTION_DRILL);
     }
 
+    public function involvesClinic(): bool
+    {
+        return $this->emergency_type === self::TYPE_CRITICAL
+            || ($this->emergency_type === self::TYPE_MEDICAL && $this->need_clinic)
+            || $this->notifications()->where('recipient', 'Clinic')->exists();
+    }
+
     public function scopeClinicRelevant(Builder $query): Builder
     {
         return $query->where(function (Builder $q) {
             $q->where('emergency_type', self::TYPE_CRITICAL)
-              ->orWhere(function (Builder $sub) {
-                  $sub->where('emergency_type', self::TYPE_MEDICAL)
-                      ->where('need_clinic', true);
-              })
-              ->orWhereHas('notifications', function ($sub) {
-                  $sub->where('recipient', 'Clinic');
-              });
+                ->orWhere(function (Builder $sub) {
+                    $sub->where('emergency_type', self::TYPE_MEDICAL)
+                        ->where('need_clinic', true);
+                })
+                ->orWhereHas('notifications', function ($sub) {
+                    $sub->where('recipient', 'Clinic');
+                });
         });
     }
 
@@ -94,8 +106,10 @@ class Incident extends Model
     {
         if ($this->reported_at && $this->acknowledged_at) {
             $secs = $this->reported_at->diffInSeconds($this->acknowledged_at);
-            return $secs < 60 ? "{$secs}s" : floor($secs / 60) . 'm ' . ($secs % 60) . 's';
+
+            return $secs < 60 ? "{$secs}s" : floor($secs / 60).'m '.($secs % 60).'s';
         }
+
         return null;
     }
 
@@ -103,8 +117,10 @@ class Incident extends Model
     {
         if ($this->reported_at && $this->resolved_at) {
             $secs = $this->reported_at->diffInSeconds($this->resolved_at);
-            return $secs < 60 ? "{$secs}s" : floor($secs / 60) . 'm ' . ($secs % 60) . 's';
+
+            return $secs < 60 ? "{$secs}s" : floor($secs / 60).'m '.($secs % 60).'s';
         }
+
         return null;
     }
 

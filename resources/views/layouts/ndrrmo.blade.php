@@ -8,74 +8,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        brand: {
-                            bg: '#F8FAFC',
-                            sidebar: '#FFFFFF',
-                            card: '#FFFFFF',
-                            border: '#CBD5E1',
-                            blue: '#2563EB',
-                            red: '#DC2626',
-                            orange: '#D97706',
-                            green: '#16A34A',
-                            text: '#000000',
-                            dark: '#000000',
-                            hover: '#F1F5F9'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.0/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <style>
-        [x-cloak] { display: none !important; }
-        body {
-            background: linear-gradient(135deg, #dbeafe 0%, #f0f4ff 40%, #e0f2fe 100%);
-            color: #000000;
-            font-family: 'Inter', sans-serif;
-        }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 4px; }
-
-        /* Glass sidebar */
-        .glass-sidebar {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-            border: 1px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 6px 0 32px rgba(59, 130, 246, 0.1), inset 0 0 0 1px rgba(255,255,255,0.6);
-        }
-
-        /* Red Blinking Animation for Active Alert Navigation Items */
-        @keyframes alert-nav-blink {
-            0%, 100% { background-color: #dc2626; color: #ffffff; box-shadow: 0 0 18px rgba(220, 38, 38, 0.8); }
-            50% { background-color: #991b1b; color: #ffffff; box-shadow: 0 0 28px rgba(220, 38, 38, 1); }
-        }
-        .nav-alert-blinking {
-            animation: alert-nav-blink 0.8s infinite !important;
-            border: 1px solid #f87171 !important;
-            font-weight: 900 !important;
-        }
-        .nav-alert-blinking svg {
-            color: #ffffff !important;
-            animation: bounce 0.6s infinite;
-        }
-        .nav-alert-blinking span {
-            color: #ffffff !important;
-        }
-    </style>
 </head>
-<body class="h-screen flex overflow-hidden text-sm p-3 gap-3 text-black">
+<body class="app-body h-screen flex overflow-hidden text-sm p-3 gap-3 text-slate-900">
 
     <!-- Sidebar -->
     <aside class="w-64 glass-sidebar flex flex-col z-20 shrink-0 rounded-2xl overflow-hidden shadow-sm">
@@ -90,14 +27,14 @@
         </div>
 
         <div class="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-1">
-            <p class="text-[10px] font-black text-black uppercase tracking-widest px-3 mb-1 mt-2">Navigation</p>
+            <p class="nav-section">Navigation</p>
             
-            <a id="nav-ndrrmo-dashboard" href="{{ route('ndrrmo.dashboard') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.dashboard') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a id="nav-ndrrmo-dashboard" href="{{ route('ndrrmo.dashboard') }}" class="nav-link {{ request()->routeIs('ndrrmo.dashboard') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                 <span class="font-bold text-[13px]">Dashboard</span>
             </a>
             
-            <a id="nav-ndrrmo-alerts" href="{{ route('ndrrmo.alerts') }}" class="flex items-center justify-between px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.alerts') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group {{ ($activeAlertsCount ?? 0) > 0 ? 'nav-alert-blinking' : '' }}">
+            <a id="nav-ndrrmo-alerts" href="{{ route('ndrrmo.alerts') }}" class="nav-link justify-between {{ request()->routeIs('ndrrmo.alerts') ? 'nav-link-active' : '' }} group {{ ($activeAlertsCount ?? 0) > 0 ? 'nav-alert-blinking' : '' }}">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110 {{ request()->routeIs('ndrrmo.alerts') ? 'text-white' : 'text-brand-red group-hover:text-brand-blue' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <span class="font-bold text-[13px] {{ request()->routeIs('ndrrmo.alerts') ? 'text-white' : 'text-brand-red group-hover:text-brand-blue' }}">Emergency Alerts</span>
@@ -105,32 +42,32 @@
                 <span id="ndrrmo-sidebar-alert-badge" class="bg-brand-red text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse {{ ($activeAlertsCount ?? 0) > 0 ? '' : 'hidden' }}">{{ $activeAlertsCount ?? 0 }}</span>
             </a>
 
-            <a id="nav-ndrrmo-logs" href="{{ route('ndrrmo.logs') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.logs') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a id="nav-ndrrmo-logs" href="{{ route('ndrrmo.logs') }}" class="nav-link {{ request()->routeIs('ndrrmo.logs') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                 <span class="font-bold text-[13px]">Incident Logs</span>
             </a>
 
-            <a id="nav-ndrrmo-map" href="{{ route('ndrrmo.map') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.map') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group {{ ($activeAlertsCount ?? 0) > 0 ? 'nav-alert-blinking' : '' }}">
+            <a id="nav-ndrrmo-map" href="{{ route('ndrrmo.map') }}" class="nav-link {{ request()->routeIs('ndrrmo.map') ? 'nav-link-active' : '' }} group {{ ($activeAlertsCount ?? 0) > 0 ? 'nav-alert-blinking' : '' }}">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 <span class="font-bold text-[13px]">Campus Incident Map</span>
             </a>
 
-            <a id="nav-ndrrmo-devices" href="{{ route('ndrrmo.devices') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.devices') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a id="nav-ndrrmo-devices" href="{{ route('ndrrmo.devices') }}" class="nav-link {{ request()->routeIs('ndrrmo.devices') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
                 <span class="font-bold text-[13px]">Device Status</span>
             </a>
 
-            <a id="nav-ndrrmo-sms" href="{{ route('ndrrmo.sms') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.sms') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a id="nav-ndrrmo-sms" href="{{ route('ndrrmo.sms') }}" class="nav-link {{ request()->routeIs('ndrrmo.sms') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
                 <span class="font-bold text-[13px]">SMS Logs</span>
             </a>
 
-            <a id="nav-ndrrmo-reports" href="{{ route('ndrrmo.reports') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('ndrrmo.reports') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a id="nav-ndrrmo-reports" href="{{ route('ndrrmo.reports') }}" class="nav-link {{ request()->routeIs('ndrrmo.reports') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 <span class="font-bold text-[13px]">Incident Reports</span>
             </a>
 
-            <p class="text-[10px] font-black text-black uppercase tracking-widest px-3 mb-1 mt-3">Testing & Tools</p>
+            <p class="nav-section">Testing & Tools</p>
             <a id="nav-simulator" href="{{ route('simulator') }}" target="_blank" class="flex items-center justify-between px-3.5 py-2.5 text-slate-800 font-bold hover:bg-white hover:text-amber-600 hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200 rounded-xl transition-all duration-200 group">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 mr-3 text-amber-500 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -148,17 +85,17 @@
                     <span class="font-bold text-[13px]">Logout</span>
                 </button>
             </form>
-            <p class="mt-3 text-[10px] font-bold text-black text-center">© 2025 JHCSC. All rights reserved.</p>
+            <p class="mt-3 text-[10px] font-bold text-black text-center">© {{ date('Y') }} JHCSC. All rights reserved.</p>
         </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden rounded-2xl bg-white/60 backdrop-blur-sm border border-white/80 shadow-sm text-black">
+    <main class="app-main flex-1 flex flex-col min-w-0 overflow-hidden rounded-2xl text-slate-900">
         <!-- Header -->
-        <header class="h-16 bg-white/80 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10 text-black">
+        <header class="app-header h-16 flex items-center justify-between px-6 shrink-0 z-10 text-slate-900">
             <div class="flex items-baseline space-x-2">
-                <h1 class="text-lg font-black text-black uppercase tracking-wider">DRRMO DASHBOARD</h1>
-                <span class="text-xs font-bold text-black">DRRMO Side</span>
+                <h1 class="text-lg font-bold text-slate-900 tracking-tight">Command Center</h1>
+                <span class="text-xs font-medium text-slate-500">DRRMO operations</span>
             </div>
             
             <div class="flex items-center space-x-6">
@@ -212,7 +149,7 @@
         </header>
 
         <!-- Dashboard Content -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50/50 text-slate-800 flex flex-col">
+        <div class="app-content flex-1 overflow-y-auto custom-scrollbar p-6 text-slate-800 flex flex-col">
 @yield("content")
         </div>
     </main>
@@ -599,27 +536,33 @@
             }
 
             // Direct fallback dispatch
-            const responder = prompt("Enter Dispatched Responder Name / Unit:", "DRRMO Responders Team");
-            if (responder === null) return;
-            const eta = prompt("Enter Estimated Time of Arrival (minutes):", "3");
-
-            fetch(`/ndrrmo/incidents/${incident.id}/dispatch`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    responder_name: responder || 'DRRMO Responders Team',
-                    eta_minutes: parseInt(eta) || 3
+            window.showConfirmDialog({
+                title: 'Dispatch Responders',
+                message: 'Enter the responder details for this incident.',
+                confirmText: 'Dispatch',
+                type: 'warning',
+                fields: [
+                    { name: 'responder', label: 'Responder Name / Unit', value: 'DRRMO Responders Team' },
+                    { name: 'eta', label: 'Estimated Time of Arrival (minutes)', type: 'number', min: 1, value: '3' }
+                ]
+            }).then(values => {
+                if (!values) return;
+                fetch(`/ndrrmo/incidents/${incident.id}/dispatch`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        responder_name: values.responder || 'DRRMO Responders Team',
+                        eta_minutes: parseInt(values.eta) || 3
+                    })
                 })
-            })
-            .then(res => res.json())
-            .then(data => {
-                window.location.reload();
-            })
-            .catch(() => window.location.reload());
+                .then(res => res.json())
+                .then(() => window.location.reload())
+                .catch(() => window.location.reload());
+            });
         }
 
         // Quick False Alarm handling from HUD
@@ -637,33 +580,41 @@
                 }
             }
 
-            const reason = prompt("Classify as False Alarm / Accidental Trigger?\nEnter Reason (e.g. Accidental Push, Sensor Glitch, Campus Drill):", "Accidental Push");
-            if (reason === null) return;
-
-            fetch(`/ndrrmo/incidents/${incident.id}/resolve`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    resolution_type: 'False Alarm',
-                    false_alarm_reason: reason || 'Accidental Push',
-                    remarks: 'Marked as false alarm via Command HUD'
+            window.showConfirmDialog({
+                title: 'Mark as False Alarm',
+                message: 'Classify this incident as a False Alarm / Accidental Trigger.',
+                confirmText: 'Mark False Alarm',
+                type: 'warning',
+                fields: [
+                    { name: 'reason', label: 'Reason (e.g. Accidental Push, Sensor Glitch, Campus Drill)', value: 'Accidental Push' }
+                ]
+            }).then(values => {
+                if (!values) return;
+                fetch(`/ndrrmo/incidents/${incident.id}/resolve`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        resolution_type: 'False Alarm',
+                        false_alarm_reason: values.reason || 'Accidental Push',
+                        remarks: 'Marked as false alarm via Command HUD'
+                    })
                 })
-            })
-            .then(res => res.json())
-            .then(data => {
-                window.activeEmergencyIncidents = window.activeEmergencyIncidents.filter(i => i.id !== incident.id);
-                if (window.activeEmergencyIncidents.length === 0) {
-                    closeEmergencyModal();
-                } else {
-                    renderActiveEmergencyModal();
-                }
-                window.location.reload();
-            })
-            .catch(() => window.location.reload());
+                .then(res => res.json())
+                .then(data => {
+                    window.activeEmergencyIncidents = window.activeEmergencyIncidents.filter(i => i.id !== incident.id);
+                    if (window.activeEmergencyIncidents.length === 0) {
+                        closeEmergencyModal();
+                    } else {
+                        renderActiveEmergencyModal();
+                    }
+                    window.location.reload();
+                })
+                .catch(() => window.location.reload());
+            });
         }
 
         // Auto unlock AudioContext & SpeechSynthesis on any user click/tap
@@ -875,7 +826,7 @@
             });
         };
 
-        window.Echo.channel('emergencies')
+        window.Echo?.channel('emergencies')
             .listen('EmergencyReported', (e) => {
                 if (e && e.incident) {
                     triggerScreenFlashAndAlarm(e.incident);
@@ -905,6 +856,7 @@
             <p id="confirm-modal-message" class="text-slate-600 font-medium text-xs mb-6 leading-relaxed">
                 Are you sure you want to proceed with this action?
             </p>
+            <div id="confirm-modal-fields" class="hidden text-left space-y-3 mb-6"></div>
 
             <div class="flex items-center gap-3">
                 <button id="confirm-modal-cancel-btn" type="button"
@@ -925,7 +877,8 @@
             message = 'Are you sure you want to proceed?',
             confirmText = 'Confirm',
             cancelText = 'Cancel',
-            type = 'danger'
+            type = 'danger',
+            fields = []
         } = {}) {
             return new Promise((resolve) => {
                 const modal = document.getElementById('custom-confirm-modal');
@@ -956,8 +909,29 @@
                     if (submitBtn) submitBtn.className = 'flex-1 py-3 px-4 rounded-xl font-extrabold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all text-xs shadow-md shadow-blue-200 cursor-pointer';
                 }
 
+                const fieldsEl = document.getElementById('confirm-modal-fields');
+                if (fieldsEl) {
+                    fieldsEl.innerHTML = '';
+                    fieldsEl.classList.toggle('hidden', fields.length === 0);
+                    fields.forEach(f => {
+                        const wrap = document.createElement('label');
+                        wrap.className = 'block text-[11px] font-bold text-slate-600';
+                        wrap.textContent = f.label;
+                        const input = document.createElement('input');
+                        input.type = f.type || 'text';
+                        input.name = f.name;
+                        input.value = f.value ?? '';
+                        if (f.min !== undefined) input.min = f.min;
+                        input.className = 'mt-1 block w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500';
+                        wrap.appendChild(input);
+                        fieldsEl.appendChild(wrap);
+                    });
+                }
+
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
+                const firstInput = fieldsEl && fieldsEl.querySelector('input');
+                if (firstInput) { firstInput.focus(); firstInput.select(); }
 
                 function cleanup() {
                     modal.classList.add('hidden');
@@ -967,8 +941,10 @@
                 }
 
                 function onConfirm() {
+                    const values = {};
+                    if (fieldsEl) fieldsEl.querySelectorAll('input').forEach(i => values[i.name] = i.value.trim());
                     cleanup();
-                    resolve(true);
+                    resolve(fields.length ? values : true);
                 }
 
                 function onCancel() {

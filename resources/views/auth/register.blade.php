@@ -6,7 +6,6 @@
     <title>Register - Smart Panic Button System</title>
     @vite(['resources/css/app.css'])
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-200 font-sans min-h-screen flex items-center justify-center p-4">
 

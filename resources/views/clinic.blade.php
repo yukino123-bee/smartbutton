@@ -2,84 +2,29 @@
 
 @section('content')
 
-{{-- ===== STAT CARDS ROW (Enhanced Clinical Cards) ===== --}}
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-
-    {{-- Active Alerts --}}
-    <div class="bg-white/90 backdrop-blur-xs border {{ ($activeAlerts ?? 0) > 0 ? 'border-red-300 ring-2 ring-red-500/20 bg-red-50/20' : 'border-slate-200/90' }} rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-xs hover:shadow-md transition-all duration-200 group">
-        <div class="flex items-center gap-3.5 min-w-0">
-            <div class="w-12 h-12 rounded-xl {{ ($activeAlerts ?? 0) > 0 ? 'bg-red-500 text-white shadow-md shadow-red-200' : 'bg-red-50 text-brand-red border border-red-200' }} flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-            </div>
-            <div class="min-w-0">
-                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest truncate">ACTIVE ALERTS</div>
-                <div id="stat-active-alerts" class="text-3xl font-black text-brand-red leading-tight tabular-nums">{{ $activeAlerts ?? 0 }}</div>
-                <div class="text-[11px] font-bold text-brand-red">Needs attention</div>
-            </div>
-        </div>
-        @if(($activeAlerts ?? 0) > 0)
-            <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping shrink-0 mr-1"></span>
-        @endif
-    </div>
-
-    {{-- Incoming Patients --}}
-    <div class="bg-white/90 backdrop-blur-xs border border-slate-200/90 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-xs hover:shadow-md transition-all duration-200 group">
-        <div class="flex items-center gap-3.5 min-w-0">
-            <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-200 text-brand-blue flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
-            </div>
-            <div class="min-w-0">
-                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest truncate">INCOMING</div>
-                <div id="stat-incoming" class="text-3xl font-black text-black leading-tight tabular-nums">{{ $incomingCount ?? 0 }}</div>
-                <div class="text-[11px] font-bold text-slate-700">Patient today</div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Patients Treated --}}
-    <div class="bg-white/90 backdrop-blur-xs border border-slate-200/90 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-xs hover:shadow-md transition-all duration-200 group">
-        <div class="flex items-center gap-3.5 min-w-0">
-            <div class="w-12 h-12 rounded-xl bg-green-50 border border-green-200 text-brand-green flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            </div>
-            <div class="min-w-0">
-                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest truncate">TREATED TODAY</div>
-                <div id="stat-treated" class="text-3xl font-black text-brand-green leading-tight tabular-nums">{{ $treatedTodayCount ?? 0 }}</div>
-                <div class="text-[11px] font-bold text-slate-700">Total patients</div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Resolved Incidents --}}
-    <div class="bg-white/90 backdrop-blur-xs border border-slate-200/90 rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-xs hover:shadow-md transition-all duration-200 group">
-        <div class="flex items-center gap-3.5 min-w-0">
-            <div class="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-brand-teal flex items-center justify-center shrink-0 transition-transform group-hover:scale-105">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-            <div class="min-w-0">
-                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest truncate">RESOLVED TODAY</div>
-                <div id="stat-resolved" class="text-3xl font-black text-black leading-tight tabular-nums">{{ $resolvedTodayCount ?? 0 }}</div>
-                <div class="text-[11px] font-bold text-slate-700">Incidents closed</div>
-            </div>
-        </div>
-    </div>
+{{-- ===== STAT CARDS ROW ===== --}}
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    <x-kpi-card label="Active alerts" tone="red" :value="$activeAlerts ?? 0" value-id="stat-active-alerts" hint="Needs attention" :urgent="($activeAlerts ?? 0) > 0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></x-kpi-card>
+    <x-kpi-card label="Incoming" tone="blue" :value="$incomingCount ?? 0" value-id="stat-incoming" hint="Patients today"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg></x-kpi-card>
+    <x-kpi-card label="Treated today" tone="green" :value="$treatedTodayCount ?? 0" value-id="stat-treated" hint="Total patients"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></x-kpi-card>
+    <x-kpi-card label="Resolved today" tone="teal" :value="$resolvedTodayCount ?? 0" value-id="stat-resolved" hint="Incidents closed"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></x-kpi-card>
 </div>
 
 @if($criticalIncidents->count() > 1)
 {{-- ===== MULTIPLE ACTIVE EMERGENCIES BANNER ===== --}}
 <div class="mb-6 space-y-4">
-    <div class="bg-red-600 border-2 border-red-500 rounded-3xl px-6 py-4 flex flex-wrap items-center justify-between gap-3 shadow-lg text-white">
+    <div class="alert-banner">
         <div class="flex items-center gap-3">
-            <span class="w-3.5 h-3.5 rounded-full bg-white animate-ping"></span>
+            <span class="w-3 h-3 rounded-full bg-red-600 animate-ping"></span>
             <div>
-                <span class="font-black text-sm uppercase tracking-wider block">🚨 MULTIPLE ACTIVE MEDICAL EMERGENCIES ({{ $criticalIncidents->count() }} UNHANDLED ALERTS)</span>
-                <span class="text-xs text-red-100 font-medium">Multiple emergency panic alarms require immediate medical attention and response. Interconnected with Campus DRRMO.</span>
+                <span class="alert-banner-title">🚨 MULTIPLE ACTIVE MEDICAL EMERGENCIES ({{ $criticalIncidents->count() }} UNHANDLED ALERTS)</span>
+                <span class="alert-banner-sub">Multiple emergency panic alarms require immediate medical attention and response. Interconnected with Campus DRRMO.</span>
             </div>
         </div>
         <form method="POST" action="{{ route('clinic.alerts.acknowledge-all') }}" class="shrink-0">
             @csrf
-            <button type="submit" class="px-4 py-2 bg-white hover:bg-red-50 text-red-600 active:scale-95 rounded-xl font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer">
-                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white active:scale-95 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span>Acknowledge All ({{ $criticalIncidents->count() }} Alerts)</span>
             </button>
         </form>
@@ -110,10 +55,10 @@
                  patientId: '{{ addslashes($incident->patient_id_number ?? '') }}',
                  disposition: '{{ addslashes($incident->disposition ?? 'Treated and released to class') }}'
              }"
-             class="bg-white border-2 border-red-500 rounded-3xl overflow-hidden shadow-md flex flex-col justify-between">
+             class="bg-white border border-red-300 rounded-2xl overflow-hidden shadow-md flex flex-col justify-between">
             <div>
                 {{-- Header --}}
-                <div class="bg-red-600 px-5 py-2.5 flex items-center justify-between text-white">
+                <div class="bg-gradient-to-r from-red-600 to-red-500 px-5 py-2.5 flex items-center justify-between text-white">
                     <span class="font-black text-xs uppercase tracking-wider flex items-center gap-1.5">
                         <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
                         Alert #{{ $index + 1 }}: {{ $incident->emergency_type }}
@@ -363,7 +308,7 @@
 
             {{-- CLINIC DISPATCH MODAL --}}
             <div x-show="openClinicDispatch" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" @click.self="openClinicDispatch = false">
-                <div class="bg-white border-2 border-blue-500 rounded-3xl p-6 shadow-2xl w-full max-w-lg text-slate-800" @click.stop>
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl w-full max-w-lg text-slate-800" @click.stop>
                     <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2.5">
                             <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-black text-lg">
@@ -433,7 +378,7 @@
 
             {{-- CLINIC CASUALTY TRIAGE & RESOLVE MODAL --}}
             <div x-show="openClinicTriage" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" @click.self="openClinicTriage = false">
-                <div class="bg-white border-2 border-emerald-500 rounded-3xl p-6 shadow-2xl w-full max-w-lg text-slate-800 max-h-[90vh] overflow-y-auto" @click.stop>
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl w-full max-w-lg text-slate-800 max-h-[90vh] overflow-y-auto" @click.stop>
                     <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
                         <div class="flex items-center gap-2.5">
                             <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-lg">
@@ -586,9 +531,9 @@
          patientId: '{{ addslashes($activeEmergency->patient_id_number ?? '') }}',
          disposition: '{{ addslashes($activeEmergency->disposition ?? 'Treated and released to class') }}'
      }"
-     class="bg-white border-2 border-red-500 rounded-3xl mb-6 overflow-hidden shadow-lg text-black">
+     class="bg-white border border-red-300 rounded-2xl mb-6 overflow-hidden shadow-lg text-black">
     {{-- Header bar --}}
-    <div class="bg-red-600 px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 text-white">
+    <div class="bg-gradient-to-r from-red-600 to-red-500 px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 text-white">
         <div class="flex items-center gap-3">
             <span class="w-3 h-3 rounded-full bg-white animate-ping shrink-0"></span>
             <span class="text-white font-black text-xs md:text-sm uppercase tracking-widest">⚠ {{ $activeEmergency?->emergency_type }} — ACTIVE RESPONSE</span>
@@ -872,7 +817,7 @@
     {{-- CLINIC DISPATCH MODAL --}}
     @if($activeEmergency)
     <div x-show="openClinicDispatch" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" @click.self="openClinicDispatch = false">
-        <div class="bg-white border-2 border-blue-500 rounded-3xl p-6 shadow-2xl w-full max-w-lg text-slate-800" @click.stop>
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl w-full max-w-lg text-slate-800" @click.stop>
             <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
                 <div class="flex items-center gap-2.5">
                     <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-black text-lg">
@@ -942,7 +887,7 @@
 
     {{-- CLINIC CASUALTY TRIAGE & RESOLVE MODAL --}}
     <div x-show="openClinicTriage" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" @click.self="openClinicTriage = false">
-        <div class="bg-white border-2 border-emerald-500 rounded-3xl p-6 shadow-2xl w-full max-w-lg text-slate-800 max-h-[90vh] overflow-y-auto" @click.stop>
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl w-full max-w-lg text-slate-800 max-h-[90vh] overflow-y-auto" @click.stop>
             <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
                 <div class="flex items-center gap-2.5">
                     <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-lg">
@@ -1104,7 +1049,7 @@
         <div class="px-6 py-4 flex items-center justify-between border-b border-slate-200 bg-slate-50/80">
             <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-brand-red animate-pulse"></span>
-                <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">Active Medical & Critical Alerts</h2>
+                <h2 class="panel-title">Active Medical & Critical Alerts</h2>
             </div>
             <div class="flex items-center gap-3">
                 @if($criticalIncidents->where('status', 'Pending')->count() > 1)
@@ -1122,7 +1067,7 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-slate-100/80 border-b border-slate-200 text-[11px] text-slate-700 font-black uppercase tracking-wider">
+                    <tr>
                         <th class="px-5 py-3.5">#</th>
                         <th class="px-5 py-3.5">Time</th>
                         <th class="px-5 py-3.5">Location</th>
@@ -1165,13 +1110,13 @@
     {{-- Alert History Table --}}
     <div class="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
         <div class="px-6 py-4 flex items-center justify-between border-b border-slate-200 bg-slate-50/80">
-            <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">Alert History (Today)</h2>
+            <h2 class="panel-title">Alert History (Today)</h2>
             <a href="{{ route('clinic.logs') }}" class="text-[11px] text-brand-blue hover:underline font-extrabold">View All →</a>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="bg-slate-100/80 border-b border-slate-200 text-[11px] text-slate-700 font-black uppercase tracking-wider">
+                    <tr>
                         <th class="px-5 py-3.5">#</th>
                         <th class="px-5 py-3.5">Time</th>
                         <th class="px-5 py-3.5">Location</th>

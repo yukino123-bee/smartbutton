@@ -210,3 +210,50 @@ test('clinic can confirm on scene arrival', function () {
     $incident->refresh();
     expect($incident->arrived_at)->not->toBeNull();
 });
+
+it('does not leak a no-clinic medical incident to the clinic after DRRMO acknowledges it', function () {
+    $device = createTestDevice('DEV-QA-'.uniqid());
+    $this->postJson('/api/emergency', [
+        'device_id' => $device->device_code,
+        'emergency_category' => Incident::TYPE_MEDICAL,
+        'need_clinic' => false,
+    ])->assertCreated();
+    $incident = Incident::latest('id')->first();
+
+    $this->actingAs(User::factory()->create(['role' => 'DRRMO']))
+        ->postJson("/ndrrmo/incidents/{$incident->id}/acknowledge")->assertOk();
+
+    expect(Incident::clinicRelevant()->whereKey($incident->id)->exists())->toBeFalse();
+    $this->actingAs(User::factory()->create(['role' => 'Clinic']))
+        ->postJson("/clinic/incidents/{$incident->id}/acknowledge")->assertNotFound();
+});
+
+it('ignores a repeated alert from the same device within seconds', function () {
+    $device = createTestDevice('DEV-QA-'.uniqid());
+    $payload = ['device_id' => $device->device_code, 'emergency_category' => Incident::TYPE_CRITICAL];
+
+    $first = $this->postJson('/api/emergency', $payload)->assertCreated();
+    $this->postJson('/api/emergency', $payload)->assertOk()
+        ->assertJson(['duplicate' => true, 'incident_id' => $first->json('incident_id')]);
+
+    expect(Incident::count())->toBe(1);
+});
+
+it('defaults need_clinic to false for public safety alerts', function () {
+    $device = createTestDevice('DEV-QA-'.uniqid());
+    $this->postJson('/api/emergency', [
+        'device_id' => $device->device_code,
+        'emergency_category' => Incident::TYPE_PUBLIC_SAFETY,
+    ])->assertCreated()->assertJson(['need_clinic' => false]);
+});
+
+it('rejects on-scene for an incident that is not responding', function () {
+    $device = createTestDevice('DEV-QA-'.uniqid());
+    $incident = Incident::create([
+        'device_id' => $device->id, 'emergency_type' => Incident::TYPE_CRITICAL,
+        'status' => 'Pending', 'reported_at' => now(),
+    ]);
+
+    $this->actingAs(User::factory()->create(['role' => 'DRRMO']))
+        ->post("/ndrrmo/incidents/{$incident->id}/on-scene")->assertStatus(409);
+});

@@ -48,12 +48,32 @@ class DeviceController extends Controller
         // Update device last_seen status
         $device->update(['last_seen' => now()]);
 
-        $needClinic = $request->has('need_clinic') ? $request->boolean('need_clinic') : true;
+        $defaultNeedClinic = in_array($emergencyType, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true);
+        $needClinic = $request->has('need_clinic') ? $request->boolean('need_clinic') : $defaultNeedClinic;
+
+        // A repeat press of the same button within seconds is the same alert, not a new incident.
+        $duplicate = Incident::where('device_id', $device->id)
+            ->where('emergency_type', $emergencyType)
+            ->where('need_clinic', $needClinic)
+            ->where('status', '!=', 'Resolved')
+            ->where('created_at', '>=', now()->subSeconds(30))
+            ->latest('id')
+            ->first();
+
+        if ($duplicate) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Duplicate alert ignored; existing incident is still active.',
+                'incident_id' => $duplicate->id,
+                'need_clinic' => (bool) $duplicate->need_clinic,
+                'duplicate' => true,
+            ], 200);
+        }
 
         $remarks = null;
         if ($emergencyType === Incident::TYPE_MEDICAL) {
-            $remarks = $needClinic 
-                ? 'Medical Emergency (Witness requested Clinic Aid)' 
+            $remarks = $needClinic
+                ? 'Medical Emergency (Witness requested Clinic Aid)'
                 : 'Medical Emergency (Witness indicated No Clinic Aid needed)';
         }
 

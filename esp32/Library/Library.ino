@@ -40,6 +40,9 @@ const int BUZZER = 5;    // Center Audio Buzzer: Feedback / SOS Alarm
 
 // --- Alarm State & Status Polling ---
 bool isDeviceAlarming = false;
+bool offlineAlarm = false;               // Alarm raised via SMS failover: no server ack can arrive
+unsigned long offlineAlarmStart = 0;
+const unsigned long OFFLINE_ALARM_MS = 60000; // Stop local siren after 60s when offline
 bool confirmationMode = false; // Live Dispatch Mode: Physical buttons dispatch real emergency alerts via WiFi / GSM
 unsigned long lastStatusCheckTime = 0;
 const unsigned long STATUS_CHECK_INTERVAL = 1500; // Check server every 1.5 seconds
@@ -241,6 +244,15 @@ void loop() {
   if (isDeviceAlarming) {
     digitalWrite(LED_RED, HIGH);
     digitalWrite(LED_GREEN, LOW);
+
+    // Offline alarms can't be acknowledged by the server, so end them after a fixed time
+    if (offlineAlarm && (now - offlineAlarmStart >= OFFLINE_ALARM_MS)) {
+      Serial.println("\n[OFFLINE ALARM TIMEOUT] No server link; stopping local siren.");
+      isDeviceAlarming = false;
+      offlineAlarm = false;
+      digitalWrite(BUZZER, LOW);
+      return;
+    }
 
     // Pulse buzzer every 1 second until DRRMO responds
     static unsigned long lastBeepPulse = 0;
@@ -445,6 +457,8 @@ void sendPanicAlert(String emergencyType, bool needClinic) {
     
     // Enable local alarming so people nearby know the alarm was triggered
     isDeviceAlarming = true;
+    offlineAlarm = true;
+    offlineAlarmStart = millis();
 
     String smsMessage = "JHCSC PANIC ALERT (OFFLINE)!\n"
                         "Device: " + String(DEVICE_CODE) + " (Campus Library)\n"
@@ -715,6 +729,7 @@ void checkAcknowledgeStatus() {
     if (isDeviceAlarming && (responded || noPending)) {
       Serial.println("\n[ACKNOWLEDGED] DRRMO responded to alert! Stopping device buzzer.");
       isDeviceAlarming = false;
+      offlineAlarm = false;
 
       digitalWrite(BUZZER, LOW);
       digitalWrite(LED_RED, LOW);

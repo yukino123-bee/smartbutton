@@ -8,63 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        brand: {
-                            bg: '#F8FAFC',
-                            sidebar: '#FFFFFF',
-                            card: '#FFFFFF',
-                            border: '#CBD5E1',
-                            blue: '#2563EB',
-                            red: '#DC2626',
-                            orange: '#D97706',
-                            green: '#16A34A',
-                            teal: '#0D9488',
-                            text: '#000000',
-                            dark: '#000000',
-                            hover: '#F1F5F9'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        [x-cloak] { display: none !important; }
-        body {
-            background: linear-gradient(135deg, #dbeafe 0%, #f0f4ff 40%, #e0f2fe 100%);
-            color: #000000;
-            font-family: 'Inter', sans-serif;
-        }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 4px; }
-
-        /* Glass sidebar */
-        .glass-sidebar {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-            border: 1px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 6px 0 32px rgba(59, 130, 246, 0.1), inset 0 0 0 1px rgba(255,255,255,0.6);
-        }
-
-        .pulse-ring {
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-        }
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            80%, 100% { transform: scale(1.5); opacity: 0; }
-        }
-    </style>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.0/dist/cdn.min.js"></script>
 </head>
-<body class="h-screen flex overflow-hidden text-sm p-3 gap-3 text-black">
+<body class="app-body h-screen flex overflow-hidden text-sm p-3 gap-3 text-slate-900">
 
     <!-- Sidebar -->
     <aside class="w-64 glass-sidebar flex flex-col z-20 shrink-0 rounded-2xl overflow-hidden shadow-sm">
@@ -81,14 +27,14 @@
         <div class="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-1">
 
             {{-- Nav label --}}
-            <p class="text-[10px] font-black text-black uppercase tracking-widest px-3 mb-1 mt-2">Navigation</p>
+            <p class="nav-section">Navigation</p>
 
-            <a href="{{ route('clinic.dashboard') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('clinic.dashboard') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a href="{{ route('clinic.dashboard') }}" class="nav-link {{ request()->routeIs('clinic.dashboard') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 <span class="font-bold text-[13px]">Dashboard</span>
             </a>
 
-            <a href="{{ route('clinic.alerts') }}" class="flex items-center justify-between px-3.5 py-2.5 {{ request()->routeIs('clinic.alerts') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a href="{{ route('clinic.alerts') }}" class="nav-link justify-between {{ request()->routeIs('clinic.alerts') ? 'nav-link-active' : '' }} group">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110 {{ request()->routeIs('clinic.alerts') ? 'text-white' : 'text-brand-red group-hover:text-brand-blue' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <span class="font-bold text-[13px] {{ request()->routeIs('clinic.alerts') ? 'text-white' : 'text-brand-red group-hover:text-brand-blue' }}">Emergency Alerts</span>
@@ -96,27 +42,27 @@
                 <span id="sidebar-alert-badge" class="bg-brand-red text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full animate-pulse {{ ($activeAlertsCount ?? 0) > 0 ? '' : 'hidden' }}">{{ $activeAlertsCount ?? 0 }}</span>
             </a>
 
-            <a href="{{ route('clinic.incoming') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('clinic.incoming') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a href="{{ route('clinic.incoming') }}" class="nav-link {{ request()->routeIs('clinic.incoming') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
                 <span class="font-bold text-[13px]">Incoming Patients</span>
             </a>
 
-            <a href="{{ route('clinic.logs') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('clinic.logs') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a href="{{ route('clinic.logs') }}" class="nav-link {{ request()->routeIs('clinic.logs') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
                 <span class="font-bold text-[13px]">Incident Logs</span>
             </a>
 
-            <a href="{{ route('clinic.patients') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('clinic.patients') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a href="{{ route('clinic.patients') }}" class="nav-link {{ request()->routeIs('clinic.patients') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                 <span class="font-bold text-[13px]">Patient Directory</span>
             </a>
 
-            <a href="{{ route('clinic.reports') }}" class="flex items-center px-3.5 py-2.5 {{ request()->routeIs('clinic.reports') ? 'bg-brand-blue text-white shadow-md shadow-blue-300/50' : 'text-black font-bold hover:bg-white hover:text-brand-blue hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200' }} rounded-xl transition-all duration-200 group">
+            <a href="{{ route('clinic.reports') }}" class="nav-link {{ request()->routeIs('clinic.reports') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                 <span class="font-bold text-[13px]">Clinic Reports</span>
             </a>
 
-            <p class="text-[10px] font-black text-black uppercase tracking-widest px-3 mb-1 mt-3">Testing & Tools</p>
+            <p class="nav-section">Testing & Tools</p>
             <a href="{{ route('simulator') }}" target="_blank" class="flex items-center justify-between px-3.5 py-2.5 text-slate-800 font-bold hover:bg-white hover:text-amber-600 hover:shadow-sm hover:translate-x-1 border border-transparent hover:border-slate-200 rounded-xl transition-all duration-200 group">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 mr-3 text-amber-500 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
@@ -134,16 +80,16 @@
                     <span class="font-bold text-[13px]">Logout</span>
                 </button>
             </form>
-            <p class="mt-3 text-[10px] font-bold text-black text-center">© 2025 JHCSC. All rights reserved.</p>
+            <p class="mt-3 text-[10px] font-bold text-black text-center">© {{ date('Y') }} JHCSC. All rights reserved.</p>
         </div>
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden rounded-2xl bg-white/60 backdrop-blur-sm border border-white/80 shadow-sm text-black">
+    <main class="app-main flex-1 flex flex-col min-w-0 overflow-hidden rounded-2xl text-slate-900">
         <!-- Header -->
-        <header class="h-16 bg-white/80 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10 text-black">
+        <header class="app-header h-16 flex items-center justify-between px-6 shrink-0 z-10 text-slate-900">
             <div class="flex items-baseline space-x-2">
-                <h1 class="text-lg font-black text-black uppercase tracking-wider">CLINIC DASHBOARD</h1>
+                <h1 class="text-lg font-bold text-slate-900 tracking-tight">Clinic Response Center</h1>
 
             </div>
             
@@ -238,7 +184,7 @@
         </header>
 
         <!-- Dashboard Content -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50/50 text-slate-800 flex flex-col">
+        <div class="app-content flex-1 overflow-y-auto custom-scrollbar p-6 text-slate-800 flex flex-col">
 @yield("content")
         </div>
     </main>
@@ -683,27 +629,33 @@
                 }
             }
 
-            const responder = prompt("Enter Medical Responder Name / Unit:", "Clinic Medical Response Team");
-            if (responder === null) return;
-            const eta = prompt("Enter Estimated Time of Arrival (minutes):", "3");
-
-            fetch(`/clinic/incidents/${incident.id}/dispatch`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    responder_name: responder || 'Clinic Medical Response Team',
-                    eta_minutes: parseInt(eta) || 3
+            window.showConfirmDialog({
+                title: 'Dispatch Responders',
+                message: 'Enter the responder details for this incident.',
+                confirmText: 'Dispatch',
+                type: 'warning',
+                fields: [
+                    { name: 'responder', label: 'Responder Name / Unit', value: 'Clinic Medical Response Team' },
+                    { name: 'eta', label: 'Estimated Time of Arrival (minutes)', type: 'number', min: 1, value: '3' }
+                ]
+            }).then(values => {
+                if (!values) return;
+                fetch(`/clinic/incidents/${incident.id}/dispatch`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        responder_name: values.responder || 'Clinic Medical Response Team',
+                        eta_minutes: parseInt(values.eta) || 3
+                    })
                 })
-            })
-            .then(res => res.json())
-            .then(data => {
-                window.location.reload();
-            })
-            .catch(() => window.location.reload());
+                .then(res => res.json())
+                .then(() => window.location.reload())
+                .catch(() => window.location.reload());
+            });
         }
 
         // Quick False Alarm handling from HUD
@@ -721,33 +673,41 @@
                 }
             }
 
-            const reason = prompt("Classify as False Alarm / Accidental Trigger?\nEnter Reason (e.g. Accidental Push, Sensor Glitch, Campus Drill):", "Accidental Push");
-            if (reason === null) return;
-
-            fetch(`/clinic/incidents/${incident.id}/resolve`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    resolution_type: 'False Alarm',
-                    false_alarm_reason: reason || 'Accidental Push',
-                    remarks: 'Marked as false alarm via Clinic Command HUD'
+            window.showConfirmDialog({
+                title: 'Mark as False Alarm',
+                message: 'Classify this incident as a False Alarm / Accidental Trigger.',
+                confirmText: 'Mark False Alarm',
+                type: 'warning',
+                fields: [
+                    { name: 'reason', label: 'Reason (e.g. Accidental Push, Sensor Glitch, Campus Drill)', value: 'Accidental Push' }
+                ]
+            }).then(values => {
+                if (!values) return;
+                fetch(`/clinic/incidents/${incident.id}/resolve`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        resolution_type: 'False Alarm',
+                        false_alarm_reason: values.reason || 'Accidental Push',
+                        remarks: 'Marked as false alarm via Clinic Command HUD'
+                    })
                 })
-            })
-            .then(res => res.json())
-            .then(data => {
-                window.activeClinicIncidents = window.activeClinicIncidents.filter(i => i.id !== incident.id);
-                if (window.activeClinicIncidents.length === 0) {
-                    closeClinicModal();
-                } else {
-                    renderActiveClinicModal();
-                }
-                window.location.reload();
-            })
-            .catch(() => window.location.reload());
+                .then(res => res.json())
+                .then(data => {
+                    window.activeClinicIncidents = window.activeClinicIncidents.filter(i => i.id !== incident.id);
+                    if (window.activeClinicIncidents.length === 0) {
+                        closeClinicModal();
+                    } else {
+                        renderActiveClinicModal();
+                    }
+                    window.location.reload();
+                })
+                .catch(() => window.location.reload());
+            });
         }
 
         function startClinicSirenAudio() {
@@ -927,7 +887,7 @@
             });
         };
 
-        window.Echo.channel('emergencies')
+        window.Echo?.channel('emergencies')
             .listen('EmergencyReported', (e) => {
                 if (e && e.incident) {
                     triggerClinicFlashAndAlarm(e.incident);
@@ -970,6 +930,7 @@
             <p id="confirm-modal-message" class="text-slate-600 font-medium text-xs mb-6 leading-relaxed">
                 Are you sure you want to proceed with this action?
             </p>
+            <div id="confirm-modal-fields" class="hidden text-left space-y-3 mb-6"></div>
 
             <div class="flex items-center gap-3">
                 <button id="confirm-modal-cancel-btn" type="button"
@@ -990,7 +951,8 @@
             message = 'Are you sure you want to proceed?',
             confirmText = 'Confirm',
             cancelText = 'Cancel',
-            type = 'danger'
+            type = 'danger',
+            fields = []
         } = {}) {
             return new Promise((resolve) => {
                 const modal = document.getElementById('custom-confirm-modal');
@@ -1021,8 +983,29 @@
                     if (submitBtn) submitBtn.className = 'flex-1 py-3 px-4 rounded-xl font-extrabold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all text-xs shadow-md shadow-blue-200 cursor-pointer';
                 }
 
+                const fieldsEl = document.getElementById('confirm-modal-fields');
+                if (fieldsEl) {
+                    fieldsEl.innerHTML = '';
+                    fieldsEl.classList.toggle('hidden', fields.length === 0);
+                    fields.forEach(f => {
+                        const wrap = document.createElement('label');
+                        wrap.className = 'block text-[11px] font-bold text-slate-600';
+                        wrap.textContent = f.label;
+                        const input = document.createElement('input');
+                        input.type = f.type || 'text';
+                        input.name = f.name;
+                        input.value = f.value ?? '';
+                        if (f.min !== undefined) input.min = f.min;
+                        input.className = 'mt-1 block w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500';
+                        wrap.appendChild(input);
+                        fieldsEl.appendChild(wrap);
+                    });
+                }
+
                 modal.classList.remove('hidden');
                 modal.classList.add('flex');
+                const firstInput = fieldsEl && fieldsEl.querySelector('input');
+                if (firstInput) { firstInput.focus(); firstInput.select(); }
 
                 function cleanup() {
                     modal.classList.add('hidden');
@@ -1032,8 +1015,10 @@
                 }
 
                 function onConfirm() {
+                    const values = {};
+                    if (fieldsEl) fieldsEl.querySelectorAll('input').forEach(i => values[i.name] = i.value.trim());
                     cleanup();
-                    resolve(true);
+                    resolve(fields.length ? values : true);
                 }
 
                 function onCancel() {

@@ -3,67 +3,24 @@
 @section('content')
             
             <!-- Top Stats Row -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <!-- Stat Card 1: Active Alerts -->
-                <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
-                    <div class="w-12 h-12 rounded-xl bg-red-100 border border-red-300 flex items-center justify-center mr-4 shrink-0">
-                        <svg class="w-6 h-6 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                    </div>
-                    <div>
-                        <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">ACTIVE ALERTS</div>
-                        <div id="ndrrmo-stat-active" class="text-3xl font-black text-brand-red leading-none mb-1 tabular-nums">{{ $activeIncidents->count() }}</div>
-                        <div class="text-[11px] font-bold text-slate-700">Require immediate attention</div>
-                    </div>
-                </div>
-
-                <!-- Stat Card 2: Total Incidents -->
-                <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
-                    <div class="w-12 h-12 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center mr-4 shrink-0">
-                        <svg class="w-6 h-6 text-brand-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                    </div>
-                    <div>
-                        <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">TOTAL INCIDENTS</div>
-                        <div id="ndrrmo-stat-total" class="text-3xl font-black text-black leading-none mb-1 tabular-nums">{{ $totalIncidents }}</div>
-                        <div class="text-[11px] font-bold text-slate-700">This month</div>
-                    </div>
-                </div>
-
-                <!-- Stat Card 3: Resolved Incidents -->
-                <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
-                    <div class="w-12 h-12 rounded-xl bg-green-100 border border-green-300 flex items-center justify-center mr-4 shrink-0">
-                        <svg class="w-6 h-6 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                    </div>
-                    <div>
-                        <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">RESOLVED INCIDENTS</div>
-                        <div id="ndrrmo-stat-resolved" class="text-3xl font-black text-brand-green leading-none mb-1 tabular-nums">{{ $resolvedIncidents }}</div>
-                        <div class="text-[11px] font-bold text-slate-700">This month</div>
-                    </div>
-                </div>
-
-                <!-- Stat Card 4: Devices Online -->
-                <div class="bg-white border border-slate-300 rounded-2xl p-5 flex items-center shadow-sm hover:shadow-md transition-all duration-200">
-                    <div class="w-12 h-12 rounded-xl bg-blue-100 border border-blue-300 flex items-center justify-center mr-4 shrink-0">
-                        <svg class="w-6 h-6 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
-                    </div>
-                    <div>
-                        <div class="text-[11px] font-black text-black uppercase tracking-wider mb-1">DEVICES ONLINE</div>
-                        <div id="ndrrmo-stat-devices" class="text-3xl font-black text-black leading-none mb-1 tabular-nums">{{ $onlineDevicesCount ?? 0 }} / {{ $devicesCount ?? 0 }}</div>
-                        <div id="ndrrmo-stat-devices-subtitle" class="text-[11px] font-bold text-slate-700">{{ ($onlineDevicesCount ?? 0) > 0 ? 'Devices operational' : 'No devices online' }}</div>
-                    </div>
-                </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                <x-kpi-card label="Active alerts" tone="red" :value="$activeIncidents->count()" value-id="ndrrmo-stat-active" hint="Require immediate attention" :urgent="$activeIncidents->count() > 0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></x-kpi-card>
+                <x-kpi-card label="Total incidents" tone="amber" :value="$totalIncidents" value-id="ndrrmo-stat-total" hint="All recorded incidents"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg></x-kpi-card>
+                <x-kpi-card label="Resolved" tone="green" :value="$resolvedIncidents" value-id="ndrrmo-stat-resolved" hint="Closed incidents"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></x-kpi-card>
+                <x-kpi-card label="Devices online" tone="blue" :value="($onlineDevicesCount ?? 0).' / '.($devicesCount ?? 0)" value-id="ndrrmo-stat-devices" hint-id="ndrrmo-stat-devices-subtitle" :hint="($onlineDevicesCount ?? 0) > 0 ? 'Devices operational' : 'No devices online'"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg></x-kpi-card>
             </div>
 
             @if($activeIncidents->count() > 0)
             <!-- Active Emergency Command Console with Step-by-Step Response Lifecycle -->
             <div class="mb-6 space-y-4">
-                <div class="bg-red-600 border-2 border-red-500 rounded-3xl px-6 py-4 flex flex-wrap items-center justify-between gap-3 shadow-lg text-white">
+                <div class="alert-banner">
                     <div class="flex items-center gap-3">
-                        <span class="w-3.5 h-3.5 rounded-full bg-white animate-ping"></span>
+                        <span class="w-3 h-3 rounded-full bg-red-600 animate-ping"></span>
                         <div>
-                            <span class="font-black text-sm uppercase tracking-wider block">
+                            <span class="alert-banner-title">
                                 🚨 ACTIVE EMERGENCY COMMAND CONSOLE ({{ $activeIncidents->count() }} ACTIVE {{ Str::plural('INCIDENT', $activeIncidents->count()) }})
                             </span>
-                            <span class="text-xs text-red-100 font-medium">
+                            <span class="alert-banner-sub">
                                 Immediate disaster risk reduction & incident response in progress. Inter-agency coordination with Clinic & Campus Security active.
                             </span>
                         </div>
@@ -71,8 +28,8 @@
                     @if($activeIncidents->where('status', 'Pending')->count() > 1)
                     <form method="POST" action="{{ route('ndrrmo.alerts.acknowledge-all') }}" class="shrink-0">
                         @csrf
-                        <button type="submit" class="px-4 py-2 bg-white hover:bg-red-50 text-red-600 active:scale-95 rounded-xl font-black text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer">
-                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white active:scale-95 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span>Acknowledge All ({{ $activeIncidents->where('status', 'Pending')->count() }} Alerts)</span>
                         </button>
                     </form>
@@ -110,7 +67,7 @@
                                  eta: {{ $incident->eta_minutes ?? 3 }}, 
                                  resolveType: 'Resolved' 
                              }" 
-                             class="bg-white border-2 {{ $borderColor }} rounded-3xl overflow-hidden shadow-md flex flex-col justify-between transition-all duration-300">
+                             class="bg-white border {{ $borderColor }} rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between transition-all duration-300">
                             <div>
                                 {{-- Card Header --}}
                                 <div class="{{ $badgeColor }} px-5 py-3 flex items-center justify-between text-white">
@@ -408,7 +365,7 @@
 
                             {{-- MODAL 1: DISPATCH ASSIGNMENT MODAL --}}
                             <div x-show="openDispatch" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" @click.self="openDispatch = false">
-                                <div class="bg-white border-2 border-blue-500 rounded-3xl p-6 shadow-2xl w-full max-w-lg text-slate-800" @click.stop>
+                                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl w-full max-w-lg text-slate-800" @click.stop>
                                     <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
                                         <div class="flex items-center gap-2.5">
                                             <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-black text-lg">
@@ -478,7 +435,7 @@
 
                             {{-- MODAL 2: RESOLUTION & FALSE ALARM MODAL --}}
                             <div x-show="openResolve" x-cloak class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs" @click.self="openResolve = false">
-                                <div class="bg-white border-2 border-emerald-500 rounded-3xl p-6 shadow-2xl w-full max-w-lg text-slate-800" @click.stop>
+                                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-2xl w-full max-w-lg text-slate-800" @click.stop>
                                     <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
                                         <div class="flex items-center gap-2.5">
                                             <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-lg">
@@ -561,13 +518,13 @@
             <!-- Middle Row: Map and Alerts/Actions -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <!-- Map Section -->
-                <div class="lg:col-span-2 bg-brand-card border border-brand-border rounded-xl flex flex-col overflow-hidden">
-                    <div class="px-5 py-4 border-b border-brand-border flex justify-between items-center bg-black/20">
-                        <h2 class="text-xs font-bold text-brand-dark uppercase tracking-wider flex items-center">
+                <div class="lg:col-span-2 panel flex flex-col overflow-hidden">
+                    <div class="panel-head">
+                        <h2 class="panel-title">
                             <svg class="w-4 h-4 mr-2 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
-                            CAMPUS INCIDENT MAP
+                            Campus Incident Map
                         </h2>
-                        <a href="{{ route('ndrrmo.map') }}" class="text-[10px] text-brand-blue hover:text-blue-400 font-medium">Full Map</a>
+                        <a href="{{ route('ndrrmo.map') }}" class="panel-link">Full Map</a>
                     </div>
                     <div id="campus-map" class="relative flex-1 min-h-[450px] bg-brand-bg z-0 rounded-b-xl">
                         <!-- Leaflet Map will be injected here -->
@@ -580,7 +537,7 @@
                 
                 <style>
                     /* Custom Leaflet Map styling for Dark Mode */
-                    .leaflet-container { background-color: #0f1011; }
+                    .leaflet-container { background-color: #e2e8f0; }
                     .leaflet-popup-content-wrapper { background-color: #ffffff; color: #334155; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); padding: 0; }
                     .leaflet-popup-tip { background-color: #ffffff; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; }
                     .leaflet-popup-content { margin: 0; }
@@ -725,10 +682,10 @@
                 <!-- Active Alerts & Actions -->
                 <div class="flex flex-col gap-6">
                     <!-- Active Alerts -->
-                    <div class="bg-brand-card border border-brand-border rounded-xl flex flex-col h-[280px]">
-                        <div class="px-5 py-4 flex items-center justify-between border-b border-brand-border">
-                            <h2 class="text-xs font-bold text-brand-dark uppercase tracking-wider">ACTIVE ALERTS</h2>
-                            <a href="{{ route('ndrrmo.alerts') }}" class="text-[10px] text-brand-blue hover:text-blue-700">View All</a>
+                    <div class="panel flex flex-col h-[280px]">
+                        <div class="panel-head">
+                            <h2 class="panel-title">Active Alerts</h2>
+                            <a href="{{ route('ndrrmo.alerts') }}" class="panel-link">View All</a>
                         </div>
                         <div class="flex-1 p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
                             @forelse($activeIncidents as $incident)
@@ -786,10 +743,10 @@
             <!-- Bottom Row: Table and Summary -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Recent Incident Logs -->
-                <div class="lg:col-span-2 bg-brand-card border border-brand-border rounded-xl flex flex-col">
-                    <div class="px-5 py-4 flex items-center justify-between border-b border-brand-border">
-                        <h2 class="text-xs font-bold text-brand-dark uppercase tracking-wider">RECENT INCIDENT LOGS</h2>
-                        <a href="{{ route('ndrrmo.logs') }}" class="text-[10px] text-brand-blue hover:text-blue-700">View All Logs</a>
+                <div class="lg:col-span-2 panel flex flex-col">
+                    <div class="panel-head">
+                        <h2 class="panel-title">Recent Incident Logs</h2>
+                        <a href="{{ route('ndrrmo.logs') }}" class="panel-link">View All Logs</a>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -823,7 +780,7 @@
                                     <tr class="border-b border-brand-border/50 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer" onclick="window.location.href='{{ route('ndrrmo.logs') }}'">
                                         <td class="px-5 py-3 text-brand-text">{{ $index + 1 }}</td>
                                         <td class="px-5 py-3">{{ $log->reported_at->format('M d, Y h:i A') }}</td>
-                                        <td class="px-5 py-3"><span class="{{ $tagClass }} text-white text-[9px] font-bold px-2 py-0.5 rounded">{{ $log->emergency_type }}</span></td>
+                                        <td class="px-5 py-3"><span class="{{ $tagClass }} text-white text-[10px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">{{ $log->emergency_type }}</span></td>
                                         <td class="px-5 py-3 text-brand-text">{{ $log->device?->building ?? 'Location not recorded' }}</td>
                                         <td class="px-5 py-3 text-brand-text">{{ $log->device?->device_code ?? 'Not recorded' }}</td>
                                         <td class="px-5 py-3 {{ $statusClass }} font-medium capitalize">{{ $log->status }}</td>
@@ -845,9 +802,9 @@
                 </div>
 
                 <!-- Incident Summary & Response Status -->
-                <div class="bg-brand-card border border-brand-border rounded-xl flex flex-col">
-                    <div class="px-5 py-4 border-b border-brand-border">
-                        <h2 class="text-xs font-bold text-brand-dark uppercase tracking-wider">INCIDENT SUMMARY (TODAY)</h2>
+                <div class="panel flex flex-col">
+                    <div class="panel-head">
+                        <h2 class="panel-title">Incident Summary (Today)</h2>
                     </div>
                     <div class="p-5 flex items-center justify-between border-b border-brand-border border-dashed">
                         @php
