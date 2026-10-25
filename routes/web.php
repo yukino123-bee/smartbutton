@@ -4,7 +4,6 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClinicController;
 use App\Http\Controllers\NdrrmoController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SimulatorController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -23,12 +22,6 @@ Route::get('/', function () {
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login')->middleware('guest');
 Route::post('/login', [AuthController::class, 'authenticate'])->middleware(['guest', 'throttle:5,1']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
-
-// ESP32 Hardware & Location Simulator (Interactive Browser Simulator)
-Route::get('/simulator', [SimulatorController::class, 'index'])->name('simulator');
-Route::post('/simulator/devices', [SimulatorController::class, 'storeDevice'])->name('simulator.devices.store');
-Route::post('/simulator/trigger-all', [SimulatorController::class, 'triggerAll'])->name('simulator.trigger-all');
-Route::post('/simulator/reset-alerts', [SimulatorController::class, 'resetAlerts'])->name('simulator.reset-alerts');
 
 Route::middleware(['auth', 'role:DRRMO'])->prefix('ndrrmo')->name('ndrrmo.')->group(function () {
     Route::get('/', [NdrrmoController::class, 'dashboard'])->name('dashboard');

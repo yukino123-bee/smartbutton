@@ -42,7 +42,7 @@ All button inputs use internal pull-ups (`INPUT_PULLUP`). Triggered when pin is 
 
 | Component | ESP32 GPIO | Description / Behavior |
 | :--- | :--- | :--- |
-| **Top Green LED** | `GPIO 4` | Solid ON when WiFi connected and system is idle/ready. |
+| **Top Green LED** | `GPIO 4` | Solid ON when the device can reach the server (status check OK) and is idle/ready. Red is ON instead when the server is unreachable. |
 | **Top Red LED** | `GPIO 2` | Active/blinking during an alert / awaiting DRRMO response. |
 | **Center Buzzer** | `GPIO 5` | Pulses every 1 sec during alert until DRRMO acknowledges, then sounds 3 confirmation beeps and shuts off. |
 | **Center Big Red Button** | `GPIO 14` | **Critical Emergency** (dispatches to DRRMO and Clinic). |

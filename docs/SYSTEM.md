@@ -20,17 +20,15 @@ Hardware/device specifics (IPs, pins, SIM800L runbook) live in `AGENTS.md` — n
 - `app/Http/Controllers/Api/DeviceController.php` — device-facing API: `emergency`, `status`, `acknowledge`, `dispatch`, `resolve`, `smsWebhook`.
 - `app/Http/Controllers/NdrrmoController.php` — DRRMO dashboard pages + incident actions + device CRUD + Excel export (503 lines).
 - `app/Http/Controllers/ClinicController.php` — Clinic pages + incident actions (466 lines), scoped by `Incident::clinicRelevant()`.
-- `app/Http/Controllers/SimulatorController.php` — browser simulator (`/simulator`), no auth.
 - `app/Http/Controllers/AuthController.php`, `ProfileController.php` — login/logout, profile/password.
 - `app/Http/Controllers/DeviceController.php`, `DashboardController.php`, `IncidentController.php` — **unused/empty** (not routed).
 - `app/Http/Middleware/RoleMiddleware.php` — alias `role:DRRMO|Clinic` (registered in `bootstrap/app.php`).
 - `app/Models/` — `Incident` (scopes, constants), `Device`, `Notification`, `User`, `PatientRecord` (unused), `ActivityLog` (unused).
 - `app/Events/EmergencyReported.php` — `ShouldBroadcastNow` on public channel `emergencies`.
 - `app/Providers/AppServiceProvider.php` — forces HTTPS in production; view composer injects `$activeAlertsCount`.
-- `app/Console/Commands/SimulateEsp32Device.php` — `php artisan device:simulate`.
 - `routes/web.php`, `routes/api.php`, `routes/channels.php`, `routes/console.php`.
 - `resources/views/ndrrmo*.blade.php`, `resources/views/ndrrmo/*`, `clinic*.blade.php`, `clinic/*` — dashboards; `layouts/ndrrmo.blade.php` (1049 lines) and `layouts/clinic.blade.php` (1107 lines) contain most JS (modals, siren, polling).
-- `resources/views/simulator.blade.php`, `profile.blade.php`, `auth/login.blade.php`, `auth/register.blade.php` (register not routed).
+- `profile.blade.php`, `auth/login.blade.php`, `auth/register.blade.php` (register not routed).
 - `resources/views/components/kpi-card.blade.php` — stat card used by both dashboards (keeps JS-updated ids via `value-id`/`hint-id`).
 - `resources/js/app.js`, `echo.js`; `resources/css/app.css`; `vite.config.js`.
 - `database/migrations/`, `database/seeders/` (`AdminUserSeeder`, `DeviceSeeder`), `database.sql` (stale MySQL dump, DB name `campus_emergency_system`).
@@ -45,7 +43,6 @@ Hardware/device specifics (IPs, pins, SIM800L runbook) live in `AGENTS.md` — n
 - Test: `composer run test` or `php artisan test` (verified 2026-10-22: 63 passed, 262 assertions).
 - Format: `vendor/bin/pint`.
 - Build assets: `npm run build`.
-- Simulate hardware: `php artisan device:simulate --list | --device=GYM-001 --category="Critical Emergency" | --all | --new`; or browse `/simulator`.
 - Firmware: compile/upload/monitor commands in `AGENTS.md` §4.
 - Deploy: no scripted deploy. `composer run save` does `git add . && commit && git push origin master` (branch is `main` — broken; avoid).
 
@@ -107,7 +104,6 @@ External services: none server-side (SMS is sent by the device's SIM800L on Smar
 **Security**
 - `AGENTS.md`, `README.md`, `database/seeders/AdminUserSeeder.php`, and all `.ino` files contain **plaintext credentials** (WiFi password, default user passwords, phone numbers) committed to git.
 - `/api/*` has no authentication: anyone on the network can create alerts (`/api/emergency`) or acknowledge/dispatch/resolve any incident; `/api/sms-webhook` is unauthenticated and spoofable. Firmware uses plain HTTP.
-- `/simulator*` routes in `routes/web.php` are unauthenticated and can create devices, trigger alerts across all devices, and resolve all active alerts.
 - `AdminUserSeeder` password reset each seed (`updateOrCreate` keyed on `role`) — re-seeding overwrites any changed password.
 - `.env` has `APP_DEBUG` per template `true`; set false in production (value in `.env` not inspected).
 - Broadcast channel `emergencies` is public; payload includes full incident + device.
@@ -119,7 +115,6 @@ External services: none server-side (SMS is sent by the device's SIM800L on Smar
 - `Api/DeviceController::smsWebhook` format mismatch with firmware SMS; doesn't set `need_clinic`/`reported_at` and always notifies Clinic for Medical regardless; uses `->toOthers()` on a non-socket request.
 - `Api/DeviceController::dispatch/resolve/acknowledge` don't set `acknowledged_at/dispatched_at`, don't create Notifications or broadcast — inconsistent with dashboard actions.
 - `GET /api/device/status` marks `drrmo_responded` from the latest incident only; firmware does naive substring JSON parsing.
-- `SimulatorController::resetAlerts` Clinic notification skips the `need_clinic` check used elsewhere.
 - `ActivityLog` migration `down()` drops `audit_logs`.
 - `composer run save` pushes to `master`; repo branch is `main`.
 
@@ -144,7 +139,6 @@ External services: none server-side (SMS is sent by the device's SIM800L on Smar
 - Set `APP_DEBUG=false` (the debug page leaked request headers/cookies).
 - Remove committed secrets; rotate WiFi/user passwords; move device config to a non-committed header: `AGENTS.md`, `README.md`, `esp32/*/*.ino`, `database/seeders/AdminUserSeeder.php`.
 - Authenticate device API (shared token header / per-device key) and protect dashboard-style API routes: `routes/api.php`, `app/Http/Controllers/Api/DeviceController.php`, firmware `sendPanicAlert`.
-- Protect or disable the simulator outside local env: `routes/web.php`, `app/Http/Controllers/SimulatorController.php`.
 - Fix real-time wiring: load `resources/js/app.js` in layouts and add Reverb env vars: `resources/views/layouts/ndrrmo.blade.php`, `layouts/clinic.blade.php`, `.env.example`.
 - Make SMS fallback end-to-end consistent: align webhook format with firmware text or add a gateway: `Api/DeviceController::smsWebhook`, `esp32/Library/Library.ino`.
 
@@ -174,3 +168,5 @@ External services: none server-side (SMS is sent by the device's SIM800L on Smar
 - 2026-10-22 — Login container polish: entrance animation, decorative brand panel with "Monitoring active" chip, error icon, show/hide password toggle, Caps Lock warning, submit loading state (vanilla JS, no Alpine). Form fields/route unchanged. — `resources/views/auth/login.blade.php`, `resources/css/app.css`
 - 2026-10-22 — QA fixes: `Incident::involvesClinic()` stops Medical `need_clinic=false` leaking to Clinic; `/api/emergency` 30 s dedupe + Public Safety `need_clinic` default false; on-scene needs `Responding` (409). 4 tests (67 passing). — `app/Models/Incident.php`, `app/Http/Controllers/{Ndrrmo,Clinic,Api/Device}Controller.php`, `tests/Feature/DispatchAndTriageTest.php`
 - 2026-10-22 — Firmware: offline (SMS-failover) siren stops after 60 s (`OFFLINE_ALARM_MS`); compiled, NOT uploaded. SIM800L diagnosed: SIM ready but `CSQ 0`, `CREG 0,2`, repeated `RDY`/`CBC 0,0,0` (power). MySQL pod outage fixed via pod restart. — `esp32/Library/Library.ino`, `docs/SYSTEM.md`
+- 2026-10-25 — Removed the ESP32 simulator: browser `/simulator*` routes/controller/view, `php artisan device:simulate` command, "ESP32 Simulator" sidebar links, `SimulatorTest`. Drill "Simulation Type" options on resolve forms are unrelated and kept. — `routes/web.php`, `app/Http/Controllers/SimulatorController.php`, `app/Console/Commands/SimulateEsp32Device.php`, `resources/views/simulator.blade.php`, `resources/views/layouts/{ndrrmo,clinic}.blade.php`, `tests/Feature/SimulatorTest.php`, `CLAUDE.md`, `docs/SYSTEM.md`
+- 2026-10-25 — Firmware: green LED now means "connected to the server" (status check HTTP 200 / alert POST ok), not WiFi; red shows when WiFi is up but the server is unreachable. New `serverOnline` flag + `showIdleLeds()`; idle status check every 10 s (was 60 s) with 1.5 s HTTP timeouts. Compiled, NOT uploaded. — `esp32/Library/Library.ino`, `AGENTS.md`, `docs/SYSTEM.md`

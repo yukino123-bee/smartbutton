@@ -9,7 +9,6 @@ Device/hardware details (IPs, pins, SIM800L runbook): `AGENTS.md`.
 - Test: `composer run test` (Pest, in-memory SQLite)
 - Format: `vendor/bin/pint`
 - Build assets: `npm run build`
-- Simulate device: `php artisan device:simulate --all`
 - Firmware compile: `/home/jed/.local/bin/arduino-cli compile --fqbn esp32:esp32:esp32 esp32/Library/Library.ino`
 
 ## Key rules

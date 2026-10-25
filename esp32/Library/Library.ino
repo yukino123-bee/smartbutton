@@ -46,6 +46,8 @@ const unsigned long OFFLINE_ALARM_MS = 60000; // Stop local siren after 60s when
 bool confirmationMode = false; // Live Dispatch Mode: Physical buttons dispatch real emergency alerts via WiFi / GSM
 unsigned long lastStatusCheckTime = 0;
 const unsigned long STATUS_CHECK_INTERVAL = 1500; // Check server every 1.5 seconds
+const unsigned long IDLE_STATUS_CHECK_INTERVAL = 10000; // Idle server check (drives the green LED) every 10 seconds
+bool serverOnline = false; // True only while the Smart Button server answers (not just WiFi)
 
 // --- Debounce & Edge Detection ---
 struct Button {
@@ -73,6 +75,7 @@ const int NUM_BUTTONS = 5;
 void beepBuzzer(int times, int durationMs);
 void soundSOSPattern();
 void checkAcknowledgeStatus();
+void showIdleLeds();
 void triggerAlarm(String emergencyType, bool needClinic = true);
 void sendPanicAlert(String emergencyType, bool needClinic = true);
 void initSIM800L();
@@ -123,9 +126,7 @@ void setup() {
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
 
-    // Connected State: Red OFF, Green ON immediately!
-    digitalWrite(LED_RED, LOW);
-    digitalWrite(LED_GREEN, HIGH);
+    // Green stays OFF until the server answers (checked after GSM init)
   } else {
     Serial.println("\n[WiFi WARNING] WiFi Connection Failed! Running in Standalone GSM Mode.");
     digitalWrite(LED_RED, HIGH);
@@ -135,11 +136,9 @@ void setup() {
   // 2. Initialize SIM800L GSM Modem
   initSIM800L();
 
-  // Ensure Green LED stays ON if WiFi connected
-  if (WiFi.status() == WL_CONNECTED) {
-    digitalWrite(LED_RED, LOW);
-    digitalWrite(LED_GREEN, HIGH);
-  }
+  // Green LED reflects server connectivity, so verify it now
+  checkAcknowledgeStatus();
+  showIdleLeds();
 
   // 3. Initialize button states after pin modes and pull-ups settle to prevent false boot triggers
   for (int i = 0; i < NUM_BUTTONS; i++) {
@@ -269,17 +268,11 @@ void loop() {
       checkAcknowledgeStatus();
     }
   } else {
-    // Idle Ready State: Solid Green ON when WiFi connected, Red OFF
-    if (WiFi.status() == WL_CONNECTED) {
-      digitalWrite(LED_GREEN, HIGH);
-      digitalWrite(LED_RED, LOW);
-    } else {
-      digitalWrite(LED_GREEN, LOW);
-      digitalWrite(LED_RED, HIGH);
-    }
+    // Idle Ready State: Solid Green ON only while the server is reachable, else Red ON
+    showIdleLeds();
 
-    // Idle Heartbeat (send every 60 seconds to stay online on dashboard)
-    if (now - lastStatusCheckTime >= 60000) {
+    // Idle Heartbeat: re-check the server so the LED and dashboard presence stay current
+    if (now - lastStatusCheckTime >= IDLE_STATUS_CHECK_INTERVAL) {
       lastStatusCheckTime = now;
       checkAcknowledgeStatus();
     }
@@ -372,9 +365,8 @@ void loop() {
               Serial.println("\n⏱️ [CLINIC SELECTION TIMEOUT]: No selection received in 5s. Defaulting to Clinic Aid: REQUIRED.");
             }
 
-            // Restore solid Green before dispatch
-            digitalWrite(LED_GREEN, HIGH);
-            digitalWrite(LED_RED, LOW);
+            // Restore idle indicator before dispatch
+            showIdleLeds();
 
             triggerAlarm("Medical Emergency", needClinic);
           }
@@ -438,12 +430,14 @@ void sendPanicAlert(String emergencyType, bool needClinic) {
       Serial.println("[API Response]: " + http.getString());
       beepBuzzer(1, 400);
       apiSuccess = true;
+      serverOnline = true;
 
       // Enable active SOS alarming until DRRMO responds
       isDeviceAlarming = true;
       lastStatusCheckTime = millis();
     } else {
       Serial.println("[API ERROR] Server request failed! HTTP Code: " + String(httpResponseCode));
+      serverOnline = false;
     }
 
     http.end();
@@ -714,13 +708,19 @@ void sendSMS(String message, String targetNum) {
 
 // Check server status to see if active alarm was acknowledged
 void checkAcknowledgeStatus() {
-  if (WiFi.status() != WL_CONNECTED) return;
+  if (WiFi.status() != WL_CONNECTED) {
+    serverOnline = false;
+    return;
+  }
 
   HTTPClient http;
   http.begin(status_url);
   http.addHeader("Accept", "application/json");
+  http.setConnectTimeout(1500); // keep buttons responsive when the server is down
+  http.setTimeout(1500);
 
   int httpCode = http.GET();
+  serverOnline = (httpCode == 200);
   if (httpCode == 200) {
     String payload = http.getString();
     bool responded = (payload.indexOf("\"drrmo_responded\":true") >= 0 || payload.indexOf("\"drrmo_responded\": true") >= 0);
@@ -732,12 +732,17 @@ void checkAcknowledgeStatus() {
       offlineAlarm = false;
 
       digitalWrite(BUZZER, LOW);
-      digitalWrite(LED_RED, LOW);
-      digitalWrite(LED_GREEN, HIGH);
+      showIdleLeds();
       beepBuzzer(3, 120); // 3 confirmation beeps to notify witness that DRRMO responded!
     }
   }
   http.end();
+}
+
+// Idle indicator: Green = connected to the server, Red = server unreachable
+void showIdleLeds() {
+  digitalWrite(LED_GREEN, serverOnline ? HIGH : LOW);
+  digitalWrite(LED_RED, serverOnline ? LOW : HIGH);
 }
 
 // SOS Morse Code Buzzer Pattern: 3 Short, 3 Long, 3 Short
