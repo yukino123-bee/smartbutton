@@ -134,6 +134,8 @@ class NdrrmoController extends Controller
             'status' => 'Acknowledged',
             'acknowledged_at' => $incident->acknowledged_at ?? now(),
         ]);
+        // A clinic request made before this acknowledgment is released to the Clinic now.
+        $incident->releaseClinicRequest();
 
         Notification::create([
             'incident_id' => $incident->id,
@@ -175,6 +177,7 @@ class NdrrmoController extends Controller
                 'status' => 'Acknowledged',
                 'acknowledged_at' => $incident->acknowledged_at ?? now(),
             ]);
+            $incident->releaseClinicRequest();
 
             Notification::create([
                 'incident_id' => $incident->id,
@@ -258,6 +261,7 @@ class NdrrmoController extends Controller
             'eta_minutes' => $etaMinutes,
             'dispatch_notes' => $dispatchNotes,
         ]);
+        $incident->releaseClinicRequest();
         $incident->load('device');
 
         Notification::create([
@@ -367,6 +371,9 @@ class NdrrmoController extends Controller
             'disposition' => $validated['disposition'] ?? $incident->disposition,
         ]);
         $incident->load('device');
+
+        // A DRRMO resolve closes the incident on the Clinic side too.
+        $incident->resolveClinicSide($resType, $validated['false_alarm_reason'] ?? null, $remarks);
 
         Notification::create([
             'incident_id' => $incident->id,

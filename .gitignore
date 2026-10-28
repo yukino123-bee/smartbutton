@@ -27,3 +27,6 @@ Homestead.yaml
 Thumbs.db
 esp32/E_building/build/
 bin/
+
+# ESP32 local secrets
+esp32/**/secrets.h

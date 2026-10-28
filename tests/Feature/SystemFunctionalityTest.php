@@ -85,7 +85,62 @@ test('public safety alerts notify DRRMO but are excluded from Clinic data', func
         ->assertNotFound();
 });
 
-test('medical alerts are visible to both DRRMO and Clinic', function () {
+test('clinic button request is held until DRRMO acknowledges, then alerts the clinic', function () {
+    systemDevice();
+
+    $response = $this->postJson('/api/emergency', [
+        'device_id' => 'TEST-001',
+        'emergency_category' => Incident::TYPE_MEDICAL,
+        'need_clinic' => false,
+    ])->assertCreated();
+
+    $incident = Incident::findOrFail($response->json('incident_id'));
+
+    expect(Notification::whereBelongsTo($incident)->where('recipient', 'DRRMO')->exists())->toBeTrue()
+        ->and(Notification::whereBelongsTo($incident)->where('recipient', 'Clinic')->exists())->toBeFalse();
+
+    $clinic = User::factory()->create(['role' => 'Clinic']);
+
+    $this->actingAs($clinic)
+        ->get('/clinic/alerts')
+        ->assertSuccessful()
+        ->assertDontSee('Library');
+
+    // Clinic button pressed before DRRMO acknowledged: the request is recorded but the Clinic is not alerted.
+    $this->postJson('/api/emergency', [
+        'device_id' => 'TEST-001',
+        'emergency_category' => Incident::TYPE_MEDICAL,
+        'need_clinic' => true,
+    ])->assertOk()
+        ->assertJsonPath('incident_id', $incident->id)
+        ->assertJsonPath('clinic_request_pending', true);
+
+    expect(Incident::count())->toBe(1)
+        ->and($incident->fresh()->need_clinic)->toBeFalse()
+        ->and($incident->fresh()->clinic_requested_at)->not->toBeNull()
+        ->and(Notification::whereBelongsTo($incident)->where('recipient', 'Clinic')->exists())->toBeFalse();
+
+    $this->actingAs($clinic)
+        ->get('/clinic/alerts')
+        ->assertSuccessful()
+        ->assertDontSee('Library');
+
+    // DRRMO acknowledges: now the Clinic is alerted.
+    $this->actingAs(User::factory()->create(['role' => 'DRRMO']))
+        ->postJson("/ndrrmo/incidents/{$incident->id}/acknowledge")
+        ->assertOk();
+
+    expect($incident->fresh()->need_clinic)->toBeTrue()
+        ->and(Notification::whereBelongsTo($incident)->where('recipient', 'Clinic')->exists())->toBeTrue();
+
+    $this->actingAs($clinic)
+        ->get('/clinic/alerts')
+        ->assertSuccessful()
+        ->assertSee(Incident::TYPE_MEDICAL)
+        ->assertSee('Library');
+});
+
+test('medical alert without a clinic flag does not reach the clinic', function () {
     systemDevice();
 
     $response = $this->postJson('/api/emergency', [
@@ -95,16 +150,8 @@ test('medical alerts are visible to both DRRMO and Clinic', function () {
 
     $incident = Incident::findOrFail($response->json('incident_id'));
 
-    expect(Notification::whereBelongsTo($incident)->where('recipient', 'DRRMO')->exists())->toBeTrue()
-        ->and(Notification::whereBelongsTo($incident)->where('recipient', 'Clinic')->exists())->toBeTrue();
-
-    $clinic = User::factory()->create(['role' => 'Clinic']);
-
-    $this->actingAs($clinic)
-        ->get('/clinic/alerts')
-        ->assertSuccessful()
-        ->assertSee(Incident::TYPE_MEDICAL)
-        ->assertSee('Library');
+    expect($incident->need_clinic)->toBeFalse()
+        ->and(Notification::whereBelongsTo($incident)->where('recipient', 'Clinic')->exists())->toBeFalse();
 });
 
 test('DRRMO workflow updates only the selected incident and records resolution time', function () {
@@ -224,4 +271,55 @@ test('DRRMO can manage devices through CRUD operations', function () {
         ->assertRedirect('/ndrrmo/devices');
 
     expect(Device::find($device->id))->toBeNull();
+});
+
+test('clinic button pressed after DRRMO acknowledged alerts the clinic immediately', function () {
+    systemDevice();
+
+    $incident = Incident::findOrFail($this->postJson('/api/emergency', [
+        'device_id' => 'TEST-001',
+        'emergency_category' => Incident::TYPE_MEDICAL,
+        'need_clinic' => false,
+    ])->assertCreated()->json('incident_id'));
+
+    $this->actingAs(User::factory()->create(['role' => 'DRRMO']))
+        ->postJson("/ndrrmo/incidents/{$incident->id}/acknowledge")
+        ->assertOk();
+
+    expect(Notification::whereBelongsTo($incident)->where('recipient', 'Clinic')->exists())->toBeFalse();
+
+    $this->postJson('/api/emergency', [
+        'device_id' => 'TEST-001',
+        'emergency_category' => Incident::TYPE_MEDICAL,
+        'need_clinic' => true,
+    ])->assertOk()
+        ->assertJsonPath('incident_id', $incident->id)
+        ->assertJsonPath('clinic_request_pending', false);
+
+    expect($incident->fresh()->need_clinic)->toBeTrue()
+        ->and(Notification::whereBelongsTo($incident)->where('recipient', 'Clinic')->count())->toBe(1);
+});
+
+test('a held clinic request is also released when DRRMO dispatches without acknowledging first', function () {
+    systemDevice();
+
+    $incident = Incident::findOrFail($this->postJson('/api/emergency', [
+        'device_id' => 'TEST-001',
+        'emergency_category' => Incident::TYPE_MEDICAL,
+    ])->assertCreated()->json('incident_id'));
+
+    $this->postJson('/api/emergency', [
+        'device_id' => 'TEST-001',
+        'emergency_category' => Incident::TYPE_MEDICAL,
+        'need_clinic' => true,
+    ])->assertOk();
+
+    expect(Notification::whereBelongsTo($incident)->where('recipient', 'Clinic')->exists())->toBeFalse();
+
+    $this->actingAs(User::factory()->create(['role' => 'DRRMO']))
+        ->postJson("/ndrrmo/incidents/{$incident->id}/dispatch")
+        ->assertOk();
+
+    expect($incident->fresh()->need_clinic)->toBeTrue()
+        ->and(Notification::whereBelongsTo($incident)->where('recipient', 'Clinic')->exists())->toBeTrue();
 });

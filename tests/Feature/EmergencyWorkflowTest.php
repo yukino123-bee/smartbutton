@@ -83,7 +83,7 @@ test('ndrrmo can dispatch responders transitioning status to responding and crea
     });
 });
 
-test('clinic can dispatch medical team transitioning status to responding and notifying drrmo', function () {
+test('clinic dispatching its medical team does not change or notify the drrmo side', function () {
     Event::fake([EmergencyReported::class]);
 
     $device = makeDevice();
@@ -91,6 +91,7 @@ test('clinic can dispatch medical team transitioning status to responding and no
         'device_id' => $device->id,
         'emergency_type' => Incident::TYPE_MEDICAL,
         'status' => 'Acknowledged',
+        'clinic_status' => 'Acknowledged',
         'reported_at' => now(),
     ]);
 
@@ -102,11 +103,14 @@ test('clinic can dispatch medical team transitioning status to responding and no
     $response->assertRedirect();
 
     $incident->refresh();
-    expect($incident->status)->toBe('Responding');
+    expect($incident->clinic_status)->toBe('Responding')
+        ->and($incident->clinic_dispatched_at)->not->toBeNull()
+        ->and($incident->status)->toBe('Acknowledged')
+        ->and($incident->dispatched_at)->toBeNull();
 
-    // Asserts Clinic and DRRMO notifications were created
+    // Only a Clinic notification is written; DRRMO is not notified of Clinic actions
     expect(Notification::where('incident_id', $incident->id)->where('recipient', 'Clinic')->exists())->toBeTrue()
-        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'DRRMO')->exists())->toBeTrue();
+        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'DRRMO')->exists())->toBeFalse();
 
     Event::assertDispatched(EmergencyReported::class, function ($event) use ($incident) {
         return $event->incident->id === $incident->id;
@@ -167,7 +171,8 @@ test('full emergency lifecycle synchronizes between ndrrmo and clinic', function
         ->assertRedirect();
 
     $incident->refresh();
-    expect($incident->status)->toBe('Responding');
+    expect($incident->clinic_status)->toBe('Responding')
+        ->and($incident->status)->toBe('Acknowledged');
 
     // Step 4: NDRRMO notifies clinic
     $this->actingAs($ndrrmoUser)
@@ -190,23 +195,83 @@ test('full emergency lifecycle synchronizes between ndrrmo and clinic', function
         ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'Clinic')->where('status', 'Resolved by DRRMO')->exists())->toBeTrue();
 });
 
-test('api emergency creates medical alert with need_clinic true and notifies clinic', function () {
+test('api emergency with need_clinic true holds the clinic until DRRMO acknowledges', function () {
     Event::fake([EmergencyReported::class]);
     $device = makeDevice('DEV-MED-YES');
 
-    $response = $this->postJson('/api/emergency', [
+    // The Medical button comes first and alerts DRRMO only.
+    $this->postJson('/api/emergency', [
+        'device_id' => 'DEV-MED-YES',
+        'emergency_category' => Incident::TYPE_MEDICAL,
+        'need_clinic' => false,
+    ])->assertCreated();
+
+    $incident = Incident::latest('id')->first();
+
+    // The clinic button then asks for the Clinic, which is held until DRRMO acknowledges.
+    $this->postJson('/api/emergency', [
         'device_id' => 'DEV-MED-YES',
         'emergency_category' => Incident::TYPE_MEDICAL,
         'need_clinic' => true,
+    ])->assertOk()
+        ->assertJson(['status' => 'success', 'incident_id' => $incident->id, 'clinic_request_pending' => true]);
+
+    $incident->refresh();
+    expect(Incident::count())->toBe(1)
+        ->and($incident->need_clinic)->toBeFalse()
+        ->and($incident->clinic_requested_at)->not->toBeNull()
+        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'Clinic')->exists())->toBeFalse()
+        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'DRRMO')->exists())->toBeTrue();
+
+    $this->actingAs(User::factory()->create(['role' => 'DRRMO']))
+        ->post("/ndrrmo/incidents/{$incident->id}/acknowledge")
+        ->assertRedirect();
+
+    $incident->refresh();
+    expect($incident->need_clinic)->toBeTrue()
+        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'Clinic')->exists())->toBeTrue();
+});
+
+test('clinic button without a prior medical alert creates nothing on either side', function () {
+    Event::fake([EmergencyReported::class]);
+    makeDevice('DEV-CLINIC-ONLY');
+
+    $this->postJson('/api/emergency', [
+        'device_id' => 'DEV-CLINIC-ONLY',
+        'emergency_category' => Incident::TYPE_MEDICAL,
+        'need_clinic' => true,
+    ])->assertOk()
+        ->assertJson(['status' => 'ignored', 'ignored' => true]);
+
+    expect(Incident::count())->toBe(0)
+        ->and(Notification::count())->toBe(0);
+    Event::assertNotDispatched(EmergencyReported::class);
+
+    // Neither dashboard has anything to show.
+    expect(Incident::active()->count())->toBe(0)
+        ->and(Incident::clinicVisible()->clinicActive()->count())->toBe(0);
+    $this->actingAs(User::factory()->create(['role' => 'DRRMO']))
+        ->getJson('/ndrrmo/stats-json')->assertSuccessful()->assertJsonPath('active_alerts', 0);
+    $this->actingAs(User::factory()->create(['role' => 'Clinic']))
+        ->getJson('/clinic/stats-json')->assertSuccessful()->assertJsonPath('active_alerts', 0);
+
+    // A resolved Medical alert no longer counts: the clinic button is ignored again.
+    $incident = Incident::create([
+        'device_id' => Device::where('device_code', 'DEV-CLINIC-ONLY')->value('id'),
+        'emergency_type' => Incident::TYPE_MEDICAL,
+        'need_clinic' => false,
+        'status' => 'Resolved',
+        'reported_at' => now(),
     ]);
 
-    $response->assertCreated()
-        ->assertJson(['status' => 'success', 'need_clinic' => true]);
+    $this->postJson('/api/emergency', [
+        'device_id' => 'DEV-CLINIC-ONLY',
+        'emergency_category' => Incident::TYPE_MEDICAL,
+        'need_clinic' => true,
+    ])->assertOk()->assertJson(['ignored' => true]);
 
-    $incident = Incident::latest('id')->first();
-    expect($incident->need_clinic)->toBeTrue()
-        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'Clinic')->exists())->toBeTrue()
-        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'DRRMO')->exists())->toBeTrue();
+    expect(Incident::count())->toBe(1)
+        ->and($incident->fresh()->need_clinic)->toBeFalse();
 });
 
 test('api emergency creates medical alert with need_clinic false and suppresses clinic notification', function () {

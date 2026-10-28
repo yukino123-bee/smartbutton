@@ -121,6 +121,10 @@
                                                     <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
                                                     🏥 CLINIC AID: REQUIRED
                                                 </span>
+                                            @elseif($incident->clinic_requested_at)
+                                                <span class="px-2.5 py-1 rounded-xl bg-amber-100 text-amber-800 border border-amber-300 text-xs font-black flex items-center gap-1.5 shadow-xs">
+                                                    🏥 CLINIC REQUESTED · ACKNOWLEDGE TO ALERT THE CLINIC
+                                                </span>
                                             @else
                                                 <span class="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 border border-slate-300 text-xs font-black flex items-center gap-1.5 shadow-xs">
                                                     🩺 CLINIC AID: NOT NEEDED (FIRST AID ONLY)

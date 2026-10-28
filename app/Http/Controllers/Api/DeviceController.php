@@ -12,6 +12,9 @@ use Illuminate\Validation\Rule;
 
 class DeviceController extends Controller
 {
+    // How long after a medical alert the clinic button can still add the Clinic to it.
+    private const CLINIC_REQUEST_WINDOW_MINUTES = 60;
+
     /**
      * Handle incoming emergency alerts from ESP32 devices.
      */
@@ -48,8 +51,41 @@ class DeviceController extends Controller
         // Update device last_seen status
         $device->update(['last_seen' => now()]);
 
-        $defaultNeedClinic = in_array($emergencyType, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true);
+        // Medical alerts go to DRRMO only; the Clinic is added later by a clinic request (need_clinic = true).
+        $defaultNeedClinic = $emergencyType === Incident::TYPE_CRITICAL;
         $needClinic = $request->has('need_clinic') ? $request->boolean('need_clinic') : $defaultNeedClinic;
+
+        // The clinic button after a medical alert adds the Clinic to that open alert instead of making a new one.
+        if ($emergencyType === Incident::TYPE_MEDICAL && $needClinic) {
+            $openMedical = Incident::where('device_id', $device->id)
+                ->where('emergency_type', Incident::TYPE_MEDICAL)
+                ->where('status', '!=', 'Resolved')
+                ->where('created_at', '>=', now()->subMinutes(self::CLINIC_REQUEST_WINDOW_MINUTES))
+                ->latest('id')
+                ->first();
+
+            if ($openMedical) {
+                // Held until DRRMO acknowledges; alerts the Clinic at once if DRRMO already has.
+                $alerted = $openMedical->requestClinic();
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => $alerted
+                        ? 'Clinic alerted on the open medical alert.'
+                        : 'Clinic request recorded; the Clinic is alerted once DRRMO acknowledges.',
+                    'incident_id' => $openMedical->id,
+                    'need_clinic' => $alerted,
+                    'clinic_request_pending' => ! $alerted,
+                ], 200);
+            }
+
+            // The clinic button only follows a Medical alert. With none open, nothing is created or shown.
+            return response()->json([
+                'status' => 'ignored',
+                'message' => 'No open medical alert for this device; press the Medical button first.',
+                'ignored' => true,
+            ], 200);
+        }
 
         // A repeat press of the same button within seconds is the same alert, not a new incident.
         $duplicate = Incident::where('device_id', $device->id)
@@ -169,6 +205,7 @@ class DeviceController extends Controller
 
         abort_unless($incidentModel->status === 'Pending', 409, 'Only pending incidents can be acknowledged.');
         $incidentModel->update(['status' => 'Acknowledged']);
+        $incidentModel->releaseClinicRequest();
 
         return response()->json([
             'status' => 'success',
@@ -184,6 +221,7 @@ class DeviceController extends Controller
         $incidentModel->update([
             'status' => 'Responding',
         ]);
+        $incidentModel->releaseClinicRequest();
 
         return response()->json([
             'status' => 'success',
@@ -200,6 +238,7 @@ class DeviceController extends Controller
             'status' => 'Resolved',
             'resolved_at' => now(),
         ]);
+        $incidentModel->resolveClinicSide('Resolved', null, null);
 
         return response()->json([
             'status' => 'success',
@@ -255,7 +294,7 @@ class DeviceController extends Controller
                         'sent_at' => now(),
                     ]);
 
-                    if (in_array($emergencyType, [Incident::TYPE_CRITICAL, Incident::TYPE_MEDICAL], true)) {
+                    if ($emergencyType === Incident::TYPE_CRITICAL) {
                         Notification::create([
                             'incident_id' => $incident->id,
                             'recipient' => 'Clinic',

@@ -1,26 +1,26 @@
 #include <Arduino.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
+#include <WiFiMulti.h>
+#include "secrets.h" // WIFI_NETWORKS[] and EMERGENCY_PHONE_NUMBER (git-ignored; see secrets.h.example)
 
 // --- Configuration ---
-const char *ssid = "tandocADMIN 2.4ghz";
-const char *password = "tandocjesse123";
+const int WIFI_NETWORK_COUNT = sizeof(WIFI_NETWORKS) / sizeof(WIFI_NETWORKS[0]);
+WiFiMulti wifiMulti;
 
 // Endpoints
-const char *api_url = "http://192.168.100.169:8000/api/emergency";
-const char *status_url = "http://192.168.100.169:8000/api/device/status?device_id=ENG-001";
+const char *api_url = "http://10.104.135.50:8000/api/emergency";
+const char *status_url = "http://10.104.135.50:8000/api/device/status?device_id=ENG-001";
 
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "ENG-001"; // E-Building
 
-// Emergency Contact Phone Number for SMS Alerts (Supports local 09... or international +63...)
-
-const char *EMERGENCY_PHONE_NUMBER = "+639187439096";
 
 // --- Hardware Pins ---
 const int BTN_CRITICAL = 14;   // Critical Emergency
 const int BTN_MEDICAL = 12;    // Medical Emergency
 const int BTN_SUSPICIOUS = 27; // Suspicious Person
+const int BTN_CLINIC = 32;     // Clinic Assistance (press after Medical to alert the Clinic)
 
 const int LED_RED = 2;   // Error / Sending / Active Alarm Indicator
 const int LED_GREEN = 4; // Ready / Online Indicator
@@ -32,8 +32,16 @@ const int BUZZER = 5;    // Audio Feedback / SOS Alarm
 
 // --- Alarm State & Status Polling ---
 bool isDeviceAlarming = false;
-bool confirmationMode = true;
+bool confirmationMode = false; // Live: buttons send real alerts (true = log presses only, no alert)
 unsigned long lastStatusCheckTime = 0;
+
+// Non-blocking SOS siren (S-O-S: 3 short, 3 long, 3 short) so buttons stay responsive while alarming
+const int SOS_STEP_COUNT = 9;
+const unsigned int SOS_ON_MS[]  = {100, 100, 100, 300, 300, 300, 100, 100, 100};
+const unsigned int SOS_OFF_MS[] = {100, 100, 300, 100, 100, 300, 100, 100, 100};
+int sosStep = 0;
+bool sosBuzzerOn = false;
+unsigned long sosStepStart = 0; // 0 = siren idle
 const unsigned long STATUS_CHECK_INTERVAL = 1500; // Check server every 1.5 seconds
 
 // --- Debounce & Edge Detection ---
@@ -53,20 +61,22 @@ Button buttons[] = {
   { BTN_CRITICAL,   HIGH, HIGH, 0, false },
   { BTN_MEDICAL,    HIGH, HIGH, 0, false },
   { BTN_SUSPICIOUS, HIGH, HIGH, 0, false },
+  { BTN_CLINIC,     HIGH, HIGH, 0, false },
 };
-const int NUM_BUTTONS = 3;
+const int NUM_BUTTONS = 4;
 const char* emergencyTypes[] = {
   "Critical Emergency",
   "Medical Emergency",
-  "Public Safety Emergency"
+  "Public Safety Emergency",
+  "Medical Emergency" // Clinic button: adds the Clinic to the open Medical alert
 };
 
 // Function Declarations
 void beepBuzzer(int times, int durationMs);
-void soundSOSPattern();
+void updateSOSBuzzer();
 void checkAcknowledgeStatus();
-void triggerAlarm(String emergencyType);
-void sendPanicAlert(String emergencyType);
+void triggerAlarm(String emergencyType, bool needClinic);
+void sendPanicAlert(String emergencyType, bool needClinic);
 void initSIM800L();
 void sendSMS(String message);
 String sendATCommand(String command, String expectedResponse, unsigned long timeoutMs);
@@ -85,6 +95,7 @@ void setup() {
   pinMode(BTN_CRITICAL, INPUT_PULLUP);
   pinMode(BTN_MEDICAL, INPUT_PULLUP);
   pinMode(BTN_SUSPICIOUS, INPUT_PULLUP);
+  pinMode(BTN_CLINIC, INPUT_PULLUP);
 
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
@@ -99,18 +110,15 @@ void setup() {
   initSIM800L();
 
   // Connect to WiFi
-  Serial.print("Connecting to WiFi (" + String(ssid) + ")");
-  WiFi.begin(ssid, password);
-
-  int wifiAttempts = 0;
-  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 20) {
-    delay(500);
-    Serial.print(".");
-    wifiAttempts++;
+  Serial.print("Connecting to WiFi (" + String(WIFI_NETWORK_COUNT) + " saved networks)");
+  WiFi.mode(WIFI_STA);
+  for (int i = 0; i < WIFI_NETWORK_COUNT; i++) {
+    wifiMulti.addAP(WIFI_NETWORKS[i].ssid, WIFI_NETWORKS[i].password);
   }
+  wifiMulti.run(10000); // scans, joins the strongest saved network, waits up to 10 s
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n[WiFi SUCCESS] WiFi Connected!");
+    Serial.println("\n[WiFi SUCCESS] WiFi Connected to " + WiFi.SSID());
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
 
@@ -150,8 +158,8 @@ void loop() {
     digitalWrite(LED_RED, HIGH);
     digitalWrite(LED_GREEN, LOW);
 
-    // Play one SOS pattern sequence
-    soundSOSPattern();
+    // Advance the SOS siren without blocking so a clinic-button press is not missed
+    updateSOSBuzzer();
 
     // Check server status to see if admin acknowledged the alert
     if (now - lastStatusCheckTime >= STATUS_CHECK_INTERVAL) {
@@ -159,6 +167,7 @@ void loop() {
       checkAcknowledgeStatus();
     }
   } else {
+    sosStepStart = 0; // siren idle; restarts from the first beep on the next alarm
     // Idle Heartbeat (send every 60 seconds to stay online on dashboard)
     if (now - lastStatusCheckTime >= 60000) {
       lastStatusCheckTime = now;
@@ -186,10 +195,12 @@ void loop() {
 
       // Falling edge (HIGH → LOW) = actual button press
       if (prevStable == HIGH && btn.stableState == LOW && !btn.triggered) {
-        if ((now - lastAlertTime) >= COOLDOWN_MS) {
+        // The clinic button is exempt so it works right after the Medical press
+        if ((now - lastAlertTime) >= COOLDOWN_MS || btn.pin == BTN_CLINIC) {
           btn.triggered  = true;
           lastAlertTime  = now;
-          triggerAlarm(emergencyTypes[i]);
+          // Medical alerts DRRMO only; the Clinic is alerted by the Critical button or the clinic button
+          triggerAlarm(emergencyTypes[i], btn.pin == BTN_CRITICAL || btn.pin == BTN_CLINIC);
         } else {
           Serial.println("[COOLDOWN] Alert suppressed, too soon.");
         }
@@ -200,7 +211,7 @@ void loop() {
   delay(10);
 }
 
-void triggerAlarm(String emergencyType) {
+void triggerAlarm(String emergencyType, bool needClinic) {
     if (confirmationMode) {
       Serial.println("\n🔔 [BUTTON CONFIRMED - NO ALERT DISPATCHED]");
       Serial.println("   Detected Event: " + emergencyType);
@@ -210,6 +221,9 @@ void triggerAlarm(String emergencyType) {
     }
 
     Serial.println("\n🚨 [ALARM TRIGGERED] Panic Button Pressed: " + emergencyType);
+    if (emergencyType == "Medical Emergency") {
+      Serial.println("   Clinic Aid Required: " + String(needClinic ? "YES" : "NO"));
+    }
 
     // Immediate local feedback
     digitalWrite(LED_GREEN, LOW);
@@ -217,10 +231,10 @@ void triggerAlarm(String emergencyType) {
     beepBuzzer(2, 150);
 
     // Process Alert
-    sendPanicAlert(emergencyType);
+    sendPanicAlert(emergencyType, needClinic);
 }
 
-void sendPanicAlert(String emergencyType) {
+void sendPanicAlert(String emergencyType, bool needClinic) {
   bool apiSuccess = false;
 
   // 1. Send via Web API if WiFi is connected
@@ -231,21 +245,30 @@ void sendPanicAlert(String emergencyType) {
     http.addHeader("Accept", "application/json");
 
     String payload = "{\"device_id\":\"" + String(DEVICE_CODE) +
-                     "\", \"emergency_category\":\"" + emergencyType + "\"}";
+                     "\", \"emergency_category\":\"" + emergencyType +
+                     "\", \"need_clinic\":" + (needClinic ? "true" : "false") + "}";
 
     Serial.println("[API] Sending Payload: " + payload);
 
     int httpResponseCode = http.POST(payload);
 
-    if (httpResponseCode > 0) {
+    if (httpResponseCode >= 200 && httpResponseCode < 300) {
+      String response = http.getString();
       Serial.println("[API SUCCESS] HTTP Code: " + String(httpResponseCode));
-      Serial.println("[API Response]: " + http.getString());
-      beepBuzzer(1, 500);
+      Serial.println("[API Response]: " + response);
       apiSuccess = true;
 
-      // Enable active SOS alarming until dashboard acknowledges!
-      isDeviceAlarming = true;
-      lastStatusCheckTime = millis();
+      if (response.indexOf("\"ignored\":true") >= 0) {
+        // Clinic button pressed with no open Medical alert: the server created nothing, so don't alarm.
+        Serial.println("[IGNORED] Press the Medical button first, then the Clinic button.");
+        beepBuzzer(1, 50);
+      } else {
+        beepBuzzer(1, 500);
+
+        // Enable active SOS alarming until dashboard acknowledges!
+        isDeviceAlarming = true;
+        lastStatusCheckTime = millis();
+      }
     } else {
       Serial.println("[API ERROR] HTTP Request Failed. Error Code: " + String(httpResponseCode));
     }
@@ -255,7 +278,10 @@ void sendPanicAlert(String emergencyType) {
     Serial.println("[API WARNING] WiFi Disconnected!");
   }
 
-  // 2. ALWAYS Send SMS Notification via SIM800L for EVERY Alert Trigger
+  // 2. Offline failover: SMS via SIM800L only when the server could not be reached.
+  //    (Sending it on every alert blocked the board for many seconds, so the clinic button was missed.)
+  if (apiSuccess) return;
+
   Serial.println("\n[GSM ALERT] Transmitting SMS notification via SIM800L Module...");
   String smsMessage = "JHCSC SMART PANIC ALERT!\nDevice: " + String(DEVICE_CODE) +
                       "\nCategory: " + emergencyType +
@@ -442,11 +468,13 @@ void sendSMS(String message) {
 
 // Check server status to see if active alarm was acknowledged
 void checkAcknowledgeStatus() {
+  if (WiFi.status() != WL_CONNECTED) wifiMulti.run(2000); // try the other saved networks
   if (WiFi.status() != WL_CONNECTED) return;
 
   HTTPClient http;
   http.begin(status_url);
   http.addHeader("Accept", "application/json");
+  http.setTimeout(1500); // keep buttons responsive if the server is slow
 
   int httpCode = http.GET();
   if (httpCode == 200) {
@@ -466,26 +494,26 @@ void checkAcknowledgeStatus() {
   http.end();
 }
 
-// SOS Morse Code Buzzer Pattern: 3 Short, 3 Long, 3 Short
-void soundSOSPattern() {
-  // S: 3 short beeps
-  for(int i = 0; i < 3; i++) {
-    digitalWrite(BUZZER, HIGH); delay(100);
-    digitalWrite(BUZZER, LOW);  delay(100);
+// SOS siren (3 short, 3 long, 3 short), advanced one step per call so the main loop keeps reading buttons
+void updateSOSBuzzer() {
+  unsigned long now = millis();
+  if (sosStepStart == 0) {
+    sosStep = 0;
+    sosBuzzerOn = true;
+    sosStepStart = now;
+    digitalWrite(BUZZER, HIGH);
+    return;
   }
-  delay(200);
-
-  // O: 3 long beeps
-  for(int i = 0; i < 3; i++) {
-    digitalWrite(BUZZER, HIGH); delay(300);
-    digitalWrite(BUZZER, LOW);  delay(100);
-  }
-  delay(200);
-
-  // S: 3 short beeps
-  for(int i = 0; i < 3; i++) {
-    digitalWrite(BUZZER, HIGH); delay(100);
-    digitalWrite(BUZZER, LOW);  delay(100);
+  unsigned long elapsed = now - sosStepStart;
+  if (sosBuzzerOn && elapsed >= SOS_ON_MS[sosStep]) {
+    digitalWrite(BUZZER, LOW);
+    sosBuzzerOn = false;
+    sosStepStart = now;
+  } else if (!sosBuzzerOn && elapsed >= SOS_OFF_MS[sosStep]) {
+    sosStep = (sosStep + 1) % SOS_STEP_COUNT;
+    sosBuzzerOn = true;
+    sosStepStart = now;
+    digitalWrite(BUZZER, HIGH);
   }
 }
 

@@ -155,6 +155,10 @@
                                 <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-red-100 text-red-800 border border-red-300">
                                     🏥 CLINIC AID REQUIRED
                                 </span>
+                            @elseif($alert->clinic_requested_at)
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300">
+                                    🏥 CLINIC REQUESTED · ACKNOWLEDGE FIRST
+                                </span>
                             @else
                                 <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-300">
                                     🩺 NO CLINIC NEEDED

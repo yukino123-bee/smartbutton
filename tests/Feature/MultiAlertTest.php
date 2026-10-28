@@ -151,8 +151,10 @@ test('clinic can acknowledge all unhandled medical alerts at once', function () 
             'count' => 2,
         ]);
 
-    expect($inc1->fresh()->status)->toBe('Acknowledged')
-        ->and($inc2->fresh()->status)->toBe('Acknowledged')
+    expect($inc1->fresh()->clinic_status)->toBe('Acknowledged')
+        ->and($inc2->fresh()->clinic_status)->toBe('Acknowledged')
+        ->and($inc1->fresh()->status)->toBe('Pending')
+        ->and($inc2->fresh()->status)->toBe('Pending')
         ->and(Notification::where('recipient', 'Clinic')->where('status', 'Acknowledged')->count())->toBe(2);
 });
 

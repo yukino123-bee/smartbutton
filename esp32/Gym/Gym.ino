@@ -1,20 +1,20 @@
 #include <Arduino.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
+#include <WiFiMulti.h>
+#include "secrets.h" // WIFI_NETWORKS[] and EMERGENCY_PHONE_NUMBER (git-ignored; see secrets.h.example)
 
 // --- Configuration ---
-const char *ssid = "tandocADMIN 2.4ghz";
-const char *password = "tandocjesse123";
+const int WIFI_NETWORK_COUNT = sizeof(WIFI_NETWORKS) / sizeof(WIFI_NETWORKS[0]);
+WiFiMulti wifiMulti;
 
 // Endpoints
-const char *api_url = "http://192.168.100.169:8000/api/emergency";
-const char *status_url = "http://192.168.100.169:8000/api/device/status?device_id=GYM-001";
+const char *api_url = "http://10.104.135.50:8000/api/emergency";
+const char *status_url = "http://10.104.135.50:8000/api/device/status?device_id=GYM-001";
 
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "GYM-001"; // Campus Gym
 
-// Emergency Contact Phone Number for SMS Alerts (Supports local 09... or international +63...)
-const char *EMERGENCY_PHONE_NUMBER = "+639187439096";
 
 // --- Hardware Pins ---
 const int BTN_CRITICAL = 14;   // Critical Emergency
@@ -31,7 +31,7 @@ const int BUZZER = 5;    // Audio Feedback / SOS Alarm
 
 // --- Alarm State & Status Polling ---
 bool isDeviceAlarming = false;
-bool confirmationMode = true;
+bool confirmationMode = false; // Live: buttons send real alerts (true = log presses only, no alert)
 unsigned long lastStatusCheckTime = 0;
 const unsigned long STATUS_CHECK_INTERVAL = 1500; // Check server every 1.5 seconds
 
@@ -98,18 +98,15 @@ void setup() {
   initSIM800L();
 
   // Connect to WiFi
-  Serial.print("Connecting to WiFi (" + String(ssid) + ")");
-  WiFi.begin(ssid, password);
-
-  int wifiAttempts = 0;
-  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 20) {
-    delay(500);
-    Serial.print(".");
-    wifiAttempts++;
+  Serial.print("Connecting to WiFi (" + String(WIFI_NETWORK_COUNT) + " saved networks)");
+  WiFi.mode(WIFI_STA);
+  for (int i = 0; i < WIFI_NETWORK_COUNT; i++) {
+    wifiMulti.addAP(WIFI_NETWORKS[i].ssid, WIFI_NETWORKS[i].password);
   }
+  wifiMulti.run(10000); // scans, joins the strongest saved network, waits up to 10 s
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n[WiFi SUCCESS] WiFi Connected!");
+    Serial.println("\n[WiFi SUCCESS] WiFi Connected to " + WiFi.SSID());
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
 
@@ -441,6 +438,7 @@ void sendSMS(String message) {
 
 // Check server status to see if active alarm was acknowledged
 void checkAcknowledgeStatus() {
+  if (WiFi.status() != WL_CONNECTED) wifiMulti.run(2000); // try the other saved networks
   if (WiFi.status() != WL_CONNECTED) return;
 
   HTTPClient http;

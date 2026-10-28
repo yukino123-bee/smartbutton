@@ -1,25 +1,21 @@
 #include <Arduino.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
+#include <WiFiMulti.h>
+#include "secrets.h" // WIFI_NETWORKS[] and EMERGENCY_PHONE_NUMBERS[] (git-ignored; see secrets.h.example)
 
 // --- Configuration ---
-const char *ssid = "tandocADMIN 2.4ghz";
-const char *password = "tandocjesse123";
+const int WIFI_NETWORK_COUNT = sizeof(WIFI_NETWORKS) / sizeof(WIFI_NETWORKS[0]);
+WiFiMulti wifiMulti;
 
 // Endpoints
-const char *api_url = "http://192.168.100.169:8000/api/emergency";
-const char *status_url = "http://192.168.100.169:8000/api/device/status?device_id=LIB-001";
+const char *api_url = "http://10.104.135.50:8000/api/emergency";
+const char *status_url = "http://10.104.135.50:8000/api/device/status?device_id=LIB-001";
 
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "LIB-001"; // Campus Library
 
-// Emergency Contact Phone Numbers for Ready-to-Deploy Responders & Personnel
-const char *EMERGENCY_PHONE_NUMBERS[] = {
-  "+639927090622", // Primary Ready-to-deploy Personnel (DITO)
-  "+639563559186", // Secondary Ready-to-deploy Personnel (Globe)
-  "+639187439096"  // DRRMO Officer
-};
-const int NUM_EMERGENCY_RECIPIENTS = 3;
+const int NUM_EMERGENCY_RECIPIENTS = sizeof(EMERGENCY_PHONE_NUMBERS) / sizeof(EMERGENCY_PHONE_NUMBERS[0]);
 
 // --- Hardware Pins ---
 const int BTN_CRITICAL = 14;   // Center Big Red Button: Critical Emergency
@@ -110,19 +106,15 @@ void setup() {
   digitalWrite(BUZZER, LOW);
 
   // 1. Connect to WiFi first for immediate network connection and Green indicator
-  Serial.print("Connecting to WiFi (" + String(ssid) + ")");
+  Serial.print("Connecting to WiFi (" + String(WIFI_NETWORK_COUNT) + " saved networks)");
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-
-  int wifiAttempts = 0;
-  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 25) {
-    delay(400);
-    Serial.print(".");
-    wifiAttempts++;
+  for (int i = 0; i < WIFI_NETWORK_COUNT; i++) {
+    wifiMulti.addAP(WIFI_NETWORKS[i].ssid, WIFI_NETWORKS[i].password);
   }
+  wifiMulti.run(10000); // scans, joins the strongest saved network, waits up to 10 s
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n[WiFi SUCCESS] WiFi Connected!");
+    Serial.println("\n[WiFi SUCCESS] WiFi Connected to " + WiFi.SSID());
     Serial.print("IP Address: ");
     Serial.println(WiFi.localIP());
 
@@ -190,8 +182,7 @@ void loop() {
           digitalWrite(LED_GREEN, LOW);
           delay(2000);
           Serial.println("  [LED TEST] Complete. Restoring normal state.");
-          digitalWrite(LED_GREEN, HIGH);
-          digitalWrite(LED_RED, LOW);
+          showIdleLeds();
         } else if (serialCmdBuffer.equalsIgnoreCase("PIN_STATUS")) {
           Serial.println("\n>>> [PIN STATUS]");
           Serial.println("  Mode: " + String(confirmationMode ? "CONFIRMATION MODE (Alerts & Siren Muted)" : "LIVE DISPATCH MODE"));
@@ -250,9 +241,11 @@ void loop() {
       isDeviceAlarming = false;
       offlineAlarm = false;
       digitalWrite(BUZZER, LOW);
-      return;
+      showIdleLeds();
     }
+  }
 
+  if (isDeviceAlarming) {
     // Pulse buzzer every 1 second until DRRMO responds
     static unsigned long lastBeepPulse = 0;
     if (now - lastBeepPulse >= 1000) {
@@ -306,69 +299,18 @@ void loop() {
             triggerAlarm("Critical Emergency", true);
           } else if (btn.pin == BTN_SUSPICIOUS) {
             triggerAlarm("Public Safety Emergency", false);
-          } else if (btn.pin == BTN_CLINIC_YES || btn.pin == BTN_CLINIC_NO) {
-            // Dormant when idle: Only active when Medical Alert is triggered first!
-            Serial.println("\nℹ️ [CLINIC BUTTON INACTIVE] Press Center Medical Button (GPIO 12) first to initiate a Medical Emergency.");
-            beepBuzzer(1, 30); // Very short gentle chirp to indicate button is received but dormant
           } else if (btn.pin == BTN_MEDICAL) {
-            // Medical center button pressed: prompt for clinic aid selection for 5 seconds
-            Serial.println("\n🚨 [MEDICAL ALERT TRIGGERED] Awaiting Clinic Aid Selection:");
-            Serial.println("   -> Press Side Top (GPIO 32) if Clinic Assistance is REQUIRED");
-            Serial.println("   -> Press Side Bottom (GPIO 33) if Clinic Assistance is NOT NEEDED (First Aid Only)");
-            Serial.println("   (Device will listen for 5 seconds; defaults to Clinic YES if no button pressed)");
-
-            // Visual and audio prompt: 2 alert beeps
-            beepBuzzer(2, 90);
-
-            bool needClinic = true; // default
-            bool buttonSelected = false;
-            unsigned long waitStart = millis();
-
-            while (millis() - waitStart < 5000) {
-              // Rapid pulse red indicator during selection window
-              if ((millis() - waitStart) % 500 < 250) {
-                digitalWrite(LED_RED, HIGH);
-                digitalWrite(LED_GREEN, LOW);
-              } else {
-                digitalWrite(LED_RED, LOW);
-                digitalWrite(LED_GREEN, HIGH);
-              }
-
-              // Check Clinic NO Button (GPIO 33)
-              if (digitalRead(BTN_CLINIC_NO) == LOW) {
-                delay(30); // debounce
-                if (digitalRead(BTN_CLINIC_NO) == LOW) {
-                  needClinic = false;
-                  buttonSelected = true;
-                  Serial.println("\n✅ [CLINIC SELECTION]: GPIO 33 Pressed -> NO Clinic Assistance Needed (DRRMO / First Aid Only).");
-                  beepBuzzer(2, 70);
-                  break;
-                }
-              }
-
-              // Check Clinic YES Button (GPIO 32)
-              if (digitalRead(BTN_CLINIC_YES) == LOW) {
-                delay(30); // debounce
-                if (digitalRead(BTN_CLINIC_YES) == LOW) {
-                  needClinic = true;
-                  buttonSelected = true;
-                  Serial.println("\n🚨 [CLINIC SELECTION]: GPIO 32 Pressed -> Clinic Assistance is REQUIRED!");
-                  beepBuzzer(1, 200);
-                  break;
-                }
-              }
-
-              delay(15);
-            }
-
-            if (!buttonSelected) {
-              Serial.println("\n⏱️ [CLINIC SELECTION TIMEOUT]: No selection received in 5s. Defaulting to Clinic Aid: REQUIRED.");
-            }
-
-            // Restore idle indicator before dispatch
-            showIdleLeds();
-
-            triggerAlarm("Medical Emergency", needClinic);
+            // Medical alerts DRRMO only. The clinic is alerted later by pressing the clinic button (GPIO 32).
+            Serial.println("\n🚨 [MEDICAL ALERT TRIGGERED]: DRRMO only. Press GPIO 32 to alert the Clinic.");
+            triggerAlarm("Medical Emergency", false);
+          } else if (btn.pin == BTN_CLINIC_YES) {
+            // Clinic button: alerts the Clinic on the open medical alert from this device
+            Serial.println("\n🏥 [CLINIC ASSISTANCE REQUESTED]: GPIO 32 pressed -> alerting the Clinic.");
+            triggerAlarm("Medical Emergency", true);
+          } else if (btn.pin == BTN_CLINIC_NO) {
+            // Side bottom button is not used
+            Serial.println("\nℹ️ [GPIO 33]: not used. Press GPIO 32 to alert the Clinic.");
+            beepBuzzer(1, 30);
           }
         } else {
           Serial.println("[COOLDOWN] Alert suppressed, too soon.");
@@ -452,7 +394,6 @@ void sendPanicAlert(String emergencyType, bool needClinic) {
     // Enable local alarming so people nearby know the alarm was triggered
     isDeviceAlarming = true;
     offlineAlarm = true;
-    offlineAlarmStart = millis();
 
     String smsMessage = "JHCSC PANIC ALERT (OFFLINE)!\n"
                         "Device: " + String(DEVICE_CODE) + " (Campus Library)\n"
@@ -464,6 +405,7 @@ void sendPanicAlert(String emergencyType, bool needClinic) {
 
     // Send SMS alert to all configured ready-to-deploy personnel
     sendEmergencySMSAlert(smsMessage);
+    offlineAlarmStart = millis(); // start the siren timeout after the (slow) SMS attempts, not before
   } else {
     Serial.println("[GSM] Alert already delivered via Web API. SMS suppressed to conserve load.");
   }
@@ -709,6 +651,9 @@ void sendSMS(String message, String targetNum) {
 // Check server status to see if active alarm was acknowledged
 void checkAcknowledgeStatus() {
   if (WiFi.status() != WL_CONNECTED) {
+    wifiMulti.run(2000); // try the other saved networks
+  }
+  if (WiFi.status() != WL_CONNECTED) {
     serverOnline = false;
     return;
   }
@@ -721,6 +666,9 @@ void checkAcknowledgeStatus() {
 
   int httpCode = http.GET();
   serverOnline = (httpCode == 200);
+  if (httpCode != 200) {
+    Serial.println("[STATUS CHECK] " + String(status_url) + " -> HTTP " + String(httpCode) + " (" + HTTPClient::errorToString(httpCode) + "), WiFi RSSI " + String(WiFi.RSSI()) + " dBm, IP " + WiFi.localIP().toString() + ", gateway " + WiFi.gatewayIP().toString());
+  }
   if (httpCode == 200) {
     String payload = http.getString();
     bool responded = (payload.indexOf("\"drrmo_responded\":true") >= 0 || payload.indexOf("\"drrmo_responded\": true") >= 0);

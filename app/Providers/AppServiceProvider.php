@@ -30,11 +30,9 @@ class AppServiceProvider extends ServiceProvider
         View::composer(['layouts.clinic', 'layouts.ndrrmo', 'clinic*', 'ndrrmo*'], function ($view) {
             $count = 0;
             if (Schema::hasTable('incidents')) {
-                $query = Incident::active();
-
-                if (auth()->user()?->role === 'Clinic') {
-                    $query->clinicRelevant();
-                }
+                $query = auth()->user()?->role === 'Clinic'
+                    ? Incident::clinicVisible()->clinicActive()
+                    : Incident::active();
 
                 $count = $query->count();
             }

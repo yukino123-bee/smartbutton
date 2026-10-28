@@ -139,8 +139,10 @@ test('clinic can record casualty triage details upon medical resolution', functi
         'device_id' => $device->id,
         'emergency_type' => Incident::TYPE_MEDICAL,
         'status' => 'Responding',
+        'clinic_status' => 'Responding',
         'reported_at' => now()->subMinutes(12),
         'dispatched_at' => now()->subMinutes(9),
+        'clinic_dispatched_at' => now()->subMinutes(9),
     ]);
 
     $clinicUser = User::factory()->create(['role' => 'Clinic']);
@@ -159,13 +161,17 @@ test('clinic can record casualty triage details upon medical resolution', functi
     $response->assertRedirect();
 
     $incident->refresh();
-    expect($incident->status)->toBe('Resolved')
-        ->and($incident->patient_name)->toBe('Maria Kristina Santos')
-        ->and($incident->patient_id_number)->toBe('2024-00123')
-        ->and($incident->triage_level)->toBe('Yellow')
-        ->and($incident->treatment_summary)->toContain('Splinted right forearm')
-        ->and($incident->disposition)->toBe('Referred / Transferred to external hospital via EMS')
-        ->and($incident->resolved_at)->not->toBeNull();
+    expect($incident->clinic_status)->toBe('Resolved')
+        ->and($incident->clinic_patient_name)->toBe('Maria Kristina Santos')
+        ->and($incident->clinic_patient_id_number)->toBe('2024-00123')
+        ->and($incident->clinic_triage_level)->toBe('Yellow')
+        ->and($incident->clinic_treatment_summary)->toContain('Splinted right forearm')
+        ->and($incident->clinic_disposition)->toBe('Referred / Transferred to external hospital via EMS')
+        ->and($incident->clinic_resolved_at)->not->toBeNull()
+        // DRRMO's copy of the incident is untouched
+        ->and($incident->status)->toBe('Responding')
+        ->and($incident->resolved_at)->toBeNull()
+        ->and($incident->patient_name)->toBeNull();
 
     expect(Incident::realEmergencies()->where('id', $incident->id)->exists())->toBeTrue();
 });
@@ -195,9 +201,11 @@ test('clinic can confirm on scene arrival', function () {
         'device_id' => $device->id,
         'emergency_type' => Incident::TYPE_MEDICAL,
         'status' => 'Responding',
+        'clinic_status' => 'Responding',
         'reported_at' => now()->subMinutes(5),
         'dispatched_at' => now()->subMinutes(2),
-        'responder_name' => 'Clinic Nurse Team Alpha',
+        'clinic_dispatched_at' => now()->subMinutes(2),
+        'clinic_responder_name' => 'Clinic Nurse Team Alpha',
     ]);
 
     $clinicUser = User::factory()->create(['role' => 'Clinic']);
@@ -208,7 +216,8 @@ test('clinic can confirm on scene arrival', function () {
     $response->assertRedirect();
 
     $incident->refresh();
-    expect($incident->arrived_at)->not->toBeNull();
+    expect($incident->clinic_arrived_at)->not->toBeNull()
+        ->and($incident->arrived_at)->toBeNull();
 });
 
 it('does not leak a no-clinic medical incident to the clinic after DRRMO acknowledges it', function () {
