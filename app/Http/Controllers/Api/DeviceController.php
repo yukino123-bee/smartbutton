@@ -29,6 +29,7 @@ class DeviceController extends Controller
             'emergency_category' => ['required', 'string', Rule::in(Incident::EMERGENCY_TYPES)],
             'need_clinic' => ['nullable', 'boolean'],
             'timestamp' => ['nullable', 'date', 'before_or_equal:now'],
+            'simulated' => ['nullable', 'boolean'],
         ]);
 
         $deviceCode = $validated['device_id'];
@@ -110,9 +111,11 @@ class DeviceController extends Controller
         }
 
         // The victim pressed the wrong button first: the earlier alert DRRMO has not acted on becomes a false alarm.
+        // A Critical alert is never replaced; a possibly real one stays for DRRMO to judge.
         Incident::where('device_id', $device->id)
             ->where('status', 'Pending')
             ->where('emergency_type', '!=', $emergencyType)
+            ->where('emergency_type', '!=', Incident::TYPE_CRITICAL)
             ->where('created_at', '>=', now()->subSeconds(self::CORRECTION_WINDOW_SECONDS))
             ->get()
             ->each(fn (Incident $old) => $old->supersedeAsFalseAlarm($emergencyType));
@@ -122,6 +125,10 @@ class DeviceController extends Controller
             $remarks = $needClinic
                 ? 'Medical Emergency (Witness requested Clinic Aid)'
                 : 'Medical Emergency (Witness indicated No Clinic Aid needed)';
+        }
+
+        if ($request->boolean('simulated')) {
+            $remarks = trim('[Simulation] '.$remarks);
         }
 
         // Create incident record
@@ -201,60 +208,6 @@ class DeviceController extends Controller
             'incident_id' => $pendingIncident ? $pendingIncident->id : ($latestIncident ? $latestIncident->id : null),
             'incident_status' => $latestIncident ? $latestIncident->status : null,
             'drrmo_responded' => $drrmoResponded,
-        ]);
-    }
-
-    /**
-     * Acknowledge an incident via API.
-     */
-    public function acknowledge($incident)
-    {
-        $incidentModel = Incident::find($incident);
-        if (! $incidentModel) {
-            $incidentModel = Incident::findOrFail($incident);
-        }
-
-        abort_unless($incidentModel->status === 'Pending', 409, 'Only pending incidents can be acknowledged.');
-        $incidentModel->update(['status' => 'Acknowledged']);
-        $incidentModel->releaseClinicRequest();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Emergency alert acknowledged.',
-            'incident_id' => $incidentModel->id,
-        ]);
-    }
-
-    public function dispatch($incident)
-    {
-        $incidentModel = Incident::findOrFail($incident);
-        abort_unless(in_array($incidentModel->status, ['Pending', 'Acknowledged'], true), 409, 'Incident cannot be dispatched from its current status.');
-        $incidentModel->update([
-            'status' => 'Responding',
-        ]);
-        $incidentModel->releaseClinicRequest();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Responders dispatched.',
-            'incident_id' => $incidentModel->id,
-        ]);
-    }
-
-    public function resolve($incident)
-    {
-        $incidentModel = Incident::findOrFail($incident);
-        abort_if($incidentModel->status === 'Resolved', 409, 'Incident is already resolved.');
-        $incidentModel->update([
-            'status' => 'Resolved',
-            'resolved_at' => now(),
-        ]);
-        $incidentModel->resolveClinicSide('Resolved', null, null);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Incident marked resolved and recorded.',
-            'incident_id' => $incidentModel->id,
         ]);
     }
 

@@ -62,10 +62,12 @@
                 <span class="font-bold text-[13px]">SMS Logs</span>
             </a>
 
+            @if(config('app.simulation_enabled'))
             <a id="nav-ndrrmo-simulation" href="{{ route('ndrrmo.simulation') }}" class="nav-link {{ request()->routeIs('ndrrmo.simulation') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <span class="font-bold text-[13px]">Device Simulation</span>
             </a>
+            @endif
 
             <a id="nav-ndrrmo-reports" href="{{ route('ndrrmo.reports') }}" class="nav-link {{ request()->routeIs('ndrrmo.reports') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -149,7 +151,7 @@
     <div id="global-emergency-perimeter" class="fixed inset-0 pointer-events-none z-[9980] border-4 border-red-600 shadow-[inset_0_0_45px_rgba(220,38,38,0.45)] animate-pulse hidden"></div>
 
     {{-- Non-Blocking Top Floating Emergency Command HUD --}}
-    <div id="global-emergency-overlay" class="fixed top-3 left-1/2 -translate-x-1/2 z-[9990] w-full max-w-4xl px-3 pointer-events-none hidden transition-all duration-300">
+    <div id="global-emergency-overlay" class="fixed top-3 left-1/2 -translate-x-1/2 z-[9990] w-full max-w-5xl px-3 pointer-events-none hidden transition-all duration-300">
         <div id="global-emergency-modal" class="pointer-events-auto bg-white/95 backdrop-blur-md border-2 border-red-600 rounded-2xl shadow-2xl overflow-hidden transition-all flex flex-col">
             
             {{-- Top Ribbon Bar --}}
@@ -161,6 +163,7 @@
                 </div>
                 
                 <div class="flex items-center gap-2">
+                    <button type="button" id="hud-ackall-ribbon-btn" onclick="acknowledgeAllActiveEmergencies()" class="hidden px-2.5 py-1 bg-slate-900 hover:bg-black text-white text-[11px] font-black rounded-lg transition-all cursor-pointer active:scale-95">ACK ALL</button>
                     {{-- Mute Siren Toggle --}}
                     <button type="button" id="hud-mute-btn" onclick="toggleMuteSiren()" title="Mute/Unmute Siren Audio" class="px-2.5 py-1 bg-black/25 hover:bg-black/45 text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 cursor-pointer">
                         <span id="hud-mute-icon">🔊</span>
@@ -181,20 +184,8 @@
             {{-- Collapsible HUD Body --}}
             <div id="hud-body" class="p-4 flex flex-col gap-3">
                 {{-- Multi-alert header banner (shown when > 1 unhandled alerts) --}}
-                <div id="multi-alert-header" class="hidden mb-1 p-2 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-black text-red-700 uppercase" id="multi-alert-count-text">2 UNHANDLED ALERTS</span>
-                        <div id="multi-alert-tabs" class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar"></div>
-                    </div>
-                    <div class="flex items-center gap-1 shrink-0">
-                        <button type="button" onclick="navigateEmergency(-1)" class="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-800 text-[11px] font-black rounded-md border border-slate-300 cursor-pointer">◀</button>
-                        <span id="multi-alert-step-text" class="text-[11px] font-black text-slate-700 px-1">1/2</span>
-                        <button type="button" onclick="navigateEmergency(1)" class="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-800 text-[11px] font-black rounded-md border border-slate-300 cursor-pointer">▶</button>
-                    </div>
-                </div>
-
                 {{-- Alert Summary Row --}}
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                <div id="hud-single-summary" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
                     <div class="flex items-center gap-3">
                         <div id="global-emergency-icon-box" class="w-11 h-11 rounded-xl bg-red-100 border border-red-300 text-red-600 flex items-center justify-center font-black text-lg shrink-0">
                             🚨
@@ -236,6 +227,9 @@
                 </div>
             </div>
         </div>
+
+        {{-- One separate container per unhandled alert, stacked vertically (shown when more than one) --}}
+        <div id="hud-alert-grid" class="hidden"></div>
     </div>
 
     <!-- Scripts -->
@@ -327,6 +321,80 @@
             }
         }
 
+        function emergencyCardTheme(type) {
+            if (type.includes('Medical')) return { border: 'border-orange-500', badge: 'bg-orange-600' };
+            if (type.includes('Public Safety') || type.includes('Facility')) return { border: 'border-amber-500', badge: 'bg-amber-600' };
+            return { border: 'border-red-600', badge: 'bg-red-600' };
+        }
+
+        function hudCardAction(idx, action) {
+            if (idx < 0 || idx >= window.activeEmergencyIncidents.length) return;
+            window.currentEmergencyIndex = idx;
+            if (action === 'ack') acknowledgeActiveEmergency();
+            else if (action === 'dispatch') quickDispatchCurrentIncident();
+            else if (action === 'false') quickFalseAlarmCurrentIncident();
+            else if (action === 'map') flyToCurrentIncidentMap();
+        }
+
+        function renderEmergencyGrid(stack) {
+            if (!stack) return;
+            const list = window.activeEmergencyIncidents;
+            stack.className = `pointer-events-auto mt-3 flex flex-row items-stretch gap-3 max-h-[calc(100vh-7rem)] overflow-x-auto overflow-y-auto custom-scrollbar ${window.isHudMinimized ? 'hidden' : ''}`;
+            stack.innerHTML = '';
+
+            list.forEach((inc, idx) => {
+                const type = inc.emergency_type || 'Emergency Alert';
+                const theme = emergencyCardTheme(type);
+                const loc = (inc.device && inc.device.building) ? inc.device.building : 'Location not recorded';
+                const code = (inc.device && inc.device.device_code) ? inc.device.device_code : 'Not recorded';
+                const time = inc.reported_at ? new Date(inc.reported_at).toLocaleTimeString() : 'Just now';
+
+                const box = document.createElement('div');
+                box.className = `flex-1 min-w-[250px] bg-white/95 backdrop-blur-md border-2 ${theme.border} rounded-2xl shadow-2xl overflow-hidden flex flex-col`;
+
+                const head = document.createElement('div');
+                head.className = `${theme.badge} px-4 py-2 flex items-center justify-between text-white`;
+                const title = document.createElement('span');
+                title.className = 'font-black text-xs uppercase tracking-wider';
+                title.textContent = `🚨 ${type}`;
+                const status = document.createElement('span');
+                status.className = 'bg-black/30 text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse';
+                status.textContent = (inc.status || 'Pending').toUpperCase();
+                head.append(title, status);
+
+                const body = document.createElement('div');
+                body.className = 'p-3 flex flex-col gap-2.5';
+                const where = document.createElement('div');
+                const locEl = document.createElement('p');
+                locEl.className = 'font-extrabold text-slate-900 text-sm';
+                locEl.textContent = loc;
+                const meta = document.createElement('p');
+                meta.className = 'text-[11px] text-slate-500 font-mono';
+                meta.textContent = `Device ID: ${code} • Reported ${time}`;
+                where.append(locEl, meta);
+
+                const actions = document.createElement('div');
+                actions.className = 'grid grid-cols-2 gap-2 mt-auto';
+                [
+                    ['ack', 'ACKNOWLEDGE', 'bg-red-600 hover:bg-red-700 text-white'],
+                    ['dispatch', 'DISPATCH', 'bg-blue-600 hover:bg-blue-700 text-white'],
+                    ['false', '⚠️ False Alarm', 'bg-white border border-slate-300 hover:bg-slate-100 text-slate-700'],
+                    ['map', '🗺️ Map', 'bg-white border border-slate-300 hover:bg-slate-100 text-slate-700'],
+                ].forEach(([action, label, cls]) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = `${cls} py-2 rounded-xl text-xs font-extrabold active:scale-95 transition-all cursor-pointer`;
+                    btn.textContent = label;
+                    btn.addEventListener('click', () => hudCardAction(idx, action));
+                    actions.appendChild(btn);
+                });
+
+                body.append(where, actions);
+                box.append(head, body);
+                stack.appendChild(box);
+            });
+        }
+
         function renderActiveEmergencyModal() {
             if (!window.activeEmergencyIncidents || window.activeEmergencyIncidents.length === 0) {
                 closeEmergencyModal();
@@ -407,38 +475,24 @@
                 statusBadge.textContent = (incident.status || 'PENDING').toUpperCase();
             }
 
-            // Multi-alert UI controls
+            // Multi-alert UI: every unhandled alert gets its own container, stacked vertically
+            const hudBody = document.getElementById('hud-body');
+            const alertGrid = document.getElementById('hud-alert-grid');
+            const ackAllRibbon = document.getElementById('hud-ackall-ribbon-btn');
+            if (overlay) {
+                overlay.classList.toggle('max-w-5xl', total <= 1 || total === 2);
+                overlay.classList.toggle('max-w-7xl', total > 2);
+            }
             if (total > 1) {
-                if (multiHeader) multiHeader.classList.remove('hidden');
-                if (hudCounter) {
-                    hudCounter.classList.remove('hidden');
-                    hudCounter.textContent = `Alert ${currentIdx + 1} of ${total}`;
-                }
-                if (multiCountText) multiCountText.textContent = `${total} UNHANDLED ALERTS`;
-                if (multiStepText) multiStepText.textContent = `${currentIdx + 1}/${total}`;
-
-                if (multiTabs) {
-                    multiTabs.innerHTML = '';
-                    window.activeEmergencyIncidents.forEach((inc, idx) => {
-                        const tabBtn = document.createElement('button');
-                        tabBtn.type = 'button';
-                        tabBtn.onclick = () => selectEmergencyIndex(idx);
-                        const bld = (inc.device && inc.device.building) ? inc.device.building : 'Alert';
-                        const isCurrent = idx === currentIdx;
-                        tabBtn.className = isCurrent
-                            ? `px-2.5 py-0.5 rounded-lg text-[11px] font-black text-white ${badgeBg} shadow-xs shrink-0 ring-1 ring-white cursor-pointer`
-                            : 'px-2.5 py-0.5 rounded-lg text-[11px] font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 shrink-0 cursor-pointer';
-                        tabBtn.textContent = `#${idx + 1}: ${bld}`;
-                        multiTabs.appendChild(tabBtn);
-                    });
-                }
-
-                if (ackBtnText) ackBtnText.textContent = `ACK THIS (#${currentIdx + 1})`;
-                if (ackAllBtn) ackAllBtn.classList.remove('hidden');
-                if (ackAllText) ackAllText.textContent = `ACK ALL (${total})`;
-            } else {
-                if (multiHeader) multiHeader.classList.add('hidden');
+                if (badge) badge.textContent = `🚨 ${total} UNHANDLED ALERTS`;
                 if (hudCounter) hudCounter.classList.add('hidden');
+                if (ackAllRibbon) ackAllRibbon.classList.remove('hidden');
+                if (hudBody) hudBody.classList.add('hidden');
+                renderEmergencyGrid(alertGrid);
+            } else {
+                if (ackAllRibbon) ackAllRibbon.classList.add('hidden');
+                if (hudBody) hudBody.classList.toggle('hidden', Boolean(window.isHudMinimized));
+                if (alertGrid) { alertGrid.classList.add('hidden'); alertGrid.innerHTML = ''; }
                 if (ackBtnText) ackBtnText.textContent = 'ACKNOWLEDGE';
                 if (ackAllBtn) ackAllBtn.classList.add('hidden');
             }
@@ -475,6 +529,12 @@
             window.isHudMinimized = !window.isHudMinimized;
             const body = document.getElementById('hud-body');
             const icon = document.getElementById('hud-minimize-icon');
+            const stack = document.getElementById('hud-alert-grid');
+            if (stack && window.activeEmergencyIncidents.length > 1) stack.classList.toggle('hidden', window.isHudMinimized);
+            if (window.activeEmergencyIncidents.length > 1) {
+                if (icon) icon.textContent = window.isHudMinimized ? '▼' : '▲';
+                return;
+            }
             if (window.isHudMinimized) {
                 if (body) body.classList.add('hidden');
                 if (icon) icon.textContent = '▼';
@@ -493,19 +553,19 @@
             const lng = incident.device.longitude ? parseFloat(incident.device.longitude) : null;
 
             if (lat && lng && window.ndrrmoCampusMap) {
-                // Scroll to campus map container if present
-                const mapEl = document.getElementById('campus-map');
+                // On the map page: show exactly this alert's device, closing any other open popup
+                const mapEl = document.getElementById('campus-map') || document.getElementById('campusMap');
                 if (mapEl) {
                     mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-                setTimeout(() => {
-                    window.ndrrmoCampusMap.flyTo([lat, lng], 19, { animate: true, duration: 1.2 });
-                    if (window.deviceMarkers && window.deviceMarkers[incident.device_id]) {
-                        window.deviceMarkers[incident.device_id].openPopup();
-                    }
-                }, 300);
+                const marker = window.deviceMarkers && window.deviceMarkers[incident.device_id];
+                window.ndrrmoCampusMap.closePopup();
+                window.ndrrmoCampusMap.flyTo([lat, lng], 17, { animate: true, duration: 1.2 });
+                if (marker) {
+                    window.ndrrmoCampusMap.once('moveend', () => marker.openPopup());
+                }
             } else {
-                // If on another page, navigate to map page with incident param
+                // If on another page, open the map page focused on this alert
                 window.location.href = `/ndrrmo/map?incident_id=${incident.id}`;
             }
         }

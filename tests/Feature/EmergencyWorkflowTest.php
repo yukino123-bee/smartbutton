@@ -302,19 +302,30 @@ test('api emergency creates medical alert with need_clinic false and suppresses 
 
 test('a different button right after an unacknowledged alert turns the first into a false alarm', function () {
     Event::fake([EmergencyReported::class]);
-    $device = makeDevice('DEV-WRONG-01');
+    makeDevice('DEV-WRONG-01');
 
-    $first = $this->postJson('/api/emergency', ['device_id' => 'DEV-WRONG-01', 'emergency_category' => Incident::TYPE_CRITICAL])
+    $first = $this->postJson('/api/emergency', ['device_id' => 'DEV-WRONG-01', 'emergency_category' => Incident::TYPE_PUBLIC_SAFETY])
         ->assertCreated()->json('incident_id');
-    $second = $this->postJson('/api/emergency', ['device_id' => 'DEV-WRONG-01', 'emergency_category' => Incident::TYPE_PUBLIC_SAFETY])
+    $second = $this->postJson('/api/emergency', ['device_id' => 'DEV-WRONG-01', 'emergency_category' => Incident::TYPE_MEDICAL])
         ->assertCreated()->json('incident_id');
 
     $old = Incident::find($first);
     expect($old->status)->toBe('Resolved')
         ->and($old->resolution_type)->toBe(Incident::RESOLUTION_FALSE_ALARM)
-        ->and($old->clinic_status)->toBe('Resolved')
         ->and(Incident::find($second)->status)->toBe('Pending');
-    expect(Notification::where('incident_id', $first)->where('status', 'Resolved (False Alarm)')->count())->toBe(2);
+    expect(Notification::where('incident_id', $first)->where('status', 'Resolved (False Alarm)')->count())->toBe(1);
+});
+
+test('a critical alert is never replaced by a later button press', function () {
+    Event::fake([EmergencyReported::class]);
+    makeDevice('DEV-WRONG-03');
+
+    $critical = $this->postJson('/api/emergency', ['device_id' => 'DEV-WRONG-03', 'emergency_category' => Incident::TYPE_CRITICAL])
+        ->assertCreated()->json('incident_id');
+    $this->postJson('/api/emergency', ['device_id' => 'DEV-WRONG-03', 'emergency_category' => Incident::TYPE_PUBLIC_SAFETY])->assertCreated();
+
+    expect(Incident::find($critical)->status)->toBe('Pending')
+        ->and(Incident::active()->count())->toBe(2);
 });
 
 test('an acknowledged alert is not replaced when another button is pressed', function () {
@@ -351,6 +362,8 @@ test('drrmo sees the simulation page and nav link, clinic cannot open it', funct
 
     $this->actingAs(User::factory()->create(['role' => 'DRRMO']))
         ->get('/ndrrmo/simulation')->assertSuccessful()->assertSee('Device Simulation')->assertSee('DEV-SIM-01');
+    makeDevice('DEV-SIM-02');
+    $this->get('/ndrrmo/simulation')->assertSee('data-device="DEV-SIM-01"', false)->assertSee('data-device="DEV-SIM-02"', false);
     $this->get('/ndrrmo')->assertSee('nav-ndrrmo-simulation', false);
 
     $this->actingAs(User::factory()->create(['role' => 'Clinic']))->get('/ndrrmo/simulation')->assertForbidden();

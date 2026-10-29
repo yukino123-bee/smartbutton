@@ -31,8 +31,8 @@ This file serves as persistent memory and instructions for all AI assistant sess
 - **Heartbeat & Status Polling**:
   `GET http://192.168.100.169:8000/api/device/status?device_id=LIB-001`
   - Returns: `{"device_code":"LIB-001","has_pending":bool,"status":"normal"|"pending"|"acknowledged","incident_id":...,"drrmo_responded":bool}`
-- **DRRMO Dashboard Acknowledgment**:
-  `POST http://192.168.100.169:8000/api/incidents/{id}/acknowledge`
+- **DRRMO Dashboard Acknowledgment**: done in the dashboard (`/ndrrmo/incidents/{id}/acknowledge`); the old open `/api/incidents/*` endpoints were removed.
+- **Device token (optional)**: set `DEVICE_API_TOKEN` in the server `.env` and `#define DEVICE_TOKEN "..."` in each board's `secrets.h`; sent as `X-Device-Token`.
 
 ---
 

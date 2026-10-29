@@ -225,6 +225,9 @@ void sendPanicAlert(String emergencyType) {
     http.begin(api_url);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Accept", "application/json");
+#ifdef DEVICE_TOKEN
+    http.addHeader("X-Device-Token", DEVICE_TOKEN);
+#endif
 
     String payload = "{\"device_id\":\"" + String(DEVICE_CODE) +
                      "\", \"emergency_category\":\"" + emergencyType + "\"}";
@@ -444,6 +447,9 @@ void checkAcknowledgeStatus() {
   HTTPClient http;
   http.begin(status_url);
   http.addHeader("Accept", "application/json");
+#ifdef DEVICE_TOKEN
+  http.addHeader("X-Device-Token", DEVICE_TOKEN);
+#endif
 
   int httpCode = http.GET();
   if (httpCode == 200) {

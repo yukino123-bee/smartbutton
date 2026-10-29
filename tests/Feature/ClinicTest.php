@@ -303,7 +303,7 @@ test('clinic cannot classify an incident as a false alarm', function () {
     $response = $this->actingAs(User::factory()->create(['role' => 'Clinic']))
         ->postJson("/clinic/incidents/{$incident->id}/resolve", ['resolution_type' => 'False Alarm']);
 
-    $response->assertSessionHasErrors('resolution_type');
+    $response->assertStatus(422)->assertJsonValidationErrors('resolution_type');
     expect($incident->fresh()->clinic_status)->not->toBe('Resolved');
 });
 

@@ -28,6 +28,9 @@ return [
 
     'env' => env('APP_ENV', 'production'),
 
+    // Device Simulation page: on by default except in production.
+    'simulation_enabled' => (bool) env('SIMULATION_ENABLED', env('APP_ENV', 'production') !== 'production'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Debug Mode

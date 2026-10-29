@@ -243,6 +243,9 @@ void sendPanicAlert(String emergencyType, bool needClinic) {
     http.begin(api_url);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Accept", "application/json");
+#ifdef DEVICE_TOKEN
+    http.addHeader("X-Device-Token", DEVICE_TOKEN);
+#endif
 
     String payload = "{\"device_id\":\"" + String(DEVICE_CODE) +
                      "\", \"emergency_category\":\"" + emergencyType +
@@ -474,6 +477,9 @@ void checkAcknowledgeStatus() {
   HTTPClient http;
   http.begin(status_url);
   http.addHeader("Accept", "application/json");
+#ifdef DEVICE_TOKEN
+  http.addHeader("X-Device-Token", DEVICE_TOKEN);
+#endif
   http.setTimeout(1500); // keep buttons responsive if the server is slow
 
   int httpCode = http.GET();

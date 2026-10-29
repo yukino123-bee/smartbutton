@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\EmergencyReported;
+use App\Http\Controllers\Api\DeviceController;
 use App\Models\Device;
 use App\Models\Incident;
 use App\Models\Notification;
@@ -418,11 +419,37 @@ class NdrrmoController extends Controller
         return view('ndrrmo.sms', compact('smsLogs'));
     }
 
+    private function ensureSimulationEnabled(): void
+    {
+        abort_unless(config('app.simulation_enabled'), 404);
+    }
+
     public function simulation()
     {
+        $this->ensureSimulationEnabled();
         $devices = Device::where('status', 'active')->orderBy('device_code')->get();
 
         return view('ndrrmo.simulation', compact('devices'));
+    }
+
+    /** Virtual device press: runs the real device endpoint server-side so the device token never reaches the browser. */
+    public function simulationEmergency(Request $request)
+    {
+        $this->ensureSimulationEnabled();
+
+        $deviceRequest = Request::create('/api/emergency', 'POST', $request->only(['device_id', 'emergency_category', 'need_clinic']) + ['simulated' => true]);
+        $deviceRequest->headers->set('Accept', 'application/json');
+
+        return app(DeviceController::class)->emergency($deviceRequest);
+    }
+
+    public function simulationStatus(Request $request)
+    {
+        $this->ensureSimulationEnabled();
+
+        $deviceRequest = Request::create('/api/device/status', 'GET', $request->only('device_id'));
+
+        return app(DeviceController::class)->status($deviceRequest);
     }
 
     public function reports()

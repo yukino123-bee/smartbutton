@@ -24,6 +24,10 @@
                     </div>
                     <div class="flex items-center">
                         <span class="w-3 h-3 rounded-full bg-orange-500 mr-2.5 shrink-0 ring-2 ring-orange-200"></span>
+                        <span>Medical Emergency</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full bg-amber-500 mr-2.5 shrink-0 ring-2 ring-amber-200"></span>
                         <span>Public Safety</span>
                     </div>
                     <div class="flex items-center pt-2 border-t border-slate-100">
@@ -48,11 +52,11 @@
                 @forelse($activeIncidents as $incident)
                     @php
                         if (str_contains($incident->emergency_type, 'Public Safety')) {
-                            $cardBg = 'bg-orange-50/60 border-orange-200 text-orange-800';
-                            $badgeColor = 'text-orange-700 bg-orange-100';
-                        } elseif (str_contains($incident->emergency_type, 'Facility') || str_contains($incident->emergency_type, 'Hazard')) {
                             $cardBg = 'bg-amber-50/60 border-amber-200 text-amber-800';
                             $badgeColor = 'text-amber-700 bg-amber-100';
+                        } elseif (str_contains($incident->emergency_type, 'Medical')) {
+                            $cardBg = 'bg-orange-50/60 border-orange-200 text-orange-800';
+                            $badgeColor = 'text-orange-700 bg-orange-100';
                         } else {
                             $cardBg = 'bg-red-50/60 border-red-200 text-red-800';
                             $badgeColor = 'text-red-700 bg-red-100';
@@ -110,6 +114,7 @@
     const devicesData = @json($devices);
     const activeIncidentsData = @json($activeIncidents);
     const mapMarkers = {};
+    const deviceMarkers = {}; // keyed by device id, used by the alert popup's Map button
     
     // Default Map Center
     let centerLat = 7.708601;
@@ -127,6 +132,7 @@
     // Add Esri World Imagery Satellite tiles
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
         attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+        maxNativeZoom: 17, // satellite imagery is missing beyond this here; tiles are scaled instead of blank
         maxZoom: 19
     }).addTo(map);
 
@@ -150,11 +156,22 @@
         });
     };
 
+    // One colour per alert type, matching the legend and the dashboards
+    const typeTheme = (type) => {
+        if (type.includes('Public Safety')) return { text: 'text-amber-500', pulse: 'animate-ping bg-amber-500', popup: 'text-amber-600', hex: '#f59e0b' };
+        if (type.includes('Medical')) return { text: 'text-orange-500', pulse: 'animate-ping bg-orange-500', popup: 'text-orange-600', hex: '#f97316' };
+        return { text: 'text-red-600', pulse: 'animate-ping bg-red-600', popup: 'text-red-600', hex: '#dc2626' };
+    };
+    const severityRank = (type) => type.includes('Critical') ? 3 : (type.includes('Medical') ? 2 : 1);
+
     // Plot Devices on Map
     devicesData.forEach(device => {
         if (!device.latitude || !device.longitude) return;
         
-        const incident = activeIncidentsData.find(i => i.device_id === device.id);
+        // If several alerts are active on one device, show the most severe (Critical > Medical > Public Safety)
+        const incident = activeIncidentsData
+            .filter(i => i.device_id === device.id)
+            .sort((a, b) => severityRank(b.emergency_type) - severityRank(a.emergency_type))[0];
         
         let markerIcon;
         let popupTitle = 'Device Status: Normal';
@@ -162,33 +179,31 @@
         let statusText = 'Online';
         let pulseClass = null;
         let colorClass = 'text-blue-600';
+        let circleColor = '#dc2626';
         let svgIcon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>';
         
         if (incident) {
             statusText = 'EMERGENCY ACTIVE';
             svgIcon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>';
-            if (incident.emergency_type.includes('Public Safety')) {
-                pulseClass = 'animate-ping bg-orange-500';
-                colorClass = 'text-orange-500';
-                popupTitle = 'EMERGENCY: ' + incident.emergency_type;
-                popupColor = 'text-orange-600';
-            } else if (incident.emergency_type.includes('Facility') || incident.emergency_type.includes('Hazard')) {
-                pulseClass = 'animate-ping bg-amber-500';
-                colorClass = 'text-amber-500';
-                popupTitle = 'EMERGENCY: ' + incident.emergency_type;
-                popupColor = 'text-amber-600';
-            } else {
-                pulseClass = 'animate-ping bg-red-600';
-                colorClass = 'text-red-600';
-                popupTitle = 'EMERGENCY: ' + incident.emergency_type;
-                popupColor = 'text-red-600';
-            }
+            const theme = typeTheme(incident.emergency_type);
+            pulseClass = theme.pulse;
+            colorClass = theme.text;
+            popupTitle = 'EMERGENCY: ' + incident.emergency_type;
+            popupColor = theme.popup;
+            circleColor = theme.hex;
         }
 
         markerIcon = createMarkerIcon(colorClass, pulseClass);
 
         const marker = L.marker([device.latitude, device.longitude], {icon: markerIcon}).addTo(map);
         
+        const deviceAlerts = activeIncidentsData.filter(i => i.device_id === device.id);
+        const alertsHtml = deviceAlerts.map(i => `
+            <div class="flex justify-between items-center text-xs mt-1">
+                <span class="font-bold ${typeTheme(i.emergency_type).popup}">${i.emergency_type}</span>
+                <span class="text-slate-500 font-medium">${i.status} · ${i.reported_at ? new Date(i.reported_at).toLocaleTimeString() : ''}</span>
+            </div>`).join('');
+
         const popupContent = `
             <div class="p-4 min-w-[220px]">
                 <div class="flex items-center gap-3 mb-3">
@@ -208,19 +223,19 @@
                         <span class="text-slate-500 font-medium">Status</span>
                         <span class="font-bold ${popupColor} flex items-center"><span class="w-1.5 h-1.5 rounded-full ${incident ? 'bg-red-600 animate-pulse' : 'bg-blue-600'} mr-1.5"></span>${statusText}</span>
                     </div>
+                    ${alertsHtml ? `<div class="mt-2 pt-2 border-t border-slate-100"><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active alerts on this device</div>${alertsHtml}</div>` : ''}
                 </div>
             </div>
         `;
         
         marker.bindPopup(popupContent);
         mapMarkers[device.device_code] = marker;
+        deviceMarkers[device.id] = marker;
 
         if (incident) {
-            marker.openPopup();
-            map.setView([device.latitude, device.longitude], 18);
             L.circle([device.latitude, device.longitude], {
-                color: '#dc2626',
-                fillColor: '#ef4444',
+                color: circleColor,
+                fillColor: circleColor,
                 fillOpacity: 0.4,
                 radius: 30
             }).addTo(map);
@@ -233,11 +248,26 @@
         map.fitBounds(group.getBounds().pad(0.1));
     }
 
+    // Used by the alert popup's Map button (layouts/ndrrmo.blade.php)
+    window.ndrrmoCampusMap = map;
+    window.deviceMarkers = deviceMarkers;
+
+    // Opened from another page: focus the device of the requested alert, and only that one
+    const requestedIncident = new URLSearchParams(window.location.search).get('incident_id');
+    if (requestedIncident) {
+        const target = activeIncidentsData.find(i => String(i.id) === requestedIncident);
+        if (target && deviceMarkers[target.device_id]) {
+            const targetMarker = deviceMarkers[target.device_id];
+            map.setView(targetMarker.getLatLng(), 17);
+            targetMarker.openPopup();
+        }
+    }
+
     // Function called when clicking a card in the active incidents panel
     function focusOnDevice(deviceCode) {
         const marker = mapMarkers[deviceCode];
         if (marker) {
-            map.flyTo(marker.getLatLng(), 19, {
+            map.flyTo(marker.getLatLng(), 17, {
                 animate: true,
                 duration: 1
             });

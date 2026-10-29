@@ -357,6 +357,9 @@ void sendPanicAlert(String emergencyType, bool needClinic) {
     http.begin(api_url);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Accept", "application/json");
+#ifdef DEVICE_TOKEN
+    http.addHeader("X-Device-Token", DEVICE_TOKEN);
+#endif
     http.setTimeout(4000); // 4-second timeout to avoid long blocking
 
     String payload = "{\"device_id\":\"" + String(DEVICE_CODE) +
@@ -661,6 +664,9 @@ void checkAcknowledgeStatus() {
   HTTPClient http;
   http.begin(status_url);
   http.addHeader("Accept", "application/json");
+#ifdef DEVICE_TOKEN
+  http.addHeader("X-Device-Token", DEVICE_TOKEN);
+#endif
   http.setConnectTimeout(1500); // keep buttons responsive when the server is down
   http.setTimeout(1500);
 

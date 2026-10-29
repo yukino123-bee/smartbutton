@@ -225,20 +225,8 @@
             {{-- Collapsible HUD Body --}}
             <div id="clinic-hud-body" class="p-3.5 flex flex-col gap-2.5">
                 {{-- Multi-alert header banner (shown when > 1 unhandled alerts) --}}
-                <div id="clinic-multi-alert-header" class="hidden p-2 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="text-[11px] font-black text-red-700 uppercase truncate" id="clinic-multi-alert-count-text">2 UNHANDLED MEDICAL ALERTS</span>
-                        <div id="clinic-multi-alert-tabs" class="flex items-center gap-1 overflow-x-auto custom-scrollbar"></div>
-                    </div>
-                    <div class="flex items-center gap-1 shrink-0">
-                        <button type="button" onclick="navigateClinicEmergency(-1)" class="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-black rounded border border-slate-300 cursor-pointer">◀</button>
-                        <span id="clinic-multi-alert-step-text" class="text-[10px] font-black text-slate-700 px-1">1/2</span>
-                        <button type="button" onclick="navigateClinicEmergency(1)" class="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-black rounded border border-slate-300 cursor-pointer">▶</button>
-                    </div>
-                </div>
-
                 {{-- Alert Summary Row --}}
-                <div class="bg-slate-50/90 border border-slate-200 rounded-xl p-3 flex items-start gap-3">
+                <div id="clinic-single-summary" class="bg-slate-50/90 border border-slate-200 rounded-xl p-3 flex items-start gap-3">
                     <div id="global-emergency-icon-box" class="w-10 h-10 rounded-xl bg-red-100 border border-red-300 text-red-600 flex items-center justify-center font-black text-lg shrink-0">
                         🚑
                     </div>
@@ -253,7 +241,7 @@
                 </div>
 
                 {{-- Actions on HUD --}}
-                <div class="flex flex-wrap items-center justify-end gap-1.5 pt-1">
+                <div id="clinic-single-actions" class="flex flex-wrap items-center justify-end gap-1.5 pt-1">
 
                     <button id="clinic-emergency-dispatch-btn" type="button" onclick="quickDispatchClinicIncident()"
                             class="py-1.5 px-3 rounded-xl font-extrabold text-white text-xs shadow-xs bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all flex items-center gap-1 cursor-pointer">
@@ -263,6 +251,9 @@
                 </div>
             </div>
         </div>
+
+        {{-- One separate container per unhandled alert, stacked vertically (shown when more than one) --}}
+        <div id="clinic-alert-grid" class="hidden"></div>
     </div>
 
 
@@ -359,6 +350,58 @@
             }
         }
 
+        function clinicCardAction(idx) {
+            if (idx < 0 || idx >= window.activeClinicIncidents.length) return;
+            window.currentClinicIndex = idx;
+            quickDispatchClinicIncident();
+        }
+
+        function renderClinicGrid(stack) {
+            if (!stack) return;
+            const list = window.activeClinicIncidents;
+            stack.className = `pointer-events-auto mt-3 flex flex-row items-stretch gap-3 max-h-[calc(100vh-7rem)] overflow-x-auto overflow-y-auto custom-scrollbar ${window.isClinicHudMinimized ? 'hidden' : ''}`;
+            stack.innerHTML = '';
+
+            list.forEach((inc, idx) => {
+                const type = inc.emergency_type || 'Medical Alert';
+                const loc = (inc.device && inc.device.building) ? inc.device.building : 'Location not recorded';
+                const code = (inc.device && inc.device.device_code) ? inc.device.device_code : 'Not recorded';
+                const time = inc.reported_at ? new Date(inc.reported_at).toLocaleTimeString() : 'Just now';
+
+                const box = document.createElement('div');
+                box.className = 'flex-1 min-w-[230px] bg-white/95 backdrop-blur-md border-2 border-red-500 rounded-2xl shadow-2xl overflow-hidden flex flex-col';
+
+                const head = document.createElement('div');
+                head.className = 'bg-red-600 px-4 py-2 flex items-center justify-between text-white';
+                const title = document.createElement('span');
+                title.className = 'font-black text-xs uppercase tracking-wider';
+                title.textContent = `🚑 ${type}`;
+                const status = document.createElement('span');
+                status.className = 'bg-black/30 text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse';
+                status.textContent = 'PENDING';
+                head.append(title, status);
+
+                const body = document.createElement('div');
+                body.className = 'p-3 flex flex-col gap-2.5';
+                const locEl = document.createElement('p');
+                locEl.className = 'font-extrabold text-slate-900 text-sm';
+                locEl.textContent = loc;
+                const meta = document.createElement('p');
+                meta.className = 'text-[11px] text-slate-500 font-mono';
+                meta.textContent = `Device ID: ${code} • Reported ${time}`;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'mt-auto py-2 rounded-xl text-xs font-extrabold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all cursor-pointer';
+                btn.textContent = 'DISPATCH';
+                btn.addEventListener('click', () => clinicCardAction(idx));
+
+                body.append(locEl, meta, btn);
+                box.append(head, body);
+                stack.appendChild(box);
+            });
+        }
+
         function renderActiveClinicModal() {
             if (!window.activeClinicIncidents || window.activeClinicIncidents.length === 0) {
                 closeClinicModal();
@@ -429,34 +472,23 @@
                 statusBadge.textContent = (incident.status || 'PENDING').toUpperCase();
             }
 
-            // Multi-alert UI controls
+            // Multi-alert UI: every unhandled alert gets its own container, stacked vertically
+            const hudBody = document.getElementById('clinic-hud-body');
+            const alertGrid = document.getElementById('clinic-alert-grid');
+            if (overlay) {
+                overlay.classList.toggle('max-w-3xl', total === 2);
+                overlay.classList.toggle('max-w-5xl', total > 2);
+                overlay.classList.toggle('max-w-md', total <= 1);
+                overlay.classList.toggle('sm:max-w-lg', total <= 1);
+            }
             if (total > 1) {
-                if (multiHeader) multiHeader.classList.remove('hidden');
-                if (hudCounter) {
-                    hudCounter.classList.remove('hidden');
-                    hudCounter.textContent = `Alert ${currentIdx + 1} of ${total}`;
-                }
-                if (multiCountText) multiCountText.textContent = `${total} UNHANDLED MEDICAL ALERTS`;
-                if (multiStepText) multiStepText.textContent = `${currentIdx + 1}/${total}`;
-
-                if (multiTabs) {
-                    multiTabs.innerHTML = '';
-                    window.activeClinicIncidents.forEach((inc, idx) => {
-                        const tabBtn = document.createElement('button');
-                        tabBtn.type = 'button';
-                        tabBtn.onclick = () => selectClinicEmergencyIndex(idx);
-                        const bld = (inc.device && inc.device.building) ? inc.device.building : 'Alert';
-                        const isCurrent = idx === currentIdx;
-                        tabBtn.className = isCurrent
-                            ? `px-2.5 py-0.5 rounded-lg text-[11px] font-black text-white ${badgeBg} shadow-xs shrink-0 ring-1 ring-white cursor-pointer`
-                            : 'px-2.5 py-0.5 rounded-lg text-[11px] font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 shrink-0 cursor-pointer';
-                        tabBtn.textContent = `#${idx + 1}: ${bld}`;
-                        multiTabs.appendChild(tabBtn);
-                    });
-                }
-            } else {
-                if (multiHeader) multiHeader.classList.add('hidden');
+                if (badge) badge.textContent = `🚑 ${total} UNHANDLED MEDICAL ALERTS`;
                 if (hudCounter) hudCounter.classList.add('hidden');
+                if (hudBody) hudBody.classList.add('hidden');
+                renderClinicGrid(alertGrid);
+            } else {
+                if (hudBody) hudBody.classList.toggle('hidden', Boolean(window.isClinicHudMinimized));
+                if (alertGrid) { alertGrid.classList.add('hidden'); alertGrid.innerHTML = ''; }
             }
 
             if (overlay) {
@@ -474,6 +506,7 @@
                         container.innerHTML = '';
                         const modalMap = L.map('clinic-modal-emergency-map', { zoomControl: false, attributionControl: false }).setView([lat, lng], 18);
                         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                            maxNativeZoom: 17,
                             maxZoom: 19
                         }).addTo(modalMap);
 
@@ -558,6 +591,12 @@
             window.isClinicHudMinimized = !window.isClinicHudMinimized;
             const body = document.getElementById('clinic-hud-body');
             const icon = document.getElementById('clinic-hud-minimize-icon');
+            const stack = document.getElementById('clinic-alert-grid');
+            if (window.activeClinicIncidents.length > 1) {
+                if (stack) stack.classList.toggle('hidden', window.isClinicHudMinimized);
+                if (icon) icon.textContent = window.isClinicHudMinimized ? '▼' : '▲';
+                return;
+            }
             if (window.isClinicHudMinimized) {
                 if (body) body.classList.add('hidden');
                 if (icon) icon.textContent = '▼';

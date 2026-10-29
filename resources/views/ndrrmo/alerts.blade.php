@@ -165,6 +165,11 @@
                                 </span>
                             @endif
                         @endif
+                        @if($alert->notifications->where('status', 'Clinic Medical Team Dispatched')->isNotEmpty())
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                🏥 CLINIC: MEDICAL TEAM DISPATCHED
+                            </span>
+                        @endif
                     </div>
                 </div>
 

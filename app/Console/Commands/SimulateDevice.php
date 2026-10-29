@@ -112,10 +112,11 @@ class SimulateDevice extends Command
         $this->line("[BUTTON] {$label} pressed");
 
         try {
-            $response = Http::acceptJson()->timeout(4)->post("{$this->url}/api/emergency", [
+            $response = $this->http(4)->post("{$this->url}/api/emergency", [
                 'device_id' => $device,
                 'emergency_category' => $type,
                 'need_clinic' => $needClinic,
+                'simulated' => true,
             ]);
         } catch (ConnectionException) {
             $this->error('[API ERROR] Server unreachable. The real device would send an SMS instead and sound the siren for 60 s.');
@@ -140,7 +141,7 @@ class SimulateDevice extends Command
     private function checkStatus(string $device): void
     {
         try {
-            $response = Http::acceptJson()->timeout(2)->get("{$this->url}/api/device/status", ['device_id' => $device]);
+            $response = $this->http(2)->get("{$this->url}/api/device/status", ['device_id' => $device]);
         } catch (ConnectionException) {
             $this->warn('[STATUS] Server unreachable (red LED).');
 
@@ -160,6 +161,14 @@ class SimulateDevice extends Command
             $this->info('[ACKNOWLEDGED] DRRMO responded. Siren stopped, 3 confirmation beeps.');
             $this->alarming = false;
         }
+    }
+
+    private function http(int $timeout)
+    {
+        $request = Http::acceptJson()->timeout($timeout);
+        $token = config('services.device.token');
+
+        return $token ? $request->withHeaders(['X-Device-Token' => $token]) : $request;
     }
 
     private function keyFor(string $name): ?string

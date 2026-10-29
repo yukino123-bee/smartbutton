@@ -136,6 +136,10 @@
                     @if(!$clinicAck)
                         <form id="ack-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.incidents.dispatch', $alert->id) }}" class="flex-1" onsubmit="return confirmAction(event, 'Dispatch the medical team to this alert?', 'Dispatch Medical Team', 'Dispatch', 'warning')">
                             @csrf
+                            <div class="flex gap-1.5 mb-1.5">
+                                <input type="text" name="responder_name" maxlength="150" placeholder="Responder / team" class="ui-input flex-1 min-w-0 text-xs py-1.5">
+                                <input type="number" name="eta_minutes" min="1" max="120" placeholder="ETA min" class="ui-input w-20 text-xs py-1.5">
+                            </div>
                             <button type="submit" class="w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                 Dispatch

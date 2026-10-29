@@ -1015,6 +1015,10 @@
                         <td class="px-5 py-4 text-center">
                             <form method="POST" action="{{ $incident->status === 'Pending' ? route('clinic.incidents.dispatch', $incident) : route('clinic.incidents.resolve', $incident) }}">
                                 @csrf
+                                @if($incident->status === 'Pending')
+                                    <input type="text" name="responder_name" maxlength="150" placeholder="Responder / team" class="ui-input inline-block w-36 text-xs py-1 mr-1">
+                                    <input type="number" name="eta_minutes" min="1" max="120" placeholder="ETA" class="ui-input inline-block w-16 text-xs py-1 mr-1">
+                                @endif
                                 <button type="submit" class="bg-brand-blue hover:bg-blue-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-xs cursor-pointer">
                                     {{ $incident->status === 'Pending' ? 'Dispatch' : 'Resolve' }}
                                 </button>
