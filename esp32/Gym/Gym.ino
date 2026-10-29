@@ -10,8 +10,8 @@ const int NUM_EMERGENCY_RECIPIENTS = sizeof(EMERGENCY_PHONE_NUMBERS) / sizeof(EM
 WiFiMulti wifiMulti;
 
 // Endpoints
-const char *api_url = "http://10.85.82.203:8000/api/emergency";
-const char *status_url = "http://10.85.82.203:8000/api/device/status?device_id=GYM-001";
+const char *api_url = "http://10.85.82.116:8000/api/emergency";
+const char *status_url = "http://10.85.82.116:8000/api/device/status?device_id=GYM-001";
 
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "GYM-001"; // Campus Gym

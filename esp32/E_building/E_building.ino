@@ -9,8 +9,8 @@ const int WIFI_NETWORK_COUNT = sizeof(WIFI_NETWORKS) / sizeof(WIFI_NETWORKS[0]);
 WiFiMulti wifiMulti;
 
 // Endpoints
-const char *api_url = "http://10.104.135.50:8000/api/emergency";
-const char *status_url = "http://10.104.135.50:8000/api/device/status?device_id=ENG-001";
+const char *api_url = "http://10.85.82.116:8000/api/emergency";
+const char *status_url = "http://10.85.82.116:8000/api/device/status?device_id=ENG-001";
 
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "ENG-001"; // E-Building
