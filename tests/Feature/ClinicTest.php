@@ -144,15 +144,15 @@ test('clinic false alarm does not stop or change the drrmo alert', function () {
 
     $this->actingAs(User::factory()->create(['role' => 'Clinic']))
         ->postJson("/clinic/incidents/{$incident->id}/resolve", [
-            'resolution_type' => 'False Alarm',
+            'resolution_type' => 'Drill',
             'false_alarm_reason' => 'Accidental Push',
         ])->assertOk()
         ->assertJsonPath('incident.status', 'Resolved')
-        ->assertJsonPath('incident.resolution_type', 'False Alarm');
+        ->assertJsonPath('incident.resolution_type', 'Drill');
 
     $incident->refresh();
     expect($incident->clinic_status)->toBe('Resolved')
-        ->and($incident->clinic_resolution_type)->toBe('False Alarm')
+        ->and($incident->clinic_resolution_type)->toBe('Drill')
         ->and($incident->status)->toBe('Pending')
         ->and($incident->resolution_type)->toBeNull()
         ->and($incident->false_alarm_reason)->toBeNull()
@@ -294,4 +294,30 @@ test('drrmo resolving a medical emergency with no clinic involvement leaves the 
 
     expect($incident->fresh()->clinic_status)->toBe('Pending')
         ->and($incident->fresh()->clinic_resolved_at)->toBeNull();
+});
+
+test('clinic cannot classify an incident as a false alarm', function () {
+    $device = Device::create(['device_code' => 'CLN-FA', 'building' => 'Clinic', 'floor' => '1', 'room' => 'R', 'status' => 'active']);
+    $incident = Incident::create(['device_id' => $device->id, 'emergency_type' => Incident::TYPE_CRITICAL, 'status' => 'Pending', 'reported_at' => now()]);
+
+    $response = $this->actingAs(User::factory()->create(['role' => 'Clinic']))
+        ->postJson("/clinic/incidents/{$incident->id}/resolve", ['resolution_type' => 'False Alarm']);
+
+    $response->assertSessionHasErrors('resolution_type');
+    expect($incident->fresh()->clinic_status)->not->toBe('Resolved');
+});
+
+test('clinic dispatch notifies DRRMO without changing the DRRMO incident', function () {
+    $device = Device::create(['device_code' => 'CLN-DSP', 'building' => 'Clinic', 'floor' => '1', 'room' => 'R', 'status' => 'active']);
+    $incident = Incident::create(['device_id' => $device->id, 'emergency_type' => Incident::TYPE_CRITICAL, 'status' => 'Pending', 'reported_at' => now()]);
+
+    $this->actingAs(User::factory()->create(['role' => 'Clinic']))
+        ->postJson("/clinic/incidents/{$incident->id}/dispatch")->assertOk();
+
+    expect(Notification::where('incident_id', $incident->id)->where('recipient', 'DRRMO')->where('status', 'Clinic Medical Team Dispatched')->exists())->toBeTrue()
+        ->and($incident->refresh()->status)->toBe('Pending')
+        ->and($incident->clinic_status)->toBe('Responding');
+
+    // Once dispatched it no longer pops up as an unhandled alert on the Clinic HUD.
+    $this->getJson('/clinic/stats-json')->assertJsonCount(0, 'pending_incidents');
 });

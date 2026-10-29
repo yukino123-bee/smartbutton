@@ -183,7 +183,7 @@ test('clinic dashboard displays multiple emergency cards when multiple unhandled
         ->assertSuccessful();
 
     $response->assertSee('MULTIPLE ACTIVE MEDICAL EMERGENCIES (2 UNHANDLED ALERTS)')
-        ->assertSee('Acknowledge All (2 Alerts)')
+        ->assertDontSee('Acknowledge All')
         ->assertSee('Alert #1: Medical Emergency')
         ->assertSee('Alert #2: Critical Emergency')
         ->assertSee('Gymnasium')
@@ -219,5 +219,5 @@ test('alerts index pages render acknowledge all buttons when multiple alerts are
     $this->actingAs($clinicUser)
         ->get('/clinic/alerts')
         ->assertSuccessful()
-        ->assertSee('Acknowledge All (2)');
+        ->assertDontSee('Acknowledge All');
 });

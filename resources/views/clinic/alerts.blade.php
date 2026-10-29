@@ -17,10 +17,6 @@
     <div id="bulk-inputs"></div>
 </form>
 
-{{-- Acknowledge All Form --}}
-<form id="ack-all-clinic-form" method="POST" action="{{ route('clinic.alerts.acknowledge-all') }}" class="hidden">
-    @csrf
-</form>
 
 {{-- Header Row --}}
 <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
@@ -44,13 +40,6 @@
             <span>{{ $alerts->whereIn('status', ['Acknowledged', 'Responding'])->count() }} In Progress</span>
         </span>
 
-        @if($alerts->where('status', 'Pending')->count() > 1)
-        <button type="submit" form="ack-all-clinic-form"
-                class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold transition-all shadow-xs cursor-pointer">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-            <span>Acknowledge All ({{ $alerts->where('status', 'Pending')->count() }})</span>
-        </button>
-        @endif
 
         @if(!$alerts->isEmpty())
         <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
@@ -142,14 +131,14 @@
                 {{-- Action Buttons --}}
                 <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
                     @php
-                        $clinicAck = $alert->notifications->where('recipient', 'Clinic')->where('status', 'Acknowledged')->count();
+                        $clinicAck = $alert->clinic_dispatched_at !== null;
                     @endphp
                     @if(!$clinicAck)
-                        <form id="ack-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.incidents.acknowledge', $alert->id) }}" class="flex-1" onsubmit="return confirmAction(event, 'Are you sure you want to acknowledge this alert?', 'Acknowledge Alert', 'Acknowledge', 'warning')">
+                        <form id="ack-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.incidents.dispatch', $alert->id) }}" class="flex-1" onsubmit="return confirmAction(event, 'Dispatch the medical team to this alert?', 'Dispatch Medical Team', 'Dispatch', 'warning')">
                             @csrf
                             <button type="submit" class="w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                Acknowledge
+                                Dispatch
                             </button>
                         </form>
                     @endif

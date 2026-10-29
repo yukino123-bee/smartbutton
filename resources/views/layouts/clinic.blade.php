@@ -254,26 +254,11 @@
 
                 {{-- Actions on HUD --}}
                 <div class="flex flex-wrap items-center justify-end gap-1.5 pt-1">
-                    <button id="global-emergency-ack-btn" type="button" onclick="acknowledgeClinicEmergency()"
-                            class="py-1.5 px-3 rounded-xl font-extrabold text-white text-xs shadow-xs bg-red-600 hover:bg-red-700 active:scale-95 transition-all flex items-center gap-1 cursor-pointer">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                        <span id="clinic-emergency-ack-btn-text">ACKNOWLEDGE</span>
-                    </button>
 
                     <button id="clinic-emergency-dispatch-btn" type="button" onclick="quickDispatchClinicIncident()"
                             class="py-1.5 px-3 rounded-xl font-extrabold text-white text-xs shadow-xs bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all flex items-center gap-1 cursor-pointer">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         <span>DISPATCH</span>
-                    </button>
-
-                    <button id="clinic-emergency-false-btn" type="button" onclick="quickFalseAlarmClinicIncident()"
-                            class="py-1.5 px-2.5 rounded-xl font-bold text-slate-700 text-xs bg-white border border-slate-300 hover:bg-slate-100 active:scale-95 transition-all cursor-pointer">
-                        <span>⚠️ False</span>
-                    </button>
-
-                    <button id="clinic-emergency-ack-all-btn" type="button" onclick="acknowledgeAllClinicEmergencies()"
-                            class="hidden py-1.5 px-2.5 rounded-xl font-bold text-slate-800 text-xs bg-slate-200 hover:bg-slate-300 active:scale-95 transition-all cursor-pointer">
-                        <span id="clinic-emergency-ack-all-text">ACK ALL</span>
                     </button>
                 </div>
             </div>
@@ -284,7 +269,6 @@
     <script>
         window.activeClinicIncidents = [];
         window.currentClinicIndex = 0;
-        let isClinicAckInProgress = false;
         let webAudioCtx = null;
         let sirenOscillator = null;
         let sirenGainNode = null;
@@ -405,10 +389,6 @@
             const title = document.getElementById('global-emergency-title');
             const locEl = document.getElementById('global-emergency-location');
             const devEl = document.getElementById('global-emergency-device');
-            const ackBtn = document.getElementById('global-emergency-ack-btn');
-            const ackBtnText = document.getElementById('clinic-emergency-ack-btn-text');
-            const ackAllBtn = document.getElementById('clinic-emergency-ack-all-btn');
-            const ackAllText = document.getElementById('clinic-emergency-ack-all-text');
             const mapContainer = document.getElementById('clinic-modal-map-container');
             const coordsText = document.getElementById('clinic-modal-map-coords-text');
 
@@ -474,15 +454,9 @@
                         multiTabs.appendChild(tabBtn);
                     });
                 }
-
-                if (ackBtnText) ackBtnText.textContent = `ACK THIS (#${currentIdx + 1})`;
-                if (ackAllBtn) ackAllBtn.classList.remove('hidden');
-                if (ackAllText) ackAllText.textContent = `ACK ALL (${total})`;
             } else {
                 if (multiHeader) multiHeader.classList.add('hidden');
                 if (hudCounter) hudCounter.classList.add('hidden');
-                if (ackBtnText) ackBtnText.textContent = 'ACKNOWLEDGE';
-                if (ackAllBtn) ackAllBtn.classList.add('hidden');
             }
 
             if (overlay) {
@@ -649,58 +623,6 @@
             });
         }
 
-        // Quick False Alarm handling from HUD
-        function quickFalseAlarmClinicIncident() {
-            const incident = window.activeClinicIncidents[window.currentClinicIndex];
-            if (!incident) return;
-
-            const card = document.getElementById(`clinic-incident-card-${incident.id}`);
-            if (card) {
-                const falseBtn = document.getElementById(`open-clinic-false-alarm-modal-${incident.id}`);
-                if (falseBtn) {
-                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    falseBtn.click();
-                    return;
-                }
-            }
-
-            window.showConfirmDialog({
-                title: 'Mark as False Alarm',
-                message: 'Classify this incident as a False Alarm / Accidental Trigger.',
-                confirmText: 'Mark False Alarm',
-                type: 'warning',
-                fields: [
-                    { name: 'reason', label: 'Reason (e.g. Accidental Push, Sensor Glitch, Campus Drill)', value: 'Accidental Push' }
-                ]
-            }).then(values => {
-                if (!values) return;
-                fetch(`/clinic/incidents/${incident.id}/resolve`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        resolution_type: 'False Alarm',
-                        false_alarm_reason: values.reason || 'Accidental Push',
-                        remarks: 'Marked as false alarm via Clinic Command HUD'
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    window.activeClinicIncidents = window.activeClinicIncidents.filter(i => i.id !== incident.id);
-                    if (window.activeClinicIncidents.length === 0) {
-                        closeClinicModal();
-                    } else {
-                        renderActiveClinicModal();
-                    }
-                    window.location.reload();
-                })
-                .catch(() => window.location.reload());
-            });
-        }
-
         function startClinicSirenAudio() {
             if (isSirenActive || window.isClinicSirenMuted) return;
             try {
@@ -771,79 +693,6 @@
             };
 
             window.speechSynthesis.speak(msg);
-        }
-
-        function acknowledgeClinicEmergency() {
-            if (isClinicAckInProgress || !window.activeClinicIncidents || window.activeClinicIncidents.length === 0) return;
-            isClinicAckInProgress = true;
-
-            const targetIncident = window.activeClinicIncidents[window.currentClinicIndex];
-            if (!targetIncident) {
-                isClinicAckInProgress = false;
-                return;
-            }
-
-            const targetId = targetIncident.id;
-
-            fetch(`/clinic/incidents/${targetId}/acknowledge`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(res => res.json())
-            .then(data => {
-                console.log("[ACKNOWLEDGED] Alert acknowledged by Clinic:", data);
-                window.activeClinicIncidents = window.activeClinicIncidents.filter(i => i.id !== targetId);
-
-                if (window.activeClinicIncidents.length === 0) {
-                    closeClinicModal();
-                    window.location.reload();
-                } else {
-                    if (window.currentClinicIndex >= window.activeClinicIncidents.length) {
-                        window.currentClinicIndex = 0;
-                    }
-                    renderActiveClinicModal();
-                    speakClinicAnnouncement(`Alert acknowledged. Warning! ${window.activeClinicIncidents.length} unhandled medical alerts remain!`);
-                }
-            })
-            .catch(err => {
-                console.error("Ack error:", err);
-                window.location.reload();
-            })
-            .finally(() => {
-                isClinicAckInProgress = false;
-            });
-        }
-
-        function acknowledgeAllClinicEmergencies() {
-            if (isClinicAckInProgress) return;
-            isClinicAckInProgress = true;
-
-            fetch('/clinic/alerts/acknowledge-all', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(res => res.json())
-            .then(data => {
-                console.log("[ACKNOWLEDGED ALL] All clinic alerts acknowledged:", data);
-                window.activeClinicIncidents = [];
-                closeClinicModal();
-                window.location.reload();
-            })
-            .catch(err => {
-                console.error("Ack all error:", err);
-                window.location.reload();
-            })
-            .finally(() => {
-                isClinicAckInProgress = false;
-            });
         }
 
         function closeClinicModal() {

@@ -418,6 +418,13 @@ class NdrrmoController extends Controller
         return view('ndrrmo.sms', compact('smsLogs'));
     }
 
+    public function simulation()
+    {
+        $devices = Device::where('status', 'active')->orderBy('device_code')->get();
+
+        return view('ndrrmo.simulation', compact('devices'));
+    }
+
     public function reports()
     {
         $rawStats = Incident::selectRaw('status, count(*) as count')

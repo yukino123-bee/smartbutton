@@ -253,6 +253,15 @@ class ClinicController extends Controller
 
         $this->clinicNotify($incident, 'Medical Team Dispatched');
 
+        // Tell DRRMO the Clinic has responded and sent help (shows as "Clinic: Medical Dispatched"). DRRMO's own incident is untouched.
+        Notification::create([
+            'incident_id' => $incident->id,
+            'recipient' => 'DRRMO',
+            'channel' => 'Dashboard',
+            'status' => 'Clinic Medical Team Dispatched',
+            'sent_at' => now(),
+        ]);
+
         if (request()->wantsJson()) {
             return response()->json([
                 'status' => 'success',
@@ -302,7 +311,7 @@ class ClinicController extends Controller
         }
 
         $validated = $request->validate([
-            'resolution_type' => 'nullable|string|in:Resolved,False Alarm,Drill',
+            'resolution_type' => 'nullable|string|in:Resolved,Drill',
             'remarks' => 'nullable|string|max:1000',
             'resolution_notes' => 'nullable|string|max:1000',
             'false_alarm_reason' => 'nullable|string|max:255',
@@ -386,6 +395,7 @@ class ClinicController extends Controller
         $pendingIncidents = Incident::with('device')
             ->clinicVisible()
             ->clinicActive()
+            ->whereNull('clinic_acknowledged_at')
             ->whereDoesntHave('notifications', function ($query) {
                 $query->where('recipient', 'Clinic')
                     ->where('status', 'Acknowledged');

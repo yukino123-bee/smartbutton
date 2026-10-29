@@ -21,13 +21,6 @@
                 <span class="alert-banner-sub">Multiple emergency panic alarms require immediate medical attention and response. Interconnected with Campus DRRMO.</span>
             </div>
         </div>
-        <form method="POST" action="{{ route('clinic.alerts.acknowledge-all') }}" class="shrink-0">
-            @csrf
-            <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white active:scale-95 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span>Acknowledge All ({{ $criticalIncidents->count() }} Alerts)</span>
-            </button>
-        </form>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -271,15 +264,6 @@
             {{-- Footer Action Buttons --}}
             <div class="p-4 bg-red-50/70 border-t border-red-100 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
-                    @if($isPending)
-                    <form method="POST" action="{{ route('clinic.incidents.acknowledge', $incident) }}">
-                        @csrf
-                        <button type="submit" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold py-2 px-3.5 rounded-xl shadow-xs transition-all flex items-center gap-1.5 text-xs cursor-pointer">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                            <span>Acknowledge</span>
-                        </button>
-                    </form>
-                    @endif
 
                     @if($isPending || $isAck)
                     <button type="button" @click="openClinicDispatch = true" class="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-extrabold py-2 px-3.5 rounded-xl shadow-xs transition-all flex items-center gap-1.5 text-xs cursor-pointer">
@@ -295,9 +279,6 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <button type="button" @click="resolveType = 'False Alarm'; openClinicTriage = true" class="bg-white border border-slate-300 hover:bg-slate-100 active:scale-95 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs shadow-xs transition-all cursor-pointer">
-                        ⚠️ False Alarm
-                    </button>
 
                     <button type="button" @click="resolveType = 'Resolved'; openClinicTriage = true" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold py-2 px-4 rounded-xl shadow-xs transition-all flex items-center gap-1.5 text-xs cursor-pointer">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -397,16 +378,11 @@
                         {{-- Classification Radio Buttons --}}
                         <div>
                             <label class="block text-[11px] font-black uppercase text-slate-500 mb-1.5">Resolution Classification</label>
-                            <div class="grid grid-cols-3 gap-2">
+                            <div class="grid grid-cols-2 gap-2">
                                 <label :class="resolveType === 'Resolved' ? 'border-emerald-600 bg-emerald-50 text-emerald-900 shadow-xs' : 'border-slate-200 bg-white text-slate-700'" class="p-2.5 border-2 rounded-xl text-center cursor-pointer font-extrabold text-xs transition-all flex flex-col items-center gap-1">
                                     <input type="radio" name="resolution_type" value="Resolved" x-model="resolveType" class="sr-only">
                                     <span>✅ Treated</span>
                                     <span class="text-[9px] font-normal text-slate-500">Patient Attended</span>
-                                </label>
-                                <label :class="resolveType === 'False Alarm' ? 'border-amber-600 bg-amber-50 text-amber-900 shadow-xs' : 'border-slate-200 bg-white text-slate-700'" class="p-2.5 border-2 rounded-xl text-center cursor-pointer font-extrabold text-xs transition-all flex flex-col items-center gap-1">
-                                    <input type="radio" name="resolution_type" value="False Alarm" x-model="resolveType" class="sr-only">
-                                    <span>⚠️ False Alarm</span>
-                                    <span class="text-[9px] font-normal text-slate-500">Accidental Trigger</span>
                                 </label>
                                 <label :class="resolveType === 'Drill' ? 'border-purple-600 bg-purple-50 text-purple-900 shadow-xs' : 'border-slate-200 bg-white text-slate-700'" class="p-2.5 border-2 rounded-xl text-center cursor-pointer font-extrabold text-xs transition-all flex flex-col items-center gap-1">
                                     <input type="radio" name="resolution_type" value="Drill" x-model="resolveType" class="sr-only">
@@ -414,18 +390,6 @@
                                     <span class="text-[9px] font-normal text-slate-500">First Aid Practice</span>
                                 </label>
                             </div>
-                        </div>
-
-                        {{-- False Alarm Reason --}}
-                        <div x-show="resolveType === 'False Alarm'" class="space-y-2">
-                            <label class="block text-[11px] font-black uppercase text-amber-800">False Alarm Reason</label>
-                            <select name="false_alarm_reason" class="w-full text-xs font-bold px-3 py-2 border border-amber-300 rounded-xl bg-amber-50/50 focus:outline-none">
-                                <option value="Accidental button push by student / staff">Accidental button push by student / staff</option>
-                                <option value="Sensor / hardware glitch">Sensor / hardware glitch</option>
-                                <option value="Curiosity / unintended test">Curiosity / unintended test</option>
-                                <option value="Prank / unverified report">Prank / unverified report</option>
-                                <option value="Routine inspection / clinic test">Routine inspection / clinic test</option>
-                            </select>
                         </div>
 
                         {{-- Drill Type --}}
@@ -757,15 +721,6 @@
             {{-- Action Buttons Console --}}
             @if($activeEmergency)
             <div class="space-y-2">
-                @if($isPending)
-                <form method="POST" action="{{ route('clinic.incidents.acknowledge', $activeEmergency) }}" class="w-full">
-                    @csrf
-                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black py-2.5 px-4 rounded-xl shadow-md shadow-red-200 transition-all flex items-center justify-center gap-2 text-xs cursor-pointer">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                        <span>Acknowledge Alert</span>
-                    </button>
-                </form>
-                @endif
 
                 @if($isPending || $isAck)
                 <button type="button" @click="openClinicDispatch = true" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black py-2.5 px-4 rounded-xl shadow-md shadow-blue-200 transition-all flex items-center justify-center gap-2 text-xs cursor-pointer">
@@ -780,9 +735,6 @@
                 @endif
 
                 <div class="grid grid-cols-2 gap-2 pt-1">
-                    <button type="button" @click="resolveType = 'False Alarm'; openClinicTriage = true" class="w-full bg-white border border-slate-300 hover:bg-slate-100 active:scale-95 text-slate-700 font-bold py-2 px-3 rounded-xl text-xs shadow-xs transition-all cursor-pointer text-center">
-                        ⚠️ False Alarm
-                    </button>
 
                     <button id="btn-patient-arrived" type="button" @click="resolveType = 'Resolved'; openClinicTriage = true" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold py-2 px-3 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1 text-xs cursor-pointer">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -906,16 +858,11 @@
                 {{-- Classification Radio Buttons --}}
                 <div>
                     <label class="block text-[11px] font-black uppercase text-slate-500 mb-1.5">Resolution Classification</label>
-                    <div class="grid grid-cols-3 gap-2">
+                    <div class="grid grid-cols-2 gap-2">
                         <label :class="resolveType === 'Resolved' ? 'border-emerald-600 bg-emerald-50 text-emerald-900 shadow-xs' : 'border-slate-200 bg-white text-slate-700'" class="p-2.5 border-2 rounded-xl text-center cursor-pointer font-extrabold text-xs transition-all flex flex-col items-center gap-1">
                             <input type="radio" name="resolution_type" value="Resolved" x-model="resolveType" class="sr-only">
                             <span>✅ Treated</span>
                             <span class="text-[9px] font-normal text-slate-500">Patient Attended</span>
-                        </label>
-                        <label :class="resolveType === 'False Alarm' ? 'border-amber-600 bg-amber-50 text-amber-900 shadow-xs' : 'border-slate-200 bg-white text-slate-700'" class="p-2.5 border-2 rounded-xl text-center cursor-pointer font-extrabold text-xs transition-all flex flex-col items-center gap-1">
-                            <input type="radio" name="resolution_type" value="False Alarm" x-model="resolveType" class="sr-only">
-                            <span>⚠️ False Alarm</span>
-                            <span class="text-[9px] font-normal text-slate-500">Accidental Trigger</span>
                         </label>
                         <label :class="resolveType === 'Drill' ? 'border-purple-600 bg-purple-50 text-purple-900 shadow-xs' : 'border-slate-200 bg-white text-slate-700'" class="p-2.5 border-2 rounded-xl text-center cursor-pointer font-extrabold text-xs transition-all flex flex-col items-center gap-1">
                             <input type="radio" name="resolution_type" value="Drill" x-model="resolveType" class="sr-only">
@@ -923,18 +870,6 @@
                             <span class="text-[9px] font-normal text-slate-500">First Aid Practice</span>
                         </label>
                     </div>
-                </div>
-
-                {{-- False Alarm Reason --}}
-                <div x-show="resolveType === 'False Alarm'" class="space-y-2">
-                    <label class="block text-[11px] font-black uppercase text-amber-800">False Alarm Reason</label>
-                    <select name="false_alarm_reason" class="w-full text-xs font-bold px-3 py-2 border border-amber-300 rounded-xl bg-amber-50/50 focus:outline-none">
-                        <option value="Accidental button push by student / staff">Accidental button push by student / staff</option>
-                        <option value="Sensor / hardware glitch">Sensor / hardware glitch</option>
-                        <option value="Curiosity / unintended test">Curiosity / unintended test</option>
-                        <option value="Prank / unverified report">Prank / unverified report</option>
-                        <option value="Routine inspection / clinic test">Routine inspection / clinic test</option>
-                    </select>
                 </div>
 
                 {{-- Drill Type --}}
@@ -1052,15 +987,6 @@
                 <h2 class="panel-title">Active Medical & Critical Alerts</h2>
             </div>
             <div class="flex items-center gap-3">
-                @if($criticalIncidents->where('status', 'Pending')->count() > 1)
-                <form method="POST" action="{{ route('clinic.alerts.acknowledge-all') }}">
-                    @csrf
-                    <button type="submit" class="px-2.5 py-1 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold rounded-lg text-[10px] transition-all shadow-xs cursor-pointer flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                        <span>Acknowledge All ({{ $criticalIncidents->where('status', 'Pending')->count() }})</span>
-                    </button>
-                </form>
-                @endif
                 <a href="{{ route('clinic.alerts') }}" class="text-[11px] text-brand-blue hover:underline font-extrabold">View All →</a>
             </div>
         </div>
@@ -1087,10 +1013,10 @@
                         <td class="px-5 py-4"><span class="inline-flex items-center bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-xs">{{ $incident->emergency_type }}</span></td>
                         <td class="px-5 py-4"><span class="inline-flex items-center gap-1.5 text-brand-red font-black"><span class="w-2 h-2 rounded-full bg-brand-red animate-pulse"></span>{{ ucfirst($incident->status) }}</span></td>
                         <td class="px-5 py-4 text-center">
-                            <form method="POST" action="{{ $incident->status === 'Pending' ? route('clinic.incidents.acknowledge', $incident) : route('clinic.incidents.resolve', $incident) }}">
+                            <form method="POST" action="{{ $incident->status === 'Pending' ? route('clinic.incidents.dispatch', $incident) : route('clinic.incidents.resolve', $incident) }}">
                                 @csrf
                                 <button type="submit" class="bg-brand-blue hover:bg-blue-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-colors shadow-xs cursor-pointer">
-                                    {{ $incident->status === 'Pending' ? 'Acknowledge' : 'Resolve' }}
+                                    {{ $incident->status === 'Pending' ? 'Dispatch' : 'Resolve' }}
                                 </button>
                             </form>
                         </td>

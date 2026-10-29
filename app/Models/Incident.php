@@ -203,6 +203,45 @@ class Incident extends Model
     }
 
     /**
+     * The device sent a different alert right after this one, before DRRMO acted on it (wrong button pressed).
+     * Close this one as a false alarm so only the corrected alert stays active.
+     */
+    public function supersedeAsFalseAlarm(string $newType): void
+    {
+        $reason = "Wrong button pressed; replaced by {$newType}";
+
+        $this->update([
+            'status' => 'Resolved',
+            'resolved_at' => now(),
+            'resolution_type' => self::RESOLUTION_FALSE_ALARM,
+            'false_alarm_reason' => $reason,
+            'remarks' => trim(($this->remarks ? $this->remarks.' · ' : '')."[False Alarm] {$reason}"),
+        ]);
+
+        $this->resolveClinicSide(self::RESOLUTION_FALSE_ALARM, $reason, $this->remarks);
+
+        Notification::create([
+            'incident_id' => $this->id,
+            'recipient' => 'DRRMO',
+            'channel' => 'Dashboard',
+            'status' => 'Resolved (False Alarm)',
+            'sent_at' => now(),
+        ]);
+
+        if ($this->involvesClinic()) {
+            Notification::create([
+                'incident_id' => $this->id,
+                'recipient' => 'Clinic',
+                'channel' => 'Dashboard',
+                'status' => 'Resolved (False Alarm)',
+                'sent_at' => now(),
+            ]);
+        }
+
+        broadcast(new EmergencyReported($this));
+    }
+
+    /**
      * Show the Clinic's own state (clinic_*) in place of the shared DRRMO fields.
      * For rendering Clinic pages/JSON only: never save or broadcast the model afterwards.
      */

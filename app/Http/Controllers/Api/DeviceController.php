@@ -15,6 +15,9 @@ class DeviceController extends Controller
     // How long after a medical alert the clinic button can still add the Clinic to it.
     private const CLINIC_REQUEST_WINDOW_MINUTES = 60;
 
+    // A different button pressed this soon after an unacknowledged alert replaces it (wrong button pressed first).
+    private const CORRECTION_WINDOW_SECONDS = 60;
+
     /**
      * Handle incoming emergency alerts from ESP32 devices.
      */
@@ -105,6 +108,14 @@ class DeviceController extends Controller
                 'duplicate' => true,
             ], 200);
         }
+
+        // The victim pressed the wrong button first: the earlier alert DRRMO has not acted on becomes a false alarm.
+        Incident::where('device_id', $device->id)
+            ->where('status', 'Pending')
+            ->where('emergency_type', '!=', $emergencyType)
+            ->where('created_at', '>=', now()->subSeconds(self::CORRECTION_WINDOW_SECONDS))
+            ->get()
+            ->each(fn (Incident $old) => $old->supersedeAsFalseAlarm($emergencyType));
 
         $remarks = null;
         if ($emergencyType === Incident::TYPE_MEDICAL) {

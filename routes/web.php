@@ -33,6 +33,7 @@ Route::middleware(['auth', 'role:DRRMO'])->prefix('ndrrmo')->name('ndrrmo.')->gr
     Route::put('/devices/{device}', [NdrrmoController::class, 'updateDevice'])->name('devices.update');
     Route::delete('/devices/{device}', [NdrrmoController::class, 'destroyDevice'])->name('devices.destroy');
     Route::get('/sms', [NdrrmoController::class, 'sms'])->name('sms');
+    Route::get('/simulation', [NdrrmoController::class, 'simulation'])->name('simulation');
     Route::get('/reports', [NdrrmoController::class, 'reports'])->name('reports');
     Route::get('/stats-json', [NdrrmoController::class, 'statsJson'])->name('stats-json');
     Route::get('/reports/export-excel', [NdrrmoController::class, 'exportExcel'])->name('reports.export-excel');
