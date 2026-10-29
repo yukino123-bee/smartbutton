@@ -2,15 +2,16 @@
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
-#include "secrets.h" // WIFI_NETWORKS[] and EMERGENCY_PHONE_NUMBER (git-ignored; see secrets.h.example)
+#include "secrets.h" // WIFI_NETWORKS[] and EMERGENCY_PHONE_NUMBERS[] (git-ignored; see secrets.h.example)
 
 // --- Configuration ---
 const int WIFI_NETWORK_COUNT = sizeof(WIFI_NETWORKS) / sizeof(WIFI_NETWORKS[0]);
+const int NUM_EMERGENCY_RECIPIENTS = sizeof(EMERGENCY_PHONE_NUMBERS) / sizeof(EMERGENCY_PHONE_NUMBERS[0]);
 WiFiMulti wifiMulti;
 
 // Endpoints
-const char *api_url = "http://10.104.135.50:8000/api/emergency";
-const char *status_url = "http://10.104.135.50:8000/api/device/status?device_id=GYM-001";
+const char *api_url = "http://10.85.82.203:8000/api/emergency";
+const char *status_url = "http://10.85.82.203:8000/api/device/status?device_id=GYM-001";
 
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "GYM-001"; // Campus Gym
@@ -67,7 +68,7 @@ void checkAcknowledgeStatus();
 void triggerAlarm(String emergencyType);
 void sendPanicAlert(String emergencyType);
 void initSIM800L();
-void sendSMS(String message);
+void sendSMS(String message, String recipient);
 String sendATCommand(String command, String expectedResponse, unsigned long timeoutMs);
 
 void setup() {
@@ -260,7 +261,10 @@ void sendPanicAlert(String emergencyType) {
                       "\nCategory: " + emergencyType +
                       "\nStatus: Immediate Response Required!";
   
-  sendSMS(smsMessage);
+  for (int i = 0; i < NUM_EMERGENCY_RECIPIENTS; i++) {
+    Serial.println("\n[GSM DISPATCH " + String(i + 1) + "/" + String(NUM_EMERGENCY_RECIPIENTS) + "]");
+    sendSMS(smsMessage, EMERGENCY_PHONE_NUMBERS[i]);
+  }
 }
 
 // Robust Helper function to execute AT commands and log real-time serial feedback
@@ -344,10 +348,10 @@ void initSIM800L() {
 }
 
 // Helper function to handle SIM800L SMS with full prompt & delivery checks
-void sendSMS(String message) {
+void sendSMS(String message, String recipient) {
   Serial.println("\n==========================================");
   Serial.println("[SMS TRANSMISSION START]");
-  Serial.println("[Recipient Original]: " + String(EMERGENCY_PHONE_NUMBER));
+  Serial.println("[Recipient Original]: " + recipient);
   Serial.println("[Message Payload]:\n" + message);
   Serial.println("==========================================");
 
@@ -358,7 +362,7 @@ void sendSMS(String message) {
   while (Serial2.available()) Serial2.read();
 
   // 2. Format Phone Number to International Standard (+63...) if provided as local (09...)
-  String targetNum = String(EMERGENCY_PHONE_NUMBER);
+  String targetNum = recipient;
   targetNum.trim();
   if (targetNum.startsWith("0")) {
     targetNum = "+63" + targetNum.substring(1);
