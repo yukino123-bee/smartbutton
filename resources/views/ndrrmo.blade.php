@@ -176,16 +176,6 @@
                                                 </div>
                                             </div>
                                         </div>
-
-                                        @if(!$incident->arrived_at)
-                                        <form method="POST" action="{{ route('ndrrmo.incidents.on-scene', $incident) }}" class="shrink-0">
-                                            @csrf
-                                            <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                                <span>Mark On Scene</span>
-                                            </button>
-                                        </form>
-                                        @endif
                                     </div>
                                     @endif
 

@@ -135,15 +135,6 @@
                             </div>
                         </div>
 
-                        @if(!$incident->arrived_at)
-                        <form method="POST" action="{{ route('clinic.incidents.on-scene', $incident) }}" class="shrink-0">
-                            @csrf
-                            <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                <span>Mark On Scene</span>
-                            </button>
-                        </form>
-                        @endif
                     </div>
                     @endif
 
@@ -495,7 +486,7 @@
          patientId: '{{ addslashes($activeEmergency->patient_id_number ?? '') }}',
          disposition: '{{ addslashes($activeEmergency->disposition ?? 'Treated and released to class') }}'
      }"
-     class="bg-white border border-red-300 rounded-2xl mb-6 overflow-hidden shadow-lg text-black">
+     class="bg-white border border-red-300 rounded-2xl mb-6 overflow-hidden shadow-lg text-black shrink-0">
     {{-- Header bar --}}
     <div class="bg-gradient-to-r from-red-600 to-red-500 px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 text-white">
         <div class="flex items-center gap-3">
@@ -592,15 +583,6 @@
                     </div>
                 </div>
 
-                @if(!$activeEmergency->arrived_at)
-                <form method="POST" action="{{ route('clinic.incidents.on-scene', $activeEmergency) }}" class="shrink-0">
-                    @csrf
-                    <button type="submit" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        <span>Mark On Scene</span>
-                    </button>
-                </form>
-                @endif
             </div>
             @endif
 
@@ -652,18 +634,19 @@
         {{-- Right / Lifecycle & Action Command Deck (Col 5) --}}
         <div class="lg:col-span-5 flex flex-col justify-between space-y-4 bg-slate-50/90 border border-slate-200/90 rounded-2xl p-5">
             {{-- 5-Step Medical Response Lifecycle Stepper --}}
-            <div class="border border-slate-200 rounded-2xl p-4 bg-white shadow-xs">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                        <svg class="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <div x-data="{ showSteps: false }" class="border border-slate-200 rounded-2xl p-4 bg-white shadow-xs">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5 leading-tight">
+                        <svg class="w-4 h-4 text-brand-blue shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                         5-STEP MEDICAL RESPONSE LIFECYCLE
                     </span>
-                    <span class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full {{ $isResponding ? 'bg-blue-100 text-blue-700 border border-blue-200' : ($isAck ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-red-100 text-red-700 border border-red-200 animate-pulse') }}">
+                    <span class="text-[10px] font-extrabold whitespace-nowrap px-2.5 py-0.5 rounded-full {{ $isResponding ? 'bg-blue-100 text-blue-700 border border-blue-200' : ($isAck ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-red-100 text-red-700 border border-red-200 animate-pulse') }}">
                         CURRENT: {{ strtoupper($incident?->status ?? 'PENDING') }}
                     </span>
+                    <button type="button" @click="showSteps = !showSteps" class="text-[10px] font-black text-blue-700 hover:underline cursor-pointer" x-text="showSteps ? 'Hide steps' : 'Show steps'">Show steps</button>
                 </div>
 
-                <div class="grid grid-cols-5 gap-1.5 text-center text-[10px]">
+                <div x-show="showSteps" class="grid grid-cols-5 gap-1.5 text-center text-[10px]">
                     <div class="flex flex-col items-center">
                         <div class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center font-black text-[11px] shadow-xs mb-1">✓</div>
                         <span class="font-extrabold text-slate-800 leading-tight">1. Triggered</span>

@@ -226,56 +226,75 @@ class DeviceController extends Controller
 
         $message = $validated['message'];
 
-        // Very basic parsing for demo
+        // Two formats: "EMERGENCY: DEVICE_ID - CATEGORY", or the firmware's own text
+        // "...ALERT...\nDevice: DEVICE_ID (place)\nCategory: CATEGORY\nClinic Aid: REQUIRED".
+        $deviceCode = $emergencyType = null;
+        $clinicAid = null;
+
         if (str_contains($message, 'EMERGENCY:')) {
-            // Extract Device ID and Category
-            // Format: "EMERGENCY: DEVICE_ID - CATEGORY"
             $parts = explode(' - ', str_replace('EMERGENCY: ', '', $message));
-
             if (count($parts) === 2) {
-                $deviceCode = trim($parts[0]);
-                $emergencyType = trim($parts[1]);
-
-                if (! in_array($emergencyType, Incident::EMERGENCY_TYPES, true)) {
-                    return response()->json(['status' => 'ignored', 'message' => 'Unknown emergency category'], 200);
-                }
-
-                $device = Device::where('device_code', $deviceCode)->first();
-
-                if ($device) {
-                    $incident = Incident::create([
-                        'device_id' => $device->id,
-                        'emergency_type' => $emergencyType,
-                        'status' => 'Pending',
-                        'remarks' => 'Received via SMS Backup ('.$validated['sender'].')',
-                    ]);
-
-                    Notification::create([
-                        'incident_id' => $incident->id,
-                        'recipient' => 'DRRMO',
-                        'channel' => 'SMS Backup',
-                        'status' => 'Delivered',
-                        'sent_at' => now(),
-                    ]);
-
-                    if ($emergencyType === Incident::TYPE_CRITICAL) {
-                        Notification::create([
-                            'incident_id' => $incident->id,
-                            'recipient' => 'Clinic',
-                            'channel' => 'SMS Backup',
-                            'status' => 'Delivered',
-                            'sent_at' => now(),
-                        ]);
-                    }
-
-                    // Broadcast the event to WebSockets
-                    broadcast(new EmergencyReported($incident))->toOthers();
-
-                    return response()->json(['status' => 'success', 'message' => 'SMS emergency processed'], 201);
-                }
+                [$deviceCode, $emergencyType] = array_map('trim', $parts);
+            }
+        } elseif (preg_match('/^\s*Device:\s*(\S+)/mi', $message, $d) && preg_match('/^\s*Category:\s*(.+?)\s*$/mi', $message, $c)) {
+            $deviceCode = $d[1];
+            $emergencyType = $c[1];
+            if (preg_match('/^\s*Clinic Aid:\s*(REQUIRED|NOT REQUIRED)/mi', $message, $a)) {
+                $clinicAid = strtoupper($a[1]) === 'REQUIRED';
             }
         }
 
-        return response()->json(['status' => 'ignored', 'message' => 'Not a valid emergency format'], 200);
+        if (! $deviceCode || ! $emergencyType) {
+            return response()->json(['status' => 'ignored', 'message' => 'Not a valid emergency format'], 200);
+        }
+
+        if (! in_array($emergencyType, Incident::EMERGENCY_TYPES, true)) {
+            return response()->json(['status' => 'ignored', 'message' => 'Unknown emergency category'], 200);
+        }
+
+        $device = Device::where('device_code', $deviceCode)->first();
+
+        if (! $device) {
+            return response()->json(['status' => 'ignored', 'message' => 'Unknown device'], 200);
+        }
+
+        // Some buttons send the SMS even when the API call worked; that is the same alert.
+        $duplicate = Incident::where('device_id', $device->id)
+            ->where('emergency_type', $emergencyType)
+            ->where('status', '!=', 'Resolved')
+            ->where('created_at', '>=', now()->subSeconds(60))
+            ->exists();
+
+        if ($duplicate) {
+            return response()->json(['status' => 'success', 'message' => 'Duplicate of an alert already received.', 'duplicate' => true], 200);
+        }
+
+        // Critical always includes the Clinic; Medical only when the witness asked (or the old format, which cannot say).
+        $needClinic = $emergencyType === Incident::TYPE_CRITICAL
+            || ($emergencyType === Incident::TYPE_MEDICAL && ($clinicAid ?? true));
+
+        $incident = Incident::create([
+            'device_id' => $device->id,
+            'emergency_type' => $emergencyType,
+            'need_clinic' => $needClinic,
+            'reported_at' => now(),
+            'status' => 'Pending',
+            'remarks' => 'Received via SMS Backup ('.$validated['sender'].')',
+        ]);
+
+        foreach (array_filter(['DRRMO', $needClinic ? 'Clinic' : null]) as $recipient) {
+            Notification::create([
+                'incident_id' => $incident->id,
+                'recipient' => $recipient,
+                'channel' => 'SMS Backup',
+                'status' => 'Delivered',
+                'sent_at' => now(),
+            ]);
+        }
+
+        // Webhook calls have no socket to exclude, so toOthers() is not needed.
+        broadcast(new EmergencyReported($incident));
+
+        return response()->json(['status' => 'success', 'message' => 'SMS emergency processed'], 201);
     }
 }

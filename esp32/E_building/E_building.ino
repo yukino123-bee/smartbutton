@@ -254,6 +254,12 @@ void sendPanicAlert(String emergencyType, bool needClinic) {
     Serial.println("[API] Sending Payload: " + payload);
 
     int httpResponseCode = http.POST(payload);
+    // Retry a failed send; the server ignores a repeat of the same alert within 30 s
+    for (int attempt = 2; attempt <= 3 && !(httpResponseCode >= 200 && httpResponseCode < 300); attempt++) {
+      Serial.println("[API RETRY " + String(attempt) + "/3] Last code: " + String(httpResponseCode));
+      delay(500);
+      httpResponseCode = http.POST(payload);
+    }
 
     if (httpResponseCode >= 200 && httpResponseCode < 300) {
       String response = http.getString();

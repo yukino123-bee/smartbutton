@@ -1036,9 +1036,30 @@
 
         let lastClinicSignature = null;
 
+        // Without this a dead server looks like "no alerts". Show a banner after 3 failed polls in a row.
+        let pollFailures = 0;
+        window.reportPollHealth = function (ok) {
+            pollFailures = ok ? 0 : pollFailures + 1;
+            let banner = document.getElementById('poll-lost-banner');
+            if (pollFailures >= 3 && !banner) {
+                banner = document.createElement('div');
+                banner.id = 'poll-lost-banner';
+                banner.setAttribute('role', 'alert');
+                banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;text-align:center;padding:10px;font-weight:700;font-size:14px';
+                banner.textContent = 'CONNECTION LOST - new alerts will NOT appear. Check the server or reload; contact the buildings directly.';
+                document.body.appendChild(banner);
+            } else if (pollFailures === 0 && banner) {
+                banner.remove();
+            }
+        };
+
         function pollNDRRMOStats() {
             fetch('/ndrrmo/stats-json')
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    window.reportPollHealth(true);
+                    return res.json();
+                })
                 .then(data => {
                     const activeEl = document.getElementById('ndrrmo-stat-active');
                     const totalEl = document.getElementById('ndrrmo-stat-total');
@@ -1077,7 +1098,10 @@
                         window.syncEmergencyIncidents([]);
                     }
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    window.reportPollHealth(false);
+                });
         }
         pollNDRRMOStats();
         setInterval(pollNDRRMOStats, 1500);

@@ -235,9 +235,17 @@ void sendPanicAlert(String emergencyType) {
 
     Serial.println("[API] Sending Payload: " + payload);
 
+    http.setTimeout(4000);
     int httpResponseCode = http.POST(payload);
+    // Retry a failed send; the server ignores a repeat of the same alert within 30 s
+    for (int attempt = 2; attempt <= 3 && !(httpResponseCode >= 200 && httpResponseCode < 300); attempt++) {
+      Serial.println("[API RETRY " + String(attempt) + "/3] Last code: " + String(httpResponseCode));
+      delay(500);
+      httpResponseCode = http.POST(payload);
+    }
 
-    if (httpResponseCode > 0) {
+    // Only 2xx means DRRMO has it; 401/404/500 must fall through to SMS
+    if (httpResponseCode >= 200 && httpResponseCode < 300) {
       Serial.println("[API SUCCESS] HTTP Code: " + String(httpResponseCode));
       Serial.println("[API Response]: " + http.getString());
       beepBuzzer(1, 500);
