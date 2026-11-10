@@ -490,7 +490,14 @@ class NdrrmoController extends Controller
             ->latest('reported_at')
             ->get();
 
+        // Changes whenever the Clinic acts on an active incident, so the dashboard reloads and shows it.
+        $clinicActivity = Notification::whereIn('incident_id', Incident::active()->select('id'))
+            ->where(fn ($q) => $q->where('recipient', 'Clinic')->orWhere('status', 'Clinic Medical Team Dispatched'))
+            ->selectRaw('COUNT(*) as total, MAX(id) as last_id')
+            ->first();
+
         return response()->json([
+            'clinic_signature' => $clinicActivity->total.'-'.$clinicActivity->last_id,
             'active_alerts' => Incident::active()->count(),
             'total_incidents' => Incident::count(),
             'resolved_incidents' => Incident::resolved()->count(),

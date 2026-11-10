@@ -1034,6 +1034,8 @@
         updateLiveNDRRMOClock();
         setInterval(updateLiveNDRRMOClock, 1000);
 
+        let lastClinicSignature = null;
+
         function pollNDRRMOStats() {
             fetch('/ndrrmo/stats-json')
                 .then(res => res.json())
@@ -1056,6 +1058,14 @@
 
                     if (window.updateNDRRMOAlertBadges && data.active_alerts !== undefined) {
                         window.updateNDRRMOAlertBadges(data.active_alerts);
+                    }
+
+                    // The Clinic acted on an active incident: reload so its dispatch/arrival shows on the alert cards
+                    if (data.clinic_signature !== undefined) {
+                        if (lastClinicSignature !== null && data.clinic_signature !== lastClinicSignature) {
+                            window.location.reload();
+                        }
+                        lastClinicSignature = data.clinic_signature;
                     }
 
                     // Auto-sync emergency modal & audio siren with all pending incidents
