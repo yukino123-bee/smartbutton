@@ -9,8 +9,8 @@ const int WIFI_NETWORK_COUNT = sizeof(WIFI_NETWORKS) / sizeof(WIFI_NETWORKS[0]);
 WiFiMulti wifiMulti;
 
 // Endpoints
-const char *api_url = "http://10.85.82.116:8000/api/emergency";
-const char *status_url = "http://10.85.82.116:8000/api/device/status?device_id=LIB-001";
+const char *api_url = "http://10.56.79.50:8000/api/emergency";
+const char *status_url = "http://10.56.79.50:8000/api/device/status?device_id=LIB-001";
 
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "LIB-001"; // Campus Library
@@ -668,10 +668,17 @@ void checkAcknowledgeStatus() {
   http.addHeader("X-Device-Token", DEVICE_TOKEN);
 #endif
   http.setConnectTimeout(1500); // keep buttons responsive when the server is down
-  http.setTimeout(1500);
+  http.setTimeout(3000); // the dev server is slow right after an alert (broadcast + notifications)
 
   int httpCode = http.GET();
-  serverOnline = (httpCode == 200);
+  // One slow/failed poll must not flip the LED to "disconnected"; need 3 misses in a row
+  static int statusMisses = 0;
+  if (httpCode == 200) {
+    statusMisses = 0;
+    serverOnline = true;
+  } else if (++statusMisses >= 3) {
+    serverOnline = false;
+  }
   if (httpCode != 200) {
     Serial.println("[STATUS CHECK] " + String(status_url) + " -> HTTP " + String(httpCode) + " (" + HTTPClient::errorToString(httpCode) + "), WiFi RSSI " + String(WiFi.RSSI()) + " dBm, IP " + WiFi.localIP().toString() + ", gateway " + WiFi.gatewayIP().toString());
   }
