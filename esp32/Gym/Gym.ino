@@ -10,17 +10,19 @@ const int NUM_EMERGENCY_RECIPIENTS = sizeof(EMERGENCY_PHONE_NUMBERS) / sizeof(EM
 WiFiMulti wifiMulti;
 
 // Endpoints
-const char *api_url = "http://10.56.108.116:8000/api/emergency";
-const char *status_url = "http://10.56.108.116:8000/api/device/status?device_id=GYM-001";
+const char *api_url = "http://10.56.79.50:8000/api/emergency";
+const char *status_url = "http://10.56.79.50:8000/api/device/status?device_id=GYM-001";
 
 // The unique device code for this specific ESP32
 const char *DEVICE_CODE = "GYM-001"; // Campus Gym
 
 
 // --- Hardware Pins ---
-const int BTN_CRITICAL = 14;   // Critical Emergency
+const int BTN_CRITICAL = 26;   // Critical Emergency (moved from GPIO 14, which never saw the press)
 const int BTN_MEDICAL = 12;    // Medical Emergency
 const int BTN_SUSPICIOUS = 27; // Suspicious Person
+const int BTN_CLINIC_YES = 32; // Side Top Button: Need Clinic Aid (after a Medical alert)
+const int BTN_CLINIC_NO  = 33; // Side Bottom Button: No Clinic Needed (after a Medical alert)
 
 const int LED_RED = 2;   // Error / Sending / Active Alarm Indicator
 const int LED_GREEN = 4; // Ready / Online Indicator
@@ -32,6 +34,13 @@ const int BUZZER = 5;    // Audio Feedback / SOS Alarm
 
 // --- Alarm State & Status Polling ---
 bool isDeviceAlarming = false;
+
+// Alert that went out by SMS only. It is re-sent to the server once it answers so DRRMO and the Clinic see it.
+// shortcut: keeps only the latest offline alert (lost on reboot), upgrade to a small queue if that matters.
+bool pendingAlert = false;
+String pendingType;
+String pendingPressId;
+unsigned long pendingSince = 0;
 bool confirmationMode = false; // Live: buttons send real alerts (true = log presses only, no alert)
 unsigned long lastStatusCheckTime = 0;
 const unsigned long STATUS_CHECK_INTERVAL = 1500; // Check server every 1.5 seconds
@@ -46,15 +55,18 @@ struct Button {
 };
 
 const unsigned long DEBOUNCE_MS  = 50;
-const unsigned long COOLDOWN_MS  = 5000;
+const unsigned long COOLDOWN_MS  = 0; // every press is sent as its own alert
 unsigned long lastAlertTime      = 0;
+String pressId;        // one id per physical press, reused on retries so the server can tell a retry from a new alert
 
 Button buttons[] = {
   { BTN_CRITICAL,   HIGH, HIGH, 0, false },
   { BTN_MEDICAL,    HIGH, HIGH, 0, false },
   { BTN_SUSPICIOUS, HIGH, HIGH, 0, false },
+  { BTN_CLINIC_YES, HIGH, HIGH, 0, false },
+  { BTN_CLINIC_NO,  HIGH, HIGH, 0, false },
 };
-const int NUM_BUTTONS = 3;
+const int NUM_BUTTONS = 5;
 const char* emergencyTypes[] = {
   "Critical Emergency",
   "Medical Emergency",
@@ -66,6 +78,7 @@ void beepBuzzer(int times, int durationMs);
 void soundSOSPattern();
 void checkAcknowledgeStatus();
 void triggerAlarm(String emergencyType);
+void sendClinicSignal(bool needClinic);
 void sendPanicAlert(String emergencyType);
 void initSIM800L();
 void sendSMS(String message, String recipient);
@@ -85,6 +98,8 @@ void setup() {
   pinMode(BTN_CRITICAL, INPUT_PULLUP);
   pinMode(BTN_MEDICAL, INPUT_PULLUP);
   pinMode(BTN_SUSPICIOUS, INPUT_PULLUP);
+  pinMode(BTN_CLINIC_YES, INPUT_PULLUP);
+  pinMode(BTN_CLINIC_NO, INPUT_PULLUP);
 
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
@@ -183,10 +198,13 @@ void loop() {
 
       // Falling edge (HIGH → LOW) = actual button press
       if (prevStable == HIGH && btn.stableState == LOW && !btn.triggered) {
-        if ((now - lastAlertTime) >= COOLDOWN_MS) {
+        bool clinicBtn = (btn.pin == BTN_CLINIC_YES || btn.pin == BTN_CLINIC_NO); // follow-up to a Medical alert: no cooldown
+        if (clinicBtn || (now - lastAlertTime) >= COOLDOWN_MS) {
           btn.triggered  = true;
-          lastAlertTime  = now;
-          triggerAlarm(emergencyTypes[i]);
+          if (!clinicBtn) lastAlertTime = now;
+          if (btn.pin == BTN_CLINIC_YES) sendClinicSignal(true);
+          else if (btn.pin == BTN_CLINIC_NO) sendClinicSignal(false);
+          else triggerAlarm(emergencyTypes[i]);
         } else {
           Serial.println("[COOLDOWN] Alert suppressed, too soon.");
         }
@@ -195,6 +213,30 @@ void loop() {
   }
 
   delay(10);
+}
+
+// D32 / D33 after a Medical alert: ask for the Clinic, or tell DRRMO none is needed. Needs the server (no SMS form).
+void sendClinicSignal(bool needClinic) {
+  if (confirmationMode) { beepBuzzer(1, 50); return; }
+  Serial.println(needClinic ? "\n🏥 [CLINIC ASSISTANCE REQUESTED]: GPIO 32" : "\n🩺 [NO CLINIC NEEDED]: GPIO 33");
+  bool ok = false;
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin(api_url);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Accept", "application/json");
+#ifdef DEVICE_TOKEN
+    http.addHeader("X-Device-Token", DEVICE_TOKEN);
+#endif
+    http.setTimeout(4000);
+    String payload = "{\"device_id\":\"" + String(DEVICE_CODE) + "\",\"emergency_category\":\"Medical Emergency\"," +
+                     (needClinic ? "\"need_clinic\":true}" : "\"need_clinic\":false,\"clinic_declined\":true}");
+    int code = http.POST(payload);
+    Serial.println("[API] " + payload + " -> HTTP " + String(code));
+    http.end();
+    ok = code >= 200 && code < 300;
+  }
+  beepBuzzer(ok ? 1 : 3, 60);
 }
 
 void triggerAlarm(String emergencyType) {
@@ -214,6 +256,7 @@ void triggerAlarm(String emergencyType) {
     beepBuzzer(2, 150);
 
     // Process Alert
+    pressId = String(DEVICE_CODE) + "-" + String(millis()) + "-" + String(esp_random() % 100000);
     sendPanicAlert(emergencyType);
 }
 
@@ -231,7 +274,7 @@ void sendPanicAlert(String emergencyType) {
 #endif
 
     String payload = "{\"device_id\":\"" + String(DEVICE_CODE) +
-                     "\", \"emergency_category\":\"" + emergencyType + "\"}";
+                     "\", \"emergency_category\":\"" + emergencyType + "\", \"press_id\":\"" + pressId + "\"}";
 
     Serial.println("[API] Sending Payload: " + payload);
 
@@ -263,8 +306,20 @@ void sendPanicAlert(String emergencyType) {
     Serial.println("[API WARNING] WiFi Disconnected!");
   }
 
-  // 2. ALWAYS Send SMS Notification via SIM800L for EVERY Alert Trigger
-  Serial.println("\n[GSM ALERT] Transmitting SMS notification via SIM800L Module...");
+  // Remember it for the server when it could not be reached
+  if (!apiSuccess) {
+    pendingAlert = true;
+    pendingType = emergencyType;
+    pendingPressId = pressId;
+    pendingSince = millis();
+  }
+
+  // 2. SMS only when the server could not be reached (slow SIM800L sends block button reads)
+  if (apiSuccess) {
+    Serial.println("[GSM] Alert already delivered via Web API. SMS suppressed.");
+    return;
+  }
+  Serial.println("\n[GSM FAILOVER] Server unreachable, sending SMS via SIM800L Module...");
   String smsMessage = "JHCSC SMART PANIC ALERT!\nDevice: " + String(DEVICE_CODE) +
                       "\nCategory: " + emergencyType +
                       "\nStatus: Immediate Response Required!";
@@ -451,6 +506,27 @@ void sendSMS(String message, String recipient) {
   Serial.println("==========================================\n");
 }
 
+// Send the alert that only went out by SMS now that the server is reachable again
+void flushPendingAlert() {
+  if (!pendingAlert) return;
+  HTTPClient http;
+  http.begin(api_url);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Accept", "application/json");
+#ifdef DEVICE_TOKEN
+  http.addHeader("X-Device-Token", DEVICE_TOKEN);
+#endif
+  http.setTimeout(4000);
+  unsigned long age = min((millis() - pendingSince) / 1000UL, 86400UL);
+  int code = http.POST("{\"device_id\":\"" + String(DEVICE_CODE) + "\", \"emergency_category\":\"" + pendingType +
+                       "\", \"press_id\":\"" + pendingPressId + "\", \"age_seconds\":" + String(age) + "}");
+  http.end();
+  if (code >= 200 && code < 300) {
+    pendingAlert = false;
+    Serial.println("[SYNC] Offline alert delivered to the server: " + pendingType);
+  }
+}
+
 // Check server status to see if active alarm was acknowledged
 void checkAcknowledgeStatus() {
   if (WiFi.status() != WL_CONNECTED) wifiMulti.run(2000); // try the other saved networks
@@ -477,30 +553,32 @@ void checkAcknowledgeStatus() {
         beepBuzzer(2, 200); // 2 confirmation beeps
       }
     }
+    flushPendingAlert(); // after the ack check: "no pending alert" was true only until this send
   }
   http.end();
 }
 
 // SOS Morse Code Buzzer Pattern: 3 Short, 3 Long, 3 Short
+// True while any panic button is held, so the siren pattern can yield and the press gets read
+static bool buttonDown() {
+  return digitalRead(BTN_CRITICAL) == LOW || digitalRead(BTN_MEDICAL) == LOW || digitalRead(BTN_SUSPICIOUS) == LOW || digitalRead(BTN_CLINIC_YES) == LOW || digitalRead(BTN_CLINIC_NO) == LOW;
+}
+
+// Wait up to ms, returning false as soon as a button is pressed
+static bool sosWait(int ms) {
+  for (int t = 0; t < ms; t += 10) {
+    if (buttonDown()) { digitalWrite(BUZZER, LOW); return false; }
+    delay(10);
+  }
+  return true;
+}
+
+// Siren pattern; stops early when a button is pressed, so a new alert can be sent while the alarm is sounding
 void soundSOSPattern() {
-  // S: 3 short beeps
-  for(int i = 0; i < 3; i++) {
-    digitalWrite(BUZZER, HIGH); delay(100);
-    digitalWrite(BUZZER, LOW);  delay(100);
-  }
-  delay(200);
-
-  // O: 3 long beeps
-  for(int i = 0; i < 3; i++) {
-    digitalWrite(BUZZER, HIGH); delay(300);
-    digitalWrite(BUZZER, LOW);  delay(100);
-  }
-  delay(200);
-
-  // S: 3 short beeps
-  for(int i = 0; i < 3; i++) {
-    digitalWrite(BUZZER, HIGH); delay(100);
-    digitalWrite(BUZZER, LOW);  delay(100);
+  const int steps[][2] = {{100,100},{100,100},{100,100},{0,200},{300,100},{300,100},{300,100},{0,200},{100,100},{100,100},{100,100}};
+  for (auto &st : steps) {
+    if (st[0]) { digitalWrite(BUZZER, HIGH); if (!sosWait(st[0])) return; digitalWrite(BUZZER, LOW); }
+    if (!sosWait(st[1])) return;
   }
 }
 

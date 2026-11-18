@@ -485,7 +485,12 @@
                 if (badge) badge.textContent = `🚑 ${total} UNHANDLED MEDICAL ALERTS`;
                 if (hudCounter) hudCounter.classList.add('hidden');
                 if (hudBody) hudBody.classList.add('hidden');
-                renderClinicGrid(alertGrid);
+                // The dashboard already lists every alert as a card, so skip the duplicate grid there
+                if (document.querySelector('[id^="clinic-incident-card-"]')) {
+                    if (alertGrid) { alertGrid.classList.add('hidden'); alertGrid.innerHTML = ''; }
+                } else {
+                    renderClinicGrid(alertGrid);
+                }
             } else {
                 if (hudBody) hudBody.classList.toggle('hidden', Boolean(window.isClinicHudMinimized));
                 if (alertGrid) { alertGrid.classList.add('hidden'); alertGrid.innerHTML = ''; }
@@ -953,6 +958,8 @@
             }
         };
 
+        let lastIncidentSignature = null;
+
         function pollClinicStats() {
             fetch('/clinic/stats-json')
                 .then(res => {
@@ -973,6 +980,15 @@
 
                     if (window.updateAlertBadges && data.active_alerts !== undefined) {
                         window.updateAlertBadges(data.active_alerts);
+                    }
+
+                    // DRRMO (or another Clinic screen) changed an incident: reload, unless someone is typing in a form
+                    if (data.incident_signature !== undefined) {
+                        if (lastIncidentSignature !== null && data.incident_signature !== lastIncidentSignature
+                            && !document.activeElement.matches('input, textarea, select')) {
+                            window.location.reload();
+                        }
+                        lastIncidentSignature = data.incident_signature;
                     }
 
                     if (data.pending_incidents && window.syncClinicIncidents) {

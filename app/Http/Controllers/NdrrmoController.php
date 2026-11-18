@@ -214,7 +214,8 @@ class NdrrmoController extends Controller
 
     public function notifyClinic(Incident $incident)
     {
-        abort_unless(in_array($incident->emergency_type, Incident::EMERGENCY_TYPES, true), 404);
+        // Only a Medical alert whose device pressed the clinic button (D32) is a request for the Clinic.
+        abort_unless($incident->emergency_type === Incident::TYPE_MEDICAL && $incident->clinic_requested_at, 404);
 
         Notification::firstOrCreate([
             'incident_id' => $incident->id,
@@ -354,6 +355,16 @@ class NdrrmoController extends Controller
         ]);
 
         $resType = $validated['resolution_type'] ?? 'Resolved';
+
+        // The Clinic is part of this incident, so it must have dispatched before DRRMO can close it as handled.
+        if ($resType === 'Resolved' && $incident->involvesClinic() && ! $incident->clinic_dispatched_at && $incident->clinic_status !== 'Resolved') {
+            $message = 'The Clinic has not dispatched a medical team yet.';
+
+            return $request->wantsJson()
+                ? response()->json(['status' => 'error', 'message' => $message], 422)
+                : redirect()->back()->with('error', $message);
+        }
+
         $remarks = $validated['remarks'] ?? $validated['resolution_notes'] ?? $incident->remarks;
         if ($resType !== 'Resolved' && ! empty($validated['false_alarm_reason'])) {
             $remarks = ($remarks ? $remarks.' · ' : '')."[{$resType}] ".$validated['false_alarm_reason'];
@@ -372,9 +383,6 @@ class NdrrmoController extends Controller
             'disposition' => $validated['disposition'] ?? $incident->disposition,
         ]);
         $incident->load('device');
-
-        // A DRRMO resolve closes the incident on the Clinic side too.
-        $incident->resolveClinicSide($resType, $validated['false_alarm_reason'] ?? null, $remarks);
 
         Notification::create([
             'incident_id' => $incident->id,
@@ -417,39 +425,6 @@ class NdrrmoController extends Controller
             ->paginate(15);
 
         return view('ndrrmo.sms', compact('smsLogs'));
-    }
-
-    private function ensureSimulationEnabled(): void
-    {
-        abort_unless(config('app.simulation_enabled'), 404);
-    }
-
-    public function simulation()
-    {
-        $this->ensureSimulationEnabled();
-        $devices = Device::where('status', 'active')->orderBy('device_code')->get();
-
-        return view('ndrrmo.simulation', compact('devices'));
-    }
-
-    /** Virtual device press: runs the real device endpoint server-side so the device token never reaches the browser. */
-    public function simulationEmergency(Request $request)
-    {
-        $this->ensureSimulationEnabled();
-
-        $deviceRequest = Request::create('/api/emergency', 'POST', $request->only(['device_id', 'emergency_category', 'need_clinic']) + ['simulated' => true]);
-        $deviceRequest->headers->set('Accept', 'application/json');
-
-        return app(DeviceController::class)->emergency($deviceRequest);
-    }
-
-    public function simulationStatus(Request $request)
-    {
-        $this->ensureSimulationEnabled();
-
-        $deviceRequest = Request::create('/api/device/status', 'GET', $request->only('device_id'));
-
-        return app(DeviceController::class)->status($deviceRequest);
     }
 
     public function reports()
@@ -498,11 +473,13 @@ class NdrrmoController extends Controller
 
         return response()->json([
             'clinic_signature' => $clinicActivity->total.'-'.$clinicActivity->last_id,
+            'active_signature' => Incident::active()->orderBy('id')->get(['id', 'status'])->map(fn ($i) => $i->id.$i->status)->join(','),
             'active_alerts' => Incident::active()->count(),
             'total_incidents' => Incident::count(),
             'resolved_incidents' => Incident::resolved()->count(),
             'devices_online' => $devices->filter->is_online->count(),
             'total_devices' => $devices->count(),
+            'device_online' => $devices->pluck('is_online', 'id'),
             'pending' => $pendingIncidents->count(),
             'responding' => Incident::where('status', 'Responding')->count(),
             'resolved' => Incident::resolved()->count(),

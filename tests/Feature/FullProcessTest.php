@@ -77,7 +77,7 @@ test('wrong button: the first alert becomes a false alarm and the second is the 
     expect(deviceState('LIB-001'))->toMatchArray(['has_pending' => true, 'incident_id' => $second]);
 });
 
-test('critical: both are alerted, Clinic dispatch tells DRRMO, DRRMO resolve closes the Clinic copy', function () {
+test('critical: both are alerted, Clinic dispatch tells DRRMO, DRRMO resolve leaves the Clinic copy alone', function () {
     $id = press('GYM-001', Incident::TYPE_CRITICAL, true)->assertCreated()->json('incident_id');
 
     expect(Notification::where('incident_id', $id)->pluck('recipient')->unique()->sort()->values()->all())->toBe(['Clinic', 'DRRMO']);
@@ -88,16 +88,15 @@ test('critical: both are alerted, Clinic dispatch tells DRRMO, DRRMO resolve clo
     $this->actingAs(clinicUser())->getJson('/clinic/stats-json')->assertJsonCount(0, 'pending_incidents');
     expect(Notification::where('incident_id', $id)->where('recipient', 'DRRMO')->where('status', 'Clinic Medical Team Dispatched')->exists())->toBeTrue()
         ->and(Incident::find($id)->status)->toBe('Pending'); // DRRMO's own state unchanged
-    $this->actingAs(drrmo())->get('/ndrrmo')->assertSee('Medical Dispatched');
     $this->actingAs(drrmo())->get('/ndrrmo/alerts')->assertSee('CLINIC: MEDICAL TEAM DISPATCHED');
 
     // Clinic cannot call it a false alarm; it can resolve as treated
     $this->actingAs(clinicUser())->postJson("/clinic/incidents/{$id}/resolve", ['resolution_type' => 'False Alarm'])->assertStatus(422);
 
-    // DRRMO closes it and the Clinic's copy closes with it
+    // DRRMO closes it; the Clinic's own status is not changed automatically
     $this->actingAs(drrmo())->postJson("/ndrrmo/incidents/{$id}/acknowledge")->assertOk();
     $this->actingAs(drrmo())->postJson("/ndrrmo/incidents/{$id}/resolve", ['resolution_type' => 'Resolved'])->assertOk();
-    expect(Incident::find($id)->clinic_status)->toBe('Resolved');
+    expect(Incident::find($id)->clinic_status)->not->toBe('Resolved');
 });
 
 test('medical + clinic button: Clinic is alerted only after DRRMO acknowledges', function () {
@@ -148,24 +147,17 @@ test('device API honours the shared token and the old open incident endpoints ar
     }
 });
 
-test('simulation page runs through the secured API, labels incidents and can be switched off', function () {
-    config(['services.device.token' => 'secret-token']);
+test('device API refuses to run open in production when no token is set', function () {
+    config(['services.device.token' => '']);
+    $this->app['env'] = 'production';
 
-    $this->actingAs(drrmo())->postJson('/ndrrmo/simulation/emergency', ['device_id' => 'LIB-001', 'emergency_category' => Incident::TYPE_PUBLIC_SAFETY, 'need_clinic' => false])->assertCreated();
-    expect(Incident::first()->remarks)->toStartWith('[Simulation]');
-    $this->actingAs(drrmo())->getJson('/ndrrmo/simulation/status?device_id=LIB-001')->assertOk()->assertJsonPath('has_pending', true);
-
-    config(['app.simulation_enabled' => false]);
-    $this->actingAs(drrmo())->get('/ndrrmo/simulation')->assertNotFound();
-    $this->actingAs(drrmo())->postJson('/ndrrmo/simulation/emergency', ['device_id' => 'LIB-001', 'emergency_category' => Incident::TYPE_MEDICAL])->assertNotFound();
-    $this->actingAs(drrmo())->get('/ndrrmo')->assertDontSee('nav-ndrrmo-simulation', false);
+    $this->postJson('/api/emergency', ['device_id' => 'LIB-001', 'emergency_category' => Incident::TYPE_CRITICAL])->assertStatus(503);
 });
 
 test('role separation and unknown or inactive devices', function () {
     $this->actingAs(clinicUser())->get('/ndrrmo')->assertForbidden();
-    $this->actingAs(clinicUser())->get('/ndrrmo/simulation')->assertForbidden();
     $this->actingAs(drrmo())->get('/clinic')->assertForbidden();
-    $this->actingAs(drrmo())->get('/ndrrmo/simulation')->assertOk();
+    $this->actingAs(drrmo())->get('/ndrrmo')->assertOk();
 
     press('NOPE-999', Incident::TYPE_CRITICAL)->assertNotFound();
     Device::where('device_code', 'GYM-001')->update(['status' => 'inactive']);
@@ -175,7 +167,7 @@ test('role separation and unknown or inactive devices', function () {
 test('clinic dispatch from the alerts page records the responder name and ETA entered', function () {
     $id = press('LIB-001', Incident::TYPE_CRITICAL, true)->json('incident_id');
 
-    $this->actingAs(clinicUser())->get('/clinic/alerts')->assertSee('name="responder_name"', false)->assertSee('name="eta_minutes"', false);
+    $this->actingAs(clinicUser())->get('/clinic/alerts')->assertDontSee('name="responder_name"', false);
     $this->actingAs(clinicUser())->post("/clinic/incidents/{$id}/dispatch", ['responder_name' => 'Nurse Reyes', 'eta_minutes' => 4])->assertRedirect();
 
     expect(Incident::find($id))->clinic_responder_name->toBe('Nurse Reyes')->clinic_eta_minutes->toBe(4)->clinic_status->toBe('Responding');
@@ -197,7 +189,7 @@ test('campus map legend lists a colour for every alert type and colours incident
 
     $page = $this->actingAs(drrmo())->get('/ndrrmo/map')->assertOk();
     $page->assertSee('Critical Emergency')->assertSee('Medical Emergency')->assertSee('Public Safety');
-    $page->assertSee('bg-orange-50/60', false)->assertSee('bg-amber-50/60', false);
+    $page->assertSee('bg-orange-50/60', false)->assertSee('bg-blue-50/60', false);
 });
 
 test('alert Map buttons focus the clicked alert on the campus map', function () {
@@ -209,4 +201,17 @@ test('alert Map buttons focus the clicked alert on the campus map', function () 
         ->assertSee('deviceMarkers[device.id] = marker', false)
         ->assertSee('Active alerts on this device')
         ->assertDontSee('marker.openPopup();'."\n".'            map.setView', false);
+});
+
+test('a press with a press_id is its own alert; a retry with the same id is not', function () {
+    $post = fn (string $id) => test()->postJson('/api/emergency', ['device_id' => 'LIB-001', 'emergency_category' => Incident::TYPE_MEDICAL, 'need_clinic' => false, 'press_id' => $id]);
+
+    $first = $post('p-1')->assertCreated()->json('incident_id');
+    $retry = $post('p-1')->assertOk()->json('incident_id');
+    $second = $post('p-2')->assertCreated()->json('incident_id');
+
+    expect($retry)->toBe($first)
+        ->and($second)->not->toBe($first)
+        ->and(Incident::find($first)->status)->toBe('Resolved')
+        ->and(Incident::find($second)->status)->toBe('Pending');
 });

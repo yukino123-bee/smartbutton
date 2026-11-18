@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\EmergencyReported;
+use App\Models\Device;
 use App\Models\Incident;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -42,12 +43,15 @@ class ClinicController extends Controller
         $recentHistory->each->clinicView();
         $activeEmergency = $criticalIncidents->first();
 
+        $devicesList = Device::all();
+
         return view('clinic', compact(
             'activeAlerts',
             'incomingCount',
             'treatedTodayCount',
             'resolvedTodayCount',
             'criticalIncidents',
+            'devicesList',
             'recentHistory',
             'activeEmergency'
         ));
@@ -87,8 +91,7 @@ class ClinicController extends Controller
         $incident = Incident::clinicVisible()->findOrFail($id);
         $incident->update(['clinic_hidden_at' => now()]);
 
-        return redirect()->route('clinic.alerts')
-            ->with('success', 'Alert deleted successfully.');
+        return redirect()->back()->with('success', 'Record deleted successfully.');
     }
 
     public function incoming()
@@ -141,10 +144,15 @@ class ClinicController extends Controller
             ->groupBy('devices.building')
             ->pluck('count', 'devices.building');
 
+        $triageStats = Incident::clinicVisible()->clinicResolved()->whereNotNull('clinic_triage_level')
+            ->selectRaw('clinic_triage_level, count(*) as count')
+            ->groupBy('clinic_triage_level')
+            ->pluck('count', 'clinic_triage_level');
+
         $totalIncidents = Incident::clinicVisible()->count();
         $totalTreated = Incident::clinicVisible()->clinicResolved()->count();
 
-        return view('clinic.reports', compact('stats', 'typeStats', 'buildingStats', 'totalIncidents', 'totalTreated'));
+        return view('clinic.reports', compact('stats', 'typeStats', 'buildingStats', 'triageStats', 'totalIncidents', 'totalTreated'));
     }
 
     /**
@@ -322,6 +330,15 @@ class ClinicController extends Controller
             'disposition' => 'nullable|string|max:100',
         ]);
 
+        // A drill / accidental push needs no rescue, so it may be closed without a dispatch
+        if (! $incident->clinic_dispatched_at && ($validated['resolution_type'] ?? 'Resolved') !== 'Drill') {
+            $message = 'Dispatch the medical team before marking this incident resolved.';
+
+            return $request->wantsJson()
+                ? response()->json(['status' => 'error', 'message' => $message], 422)
+                : redirect()->back()->with('error', $message);
+        }
+
         $resType = $validated['resolution_type'] ?? 'Resolved';
         $remarks = $validated['remarks'] ?? $validated['resolution_notes'] ?? $incident->clinic_remarks;
         if ($resType !== 'Resolved' && ! empty($validated['false_alarm_reason'])) {
@@ -404,11 +421,16 @@ class ClinicController extends Controller
             ->get()
             ->each->clinicView();
 
+        // Changes whenever DRRMO or the Clinic moves a Clinic-visible incident, so open pages refresh themselves.
+        $activity = Incident::clinicVisible()->selectRaw('COUNT(*) as total, MAX(updated_at) as last_change')->first();
+
         return response()->json([
+            'incident_signature' => $activity->total.'-'.$activity->last_change.'-'.Notification::where('recipient', 'Clinic')->max('id'),
             'active_alerts' => Incident::clinicVisible()->clinicActive()->count(),
             'incoming' => Incident::clinicVisible()->whereDate('reported_at', today())->clinicActive()->count(),
             'treated_today' => Incident::clinicVisible()->whereDate('clinic_resolved_at', today())->clinicResolved()->count(),
             'resolved_today' => Incident::clinicVisible()->whereDate('clinic_resolved_at', today())->clinicResolved()->count(),
+            'device_online' => Device::all()->pluck('is_online', 'id'),
             'latest_pending' => $pendingIncidents->first(),
             'pending_incidents' => $pendingIncidents,
         ]);

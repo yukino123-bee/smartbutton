@@ -27,11 +27,11 @@
                         <span>Medical Emergency</span>
                     </div>
                     <div class="flex items-center">
-                        <span class="w-3 h-3 rounded-full bg-amber-500 mr-2.5 shrink-0 ring-2 ring-amber-200"></span>
+                        <span class="w-3 h-3 rounded-full bg-blue-600 mr-2.5 shrink-0 ring-2 ring-blue-200"></span>
                         <span>Public Safety</span>
                     </div>
                     <div class="flex items-center pt-2 border-t border-slate-100">
-                        <span class="w-3 h-3 rounded-full bg-blue-600 mr-2.5 shrink-0 ring-2 ring-blue-200"></span>
+                        <span class="w-3 h-3 rounded-full bg-emerald-600 mr-2.5 shrink-0 ring-2 ring-emerald-200"></span>
                         <span>Device Online (Idle)</span>
                     </div>
                 </div>
@@ -52,8 +52,8 @@
                 @forelse($activeIncidents as $incident)
                     @php
                         if (str_contains($incident->emergency_type, 'Public Safety')) {
-                            $cardBg = 'bg-amber-50/60 border-amber-200 text-amber-800';
-                            $badgeColor = 'text-amber-700 bg-amber-100';
+                            $cardBg = 'bg-blue-50/60 border-blue-200 text-blue-800';
+                            $badgeColor = 'text-blue-700 bg-blue-100';
                         } elseif (str_contains($incident->emergency_type, 'Medical')) {
                             $cardBg = 'bg-orange-50/60 border-orange-200 text-orange-800';
                             $badgeColor = 'text-orange-700 bg-orange-100';
@@ -158,8 +158,8 @@
 
     // One colour per alert type, matching the legend and the dashboards
     const typeTheme = (type) => {
-        if (type.includes('Public Safety')) return { text: 'text-amber-500', pulse: 'animate-ping bg-amber-500', popup: 'text-amber-600', hex: '#f59e0b' };
-        if (type.includes('Medical')) return { text: 'text-orange-500', pulse: 'animate-ping bg-orange-500', popup: 'text-orange-600', hex: '#f97316' };
+        if (type.includes('Public Safety')) return { text: 'text-blue-600', pulse: 'animate-ping bg-blue-600', popup: 'text-blue-600', hex: '#2563eb' };
+        if (type.includes('Medical')) return { text: 'text-orange-500', pulse: 'animate-ping bg-orange-500', popup: 'text-orange-600', hex: '#ea580c' };
         return { text: 'text-red-600', pulse: 'animate-ping bg-red-600', popup: 'text-red-600', hex: '#dc2626' };
     };
     const severityRank = (type) => type.includes('Critical') ? 3 : (type.includes('Medical') ? 2 : 1);
@@ -175,10 +175,10 @@
         
         let markerIcon;
         let popupTitle = 'Device Status: Normal';
-        let popupColor = 'text-blue-600';
+        let popupColor = 'text-emerald-600';
         let statusText = 'Online';
         let pulseClass = null;
-        let colorClass = 'text-blue-600';
+        let colorClass = 'text-emerald-600';
         let circleColor = '#dc2626';
         let svgIcon = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>';
         
@@ -204,7 +204,11 @@
                 <span class="text-slate-500 font-medium">${i.status} · ${i.reported_at ? new Date(i.reported_at).toLocaleTimeString() : ''}</span>
             </div>`).join('');
 
-        const popupContent = `
+        // Idle devices show their real link state; an active alert always wins
+        const render = (online) => {
+        const down = !incident && !online;
+        const color = down ? 'text-slate-500' : popupColor;
+        return `
             <div class="p-4 min-w-[220px]">
                 <div class="flex items-center gap-3 mb-3">
                     <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
@@ -216,19 +220,25 @@
                     </div>
                 </div>
                 <div class="border-t border-slate-100 pt-3">
-                    <div class="text-[10px] font-bold uppercase tracking-wider ${popupColor} mb-1">
-                        ${popupTitle}
+                    <div class="text-[10px] font-bold uppercase tracking-wider ${color} mb-1">
+                        ${down ? 'Device Status: Offline' : popupTitle}
                     </div>
                     <div class="flex justify-between items-center text-xs">
                         <span class="text-slate-500 font-medium">Status</span>
-                        <span class="font-bold ${popupColor} flex items-center"><span class="w-1.5 h-1.5 rounded-full ${incident ? 'bg-red-600 animate-pulse' : 'bg-blue-600'} mr-1.5"></span>${statusText}</span>
+                        <span class="font-bold ${color} flex items-center"><span class="w-1.5 h-1.5 rounded-full ${incident ? 'bg-red-600 animate-pulse' : (down ? 'bg-slate-400' : 'bg-emerald-600')} mr-1.5"></span>${down ? 'Offline' : statusText}</span>
                     </div>
                     ${alertsHtml ? `<div class="mt-2 pt-2 border-t border-slate-100"><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active alerts on this device</div>${alertsHtml}</div>` : ''}
                 </div>
             </div>
         `;
-        
-        marker.bindPopup(popupContent);
+        };
+        marker.bindPopup(render(device.is_online));
+        // Refresh the link state each time the popup opens, so it never shows a stale page-load value
+        const syncPopup = () => fetch('/ndrrmo/stats-json').then(r => r.json())
+                                .then(d => marker.setPopupContent(render(d.device_online[device.id]))).catch(() => {});
+                            let popupTimer;
+                            marker.on('popupopen', () => { syncPopup(); popupTimer = setInterval(syncPopup, 3000); });
+                            marker.on('popupclose', () => clearInterval(popupTimer));
         mapMarkers[device.device_code] = marker;
         deviceMarkers[device.id] = marker;
 

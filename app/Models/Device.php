@@ -12,6 +12,8 @@ class Device extends Model
         'latitude', 'longitude', 'status', 'last_seen',
     ];
 
+    protected $appends = ['is_online'];
+
     protected function casts(): array
     {
         return [
@@ -25,7 +27,7 @@ class Device extends Model
     {
         return $this->status === 'active'
             && $this->last_seen
-            && $this->last_seen->gt(now()->subMinutes(5));
+            && $this->last_seen->gt(now()->subSeconds(90)); // idle buttons ping every 10 to 60 s
     }
 
     public function incidents(): HasMany

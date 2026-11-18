@@ -54,7 +54,7 @@ class Incident extends Model
         'clinic_resolution_type', 'clinic_false_alarm_reason', 'clinic_remarks',
         'clinic_responder_name', 'clinic_responder_contact', 'clinic_eta_minutes', 'clinic_dispatch_notes',
         'clinic_patient_name', 'clinic_patient_id_number', 'clinic_triage_level', 'clinic_treatment_summary',
-        'clinic_disposition', 'clinic_hidden_at', 'clinic_requested_at',
+        'clinic_disposition', 'clinic_hidden_at', 'clinic_requested_at', 'clinic_declined_at', 'press_id',
     ];
 
     protected $casts = [
@@ -72,6 +72,7 @@ class Incident extends Model
         'clinic_eta_minutes' => 'integer',
         'clinic_hidden_at' => 'datetime',
         'clinic_requested_at' => 'datetime',
+        'clinic_declined_at' => 'datetime',
     ];
 
     public function scopeActive(Builder $query): Builder
@@ -149,7 +150,7 @@ class Incident extends Model
             return true;
         }
 
-        $this->update(['clinic_requested_at' => $this->clinic_requested_at ?? now()]);
+        $this->update(['clinic_requested_at' => $this->clinic_requested_at ?? now(), 'clinic_declined_at' => null]);
 
         if ($this->status === 'Pending') {
             return false;
@@ -203,12 +204,12 @@ class Incident extends Model
     }
 
     /**
-     * The device sent a different alert right after this one, before DRRMO acted on it (wrong button pressed).
-     * Close this one as a false alarm so only the corrected alert stays active.
+     * The device sent a newer alert before DRRMO acted on this one.
+     * Close this one as a false alarm so only the newest alert stays active.
      */
     public function supersedeAsFalseAlarm(string $newType): void
     {
-        $reason = "Wrong button pressed; replaced by {$newType}";
+        $reason = "Replaced by a newer alert ({$newType})";
 
         $this->update([
             'status' => 'Resolved',

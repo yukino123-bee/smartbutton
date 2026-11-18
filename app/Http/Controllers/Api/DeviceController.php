@@ -16,7 +16,6 @@ class DeviceController extends Controller
     private const CLINIC_REQUEST_WINDOW_MINUTES = 60;
 
     // A different button pressed this soon after an unacknowledged alert replaces it (wrong button pressed first).
-    private const CORRECTION_WINDOW_SECONDS = 60;
 
     /**
      * Handle incoming emergency alerts from ESP32 devices.
@@ -28,8 +27,13 @@ class DeviceController extends Controller
             'device_id' => 'required|string',
             'emergency_category' => ['required', 'string', Rule::in(Incident::EMERGENCY_TYPES)],
             'need_clinic' => ['nullable', 'boolean'],
+            // The "no clinic needed" button (D33) on an open Medical alert.
+            'clinic_declined' => ['nullable', 'boolean'],
+            // One id per physical press; the device reuses it when it retries a send.
+            'press_id' => ['nullable', 'string', 'max:40'],
             'timestamp' => ['nullable', 'date', 'before_or_equal:now'],
-            'simulated' => ['nullable', 'boolean'],
+            // Buttons have no clock: an alert that went out by SMS only is re-sent with its age once the server is back.
+            'age_seconds' => ['nullable', 'integer', 'between:0,86400'],
         ]);
 
         $deviceCode = $validated['device_id'];
@@ -58,6 +62,26 @@ class DeviceController extends Controller
         // Medical alerts go to DRRMO only; the Clinic is added later by a clinic request (need_clinic = true).
         $defaultNeedClinic = $emergencyType === Incident::TYPE_CRITICAL;
         $needClinic = $request->has('need_clinic') ? $request->boolean('need_clinic') : $defaultNeedClinic;
+
+        // D33: the witness says no clinic is needed on the open Medical alert. Nothing new is created.
+        if ($emergencyType === Incident::TYPE_MEDICAL && $request->boolean('clinic_declined')) {
+            $openMedical = Incident::where('device_id', $device->id)
+                ->where('emergency_type', Incident::TYPE_MEDICAL)
+                ->where('status', '!=', 'Resolved')
+                ->where('created_at', '>=', now()->subMinutes(self::CLINIC_REQUEST_WINDOW_MINUTES))
+                ->latest('id')
+                ->first();
+
+            if ($openMedical && ! $openMedical->need_clinic) {
+                $openMedical->update(['clinic_declined_at' => $openMedical->clinic_declined_at ?? now(), 'clinic_requested_at' => null]);
+            }
+
+            return response()->json([
+                'status' => $openMedical ? 'success' : 'ignored',
+                'message' => $openMedical ? 'No clinic needed recorded.' : 'No open medical alert for this device.',
+                'incident_id' => $openMedical?->id,
+            ], 200);
+        }
 
         // The clinic button after a medical alert adds the Clinic to that open alert instead of making a new one.
         if ($emergencyType === Incident::TYPE_MEDICAL && $needClinic) {
@@ -91,14 +115,18 @@ class DeviceController extends Controller
             ], 200);
         }
 
-        // A repeat press of the same button within seconds is the same alert, not a new incident.
-        $duplicate = Incident::where('device_id', $device->id)
-            ->where('emergency_type', $emergencyType)
-            ->where('need_clinic', $needClinic)
-            ->where('status', '!=', 'Resolved')
-            ->where('created_at', '>=', now()->subSeconds(30))
-            ->latest('id')
-            ->first();
+        // A retry of the same press is not a new alert. Devices that send a press_id get every press as a new alert;
+        // without one (older firmware, simulator) a same-button repeat within 30 s is treated as a retry.
+        $pressId = $validated['press_id'] ?? null;
+        $duplicate = $pressId
+            ? Incident::where('device_id', $device->id)->where('press_id', $pressId)->first()
+            : Incident::where('device_id', $device->id)
+                ->where('emergency_type', $emergencyType)
+                ->where('need_clinic', $needClinic)
+                ->where('status', '!=', 'Resolved')
+                ->where('created_at', '>=', now()->subSeconds(30))
+                ->latest('id')
+                ->first();
 
         if ($duplicate) {
             return response()->json([
@@ -110,13 +138,9 @@ class DeviceController extends Controller
             ], 200);
         }
 
-        // The victim pressed the wrong button first: the earlier alert DRRMO has not acted on becomes a false alarm.
-        // A Critical alert is never replaced; a possibly real one stays for DRRMO to judge.
+        // A new alert from the device replaces its earlier alert that DRRMO has not acted on yet.
         Incident::where('device_id', $device->id)
             ->where('status', 'Pending')
-            ->where('emergency_type', '!=', $emergencyType)
-            ->where('emergency_type', '!=', Incident::TYPE_CRITICAL)
-            ->where('created_at', '>=', now()->subSeconds(self::CORRECTION_WINDOW_SECONDS))
             ->get()
             ->each(fn (Incident $old) => $old->supersedeAsFalseAlarm($emergencyType));
 
@@ -127,18 +151,15 @@ class DeviceController extends Controller
                 : 'Medical Emergency (Witness indicated No Clinic Aid needed)';
         }
 
-        if ($request->boolean('simulated')) {
-            $remarks = trim('[Simulation] '.$remarks);
-        }
-
         // Create incident record
         $incident = Incident::create([
             'device_id' => $device->id,
             'emergency_type' => $emergencyType,
             'need_clinic' => $needClinic,
-            'reported_at' => $validated['timestamp'] ?? now(),
+            'press_id' => $pressId,
+            'reported_at' => $validated['timestamp'] ?? now()->subSeconds($validated['age_seconds'] ?? 0),
             'status' => 'Pending',
-            'remarks' => $remarks,
+            'remarks' => isset($validated['age_seconds']) ? trim($remarks.' [Sent by SMS while offline, synced later]') : $remarks,
         ]);
 
         // Create notifications log for DRRMO

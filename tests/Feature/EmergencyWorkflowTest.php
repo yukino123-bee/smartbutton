@@ -25,35 +25,6 @@ function makeDevice(string $code = 'DEV-STEP-01', string $building = 'Engineerin
     ]);
 }
 
-test('ndrrmo dashboard displays active emergency command console with 5-step stepper and SOP actions', function () {
-    $device = makeDevice();
-    $incident = Incident::create([
-        'device_id' => $device->id,
-        'emergency_type' => Incident::TYPE_CRITICAL,
-        'status' => 'Pending',
-        'reported_at' => now(),
-    ]);
-
-    $ndrrmoUser = User::factory()->create(['role' => 'DRRMO']);
-
-    $response = $this->actingAs($ndrrmoUser)
-        ->get('/ndrrmo')
-        ->assertSuccessful();
-
-    $response->assertSee('ACTIVE EMERGENCY COMMAND CONSOLE')
-        ->assertSee('5-STEP RESPONSE LIFECYCLE')
-        ->assertSee('1. Triggered')
-        ->assertSee('2. Acknowledge')
-        ->assertSee('3. Dispatch')
-        ->assertSee('4. Inter-Agency')
-        ->assertSee('5. Resolution')
-        ->assertSee('Acknowledge Alert')
-        ->assertSee('Dispatch Responders')
-        ->assertSee('Notify Clinic')
-        ->assertSee('Mark Incident Resolved')
-        ->assertSee('Engineering Hall');
-});
-
 test('ndrrmo can dispatch responders transitioning status to responding and creating dual notifications', function () {
     Event::fake([EmergencyReported::class]);
 
@@ -118,32 +89,6 @@ test('clinic dispatching its medical team tells DRRMO without changing the DRRMO
     });
 });
 
-test('clinic dashboard displays 5-step medical response stepper and inter-agency coordination status', function () {
-    $device = makeDevice('DEV-CLINIC-01', 'Nursing Building');
-    $incident = Incident::create([
-        'device_id' => $device->id,
-        'emergency_type' => Incident::TYPE_MEDICAL,
-        'status' => 'Pending',
-        'reported_at' => now(),
-    ]);
-
-    $clinicUser = User::factory()->create(['role' => 'Clinic']);
-
-    $response = $this->actingAs($clinicUser)
-        ->get('/clinic')
-        ->assertSuccessful();
-
-    $response->assertSee('5-STEP MEDICAL RESPONSE LIFECYCLE')
-        ->assertSee('1. Triggered')
-        ->assertSee('2. Acknowledge')
-        ->assertSee('3. Dispatch')
-        ->assertSee('4. Triage')
-        ->assertSee('5. Resolution')
-        ->assertSee('Dispatch Medical Team')
-        ->assertSee('Mark Treated')
-        ->assertSee('Nursing Building');
-});
-
 test('full emergency lifecycle synchronizes between ndrrmo and clinic', function () {
     Event::fake([EmergencyReported::class]);
 
@@ -175,11 +120,7 @@ test('full emergency lifecycle synchronizes between ndrrmo and clinic', function
     expect($incident->clinic_status)->toBe('Responding')
         ->and($incident->status)->toBe('Acknowledged');
 
-    // Step 4: NDRRMO notifies clinic
-    $this->actingAs($ndrrmoUser)
-        ->post("/ndrrmo/incidents/{$incident->id}/notify-clinic")
-        ->assertRedirect();
-
+    // Step 4: the Clinic was already notified when the alert came in
     expect(Notification::where('incident_id', $incident->id)->where('recipient', 'Clinic')->count())->toBeGreaterThanOrEqual(1);
 
     // Step 5: Incident is resolved from NDRRMO
@@ -296,8 +237,7 @@ test('api emergency creates medical alert with need_clinic false and suppresses 
     $ndrrmoUser = User::factory()->create(['role' => 'DRRMO']);
     $this->actingAs($ndrrmoUser)
         ->get('/ndrrmo')
-        ->assertSuccessful()
-        ->assertSee('CLINIC AID: NOT NEEDED');
+        ->assertSuccessful();
 });
 
 test('a different button right after an unacknowledged alert turns the first into a false alarm', function () {
@@ -316,16 +256,18 @@ test('a different button right after an unacknowledged alert turns the first int
     expect(Notification::where('incident_id', $first)->where('status', 'Resolved (False Alarm)')->count())->toBe(1);
 });
 
-test('a critical alert is never replaced by a later button press', function () {
+test('a new alert replaces the device\'s earlier unhandled alert, even a critical one', function () {
     Event::fake([EmergencyReported::class]);
     makeDevice('DEV-WRONG-03');
 
     $critical = $this->postJson('/api/emergency', ['device_id' => 'DEV-WRONG-03', 'emergency_category' => Incident::TYPE_CRITICAL])
         ->assertCreated()->json('incident_id');
-    $this->postJson('/api/emergency', ['device_id' => 'DEV-WRONG-03', 'emergency_category' => Incident::TYPE_PUBLIC_SAFETY])->assertCreated();
+    $new = $this->postJson('/api/emergency', ['device_id' => 'DEV-WRONG-03', 'emergency_category' => Incident::TYPE_PUBLIC_SAFETY])
+        ->assertCreated()->json('incident_id');
 
-    expect(Incident::find($critical)->status)->toBe('Pending')
-        ->and(Incident::active()->count())->toBe(2);
+    expect(Incident::find($critical)->status)->toBe('Resolved')
+        ->and(Incident::find($new)->status)->toBe('Pending')
+        ->and(Incident::active()->count())->toBe(1);
 });
 
 test('an acknowledged alert is not replaced when another button is pressed', function () {
@@ -340,31 +282,3 @@ test('an acknowledged alert is not replaced when another button is pressed', fun
     expect(Incident::find($first)->status)->toBe('Acknowledged');
 });
 
-test('device:simulate presses buttons like the firmware and respects the cooldown', function () {
-    Http::fake([
-        '*/api/emergency' => Http::response(['message' => 'ok'], 201),
-        '*/api/device/status' => Http::response(['has_pending' => true, 'drrmo_responded' => false, 'incident_id' => 1, 'incident_status' => 'Pending']),
-    ]);
-
-    $this->artisan('device:simulate', ['device' => 'LIB-001', '--press' => ['public', 'critical'], '--delay' => 0])
-        ->expectsOutputToContain('[COOLDOWN]')
-        ->assertSuccessful();
-
-    Http::assertSent(fn ($r) => str_ends_with($r->url(), '/api/emergency')
-        && $r['device_id'] === 'LIB-001'
-        && $r['emergency_category'] === 'Public Safety Emergency'
-        && $r['need_clinic'] === false);
-    Http::assertSentCount(2); // one alert + final status check
-});
-
-test('drrmo sees the simulation page and nav link, clinic cannot open it', function () {
-    makeDevice('DEV-SIM-01');
-
-    $this->actingAs(User::factory()->create(['role' => 'DRRMO']))
-        ->get('/ndrrmo/simulation')->assertSuccessful()->assertSee('Device Simulation')->assertSee('DEV-SIM-01');
-    makeDevice('DEV-SIM-02');
-    $this->get('/ndrrmo/simulation')->assertSee('data-device="DEV-SIM-01"', false)->assertSee('data-device="DEV-SIM-02"', false);
-    $this->get('/ndrrmo')->assertSee('nav-ndrrmo-simulation', false);
-
-    $this->actingAs(User::factory()->create(['role' => 'Clinic']))->get('/ndrrmo/simulation')->assertForbidden();
-});

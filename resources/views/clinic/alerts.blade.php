@@ -95,7 +95,7 @@
                 </div>
 
                 <!-- Checkbox in Top Corner -->
-                <label class="absolute top-3 right-3 z-10 cursor-pointer p-1 rounded-lg bg-black/30 hover:bg-black/40 transition-colors">
+                <label class="absolute top-3 right-3 z-10 cursor-pointer p-1 rounded-lg bg-white/25 hover:bg-white/40 transition-colors">
                     <input type="checkbox" name="ids[]" value="{{ $alert->id }}"
                            class="alert-checkbox w-4 h-4 rounded border-white text-red-600 focus:ring-red-500 accent-red-600 cursor-pointer">
                 </label>
@@ -127,34 +127,22 @@
             </div>
 
             <!-- Card Actions -->
-            <div class="p-4 bg-slate-50 border-t border-slate-100 flex gap-2 items-center">
-                {{-- Action Buttons --}}
-                <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
-                    @php
-                        $clinicAck = $alert->clinic_dispatched_at !== null;
-                    @endphp
+            @php $clinicAck = $alert->clinic_dispatched_at !== null; @endphp
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex flex-col gap-2.5">
+                <div class="flex items-center gap-2">
                     @if(!$clinicAck)
-                        <form id="ack-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.incidents.dispatch', $alert->id) }}" class="flex-1" onsubmit="return confirmAction(event, 'Dispatch the medical team to this alert?', 'Dispatch Medical Team', 'Dispatch', 'warning')">
+                        <form id="ack-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.incidents.dispatch', $alert->id) }}" class="hidden" onsubmit="return confirmAction(event, 'Dispatch the medical team to this alert?', 'Dispatch Medical Team', 'Dispatch', 'warning')">
                             @csrf
-                            <div class="flex gap-1.5 mb-1.5">
-                                <input type="text" name="responder_name" maxlength="150" placeholder="Responder / team" class="ui-input flex-1 min-w-0 text-xs py-1.5">
-                                <input type="number" name="eta_minutes" min="1" max="120" placeholder="ETA min" class="ui-input w-20 text-xs py-1.5">
-                            </div>
-                            <button type="submit" class="w-full py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                Dispatch
-                            </button>
                         </form>
+                        <button form="ack-form-{{ $alert->id }}" type="submit" class="flex-1 py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            Dispatch
+                        </button>
                     @endif
-                    <form id="resolve-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.incidents.resolve', $alert->id) }}" class="flex-1" onsubmit="return confirmAction(event, 'Are you sure you want to mark this emergency as RESOLVED?', 'Resolve Incident', 'Mark Resolved', 'danger')">
-                        @csrf
-                        <button type="submit" class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                    <div class="flex-1 flex"><button type="button" x-data @click="$dispatch('resolve-open', { action: '{{ route('clinic.incidents.resolve', $alert->id) }}', place: @js($alert->device->building ?? 'Campus Location') })" class="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100" @disabled(! $clinicAck) title="{{ $clinicAck ? '' : 'Dispatch the medical team first' }}">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             Mark Resolved
-                        </button>
-                    </form>
-                    
-                    {{-- Single Delete Button --}}
+                        </button></div>
                     <form id="delete-form-{{ $alert->id }}" method="POST" action="{{ route('clinic.alerts.destroy', $alert->id) }}" class="shrink-0" onsubmit="return confirmAction(event, 'Are you sure you want to delete this alert?', 'Delete Alert', 'Delete', 'danger')">
                         @csrf
                         @method('DELETE')
@@ -238,5 +226,37 @@
         });
     });
 </script>
+
+
+{{-- Patient record: the Clinic fills this in by hand before an incident is closed --}}
+<div x-data="{ open: false, action: '', place: '' }" x-on:resolve-open.window="open = true; action = $event.detail.action; place = $event.detail.place" x-on:keydown.escape.window="open = false" x-show="open" x-cloak
+     class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60" style="display:none">
+    <form method="POST" :action="action" @click.outside="open = false" class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+        @csrf
+        <div>
+            <h3 class="text-lg font-black text-slate-900">Patient record</h3>
+            <p class="text-xs font-bold text-slate-500" x-text="place"></p>
+        </div>
+        <input type="text" name="patient_name" maxlength="150" placeholder="Patient name" class="ui-input w-full text-sm">
+        <input type="text" name="patient_id_number" maxlength="50" placeholder="Student / ID number" class="ui-input w-full text-sm">
+        <select name="triage_level" class="ui-input w-full text-sm">
+            <option value="Green">Green: minor</option>
+            <option value="Yellow" selected>Yellow: urgent</option>
+            <option value="Red">Red: critical</option>
+            <option value="Black">Black: deceased</option>
+        </select>
+        <textarea name="treatment_summary" maxlength="1000" rows="3" placeholder="Treatment given" class="ui-input w-full text-sm"></textarea>
+        <select name="disposition" class="ui-input w-full text-sm">
+            <option>Treated and released to class</option>
+            <option>Sent home</option>
+            <option>Referred to hospital</option>
+            <option>Other</option>
+        </select>
+        <div class="flex gap-2 pt-1">
+            <button type="button" @click="open = false" class="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-extrabold text-xs cursor-pointer">Cancel</button>
+            <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs cursor-pointer">Save & Mark Resolved</button>
+        </div>
+    </form>
+</div>
 
 @endsection

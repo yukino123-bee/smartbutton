@@ -95,12 +95,12 @@
                 $dotColor = 'bg-white';
                 $typeBadge = 'bg-orange-100 text-orange-800 border border-orange-200';
             } elseif ($alert->emergency_type === 'Public Safety Emergency') {
-                $headerBg = 'bg-amber-500 text-white';
-                $headerSubtext = 'text-amber-100';
+                $headerBg = 'bg-blue-600 text-white';
+                $headerSubtext = 'text-blue-100';
                 $iconBox = 'bg-white/20 text-white';
                 $statusBadge = 'bg-white/20 text-white border border-white/30';
                 $dotColor = 'bg-white';
-                $typeBadge = 'bg-amber-100 text-amber-900 border border-amber-200';
+                $typeBadge = 'bg-blue-100 text-blue-900 border border-blue-200';
             } else {
                 $headerBg = 'bg-slate-700 text-white';
                 $headerSubtext = 'text-slate-200';
@@ -159,7 +159,7 @@
                                 <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300">
                                     🏥 CLINIC REQUESTED · ACKNOWLEDGE FIRST
                                 </span>
-                            @else
+                            @elseif($alert->clinic_declined_at)
                                 <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-100 text-slate-700 border border-slate-300">
                                     🩺 NO CLINIC NEEDED
                                 </span>
@@ -194,7 +194,7 @@
 
             {{-- Dynamic Action Buttons --}}
             <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-col gap-2">
-                @if(!$alert->notifications->where('recipient', 'Clinic')->count())
+                @if($alert->emergency_type === \App\Models\Incident::TYPE_MEDICAL && $alert->clinic_requested_at && !$alert->notifications->where('recipient', 'Clinic')->count())
                     <button type="button" onclick="notifyClinic({{ $alert->id }})" class="w-full py-2 px-3 text-xs font-bold text-orange-700 bg-orange-100 border border-orange-300 hover:bg-orange-200 rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                         <span>Notify Clinic for Assistance</span>
@@ -211,7 +211,8 @@
                         <span>Dispatch Responders</span>
                     </button>
                 @else
-                    <button type="button" onclick="resolveSingleAlert({{ $alert->id }})" class="w-full py-2 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                    @php $waitingClinic = $alert->involvesClinic() && ! $alert->clinic_dispatched_at; @endphp
+                    <button type="button" onclick="resolveSingleAlert({{ $alert->id }})" @disabled($waitingClinic) title="{{ $waitingClinic ? 'Waiting for the Clinic to dispatch' : '' }}" class="disabled:opacity-40 disabled:cursor-not-allowed w-full py-2 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <span>Mark Resolved & Record Log</span>
                     </button>

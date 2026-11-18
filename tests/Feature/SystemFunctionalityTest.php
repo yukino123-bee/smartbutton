@@ -175,6 +175,11 @@ test('DRRMO workflow updates only the selected incident and records resolution t
     $this->actingAs($user)->post("/ndrrmo/incidents/{$first->id}/dispatch")->assertRedirect();
     expect($first->fresh()->status)->toBe('Responding');
 
+    // The Critical alert involves the Clinic: DRRMO cannot resolve until the Clinic has dispatched
+    $this->actingAs($user)->postJson("/ndrrmo/incidents/{$first->id}/resolve")->assertStatus(422);
+    expect($first->fresh()->status)->toBe('Responding');
+
+    $first->update(['clinic_dispatched_at' => now()]);
     $this->actingAs($user)->post("/ndrrmo/incidents/{$first->id}/resolve")->assertRedirect();
     expect($first->fresh()->status)->toBe('Resolved')
         ->and($first->fresh()->resolved_at)->not->toBeNull();
@@ -223,20 +228,22 @@ test('public self-registration is disabled', function () {
     $this->post('/register', [])->assertNotFound();
 });
 
-test('DRRMO can notify clinic for medical backup on an incident', function () {
+test('DRRMO can notify clinic only for a medical alert whose clinic button was pressed', function () {
     $drrmo = User::factory()->create(['role' => 'DRRMO']);
     $device = systemDevice();
-    $incident = Incident::create([
+    $requested = Incident::create([
         'device_id' => $device->id,
-        'emergency_type' => Incident::TYPE_PUBLIC_SAFETY,
+        'emergency_type' => Incident::TYPE_MEDICAL,
         'status' => 'Pending',
+        'clinic_requested_at' => now(),
     ]);
+    $plain = Incident::create(['device_id' => $device->id, 'emergency_type' => Incident::TYPE_PUBLIC_SAFETY, 'status' => 'Pending']);
 
-    $this->actingAs($drrmo)
-        ->post("/ndrrmo/incidents/{$incident->id}/notify-clinic")
-        ->assertRedirect();
+    $this->actingAs($drrmo)->post("/ndrrmo/incidents/{$plain->id}/notify-clinic")->assertNotFound();
+    $this->actingAs($drrmo)->post("/ndrrmo/incidents/{$requested->id}/notify-clinic")->assertRedirect();
 
-    expect(Notification::whereBelongsTo($incident)->where('recipient', 'Clinic')->exists())->toBeTrue();
+    expect(Notification::whereBelongsTo($plain)->where('recipient', 'Clinic')->exists())->toBeFalse()
+        ->and(Notification::whereBelongsTo($requested)->where('recipient', 'Clinic')->exists())->toBeTrue();
 });
 
 test('DRRMO can manage devices through CRUD operations', function () {

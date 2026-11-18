@@ -62,13 +62,6 @@
                 <span class="font-bold text-[13px]">SMS Logs</span>
             </a>
 
-            @if(config('app.simulation_enabled'))
-            <a id="nav-ndrrmo-simulation" href="{{ route('ndrrmo.simulation') }}" class="nav-link {{ request()->routeIs('ndrrmo.simulation') ? 'nav-link-active' : '' }} group">
-                <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span class="font-bold text-[13px]">Device Simulation</span>
-            </a>
-            @endif
-
             <a id="nav-ndrrmo-reports" href="{{ route('ndrrmo.reports') }}" class="nav-link {{ request()->routeIs('ndrrmo.reports') ? 'nav-link-active' : '' }} group">
                 <svg class="w-5 h-5 mr-3 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 <span class="font-bold text-[13px]">Incident Reports</span>
@@ -323,7 +316,7 @@
 
         function emergencyCardTheme(type) {
             if (type.includes('Medical')) return { border: 'border-orange-500', badge: 'bg-orange-600' };
-            if (type.includes('Public Safety') || type.includes('Facility')) return { border: 'border-amber-500', badge: 'bg-amber-600' };
+            if (type.includes('Public Safety') || type.includes('Facility')) return { border: 'border-blue-600', badge: 'bg-blue-600' };
             return { border: 'border-red-600', badge: 'bg-red-600' };
         }
 
@@ -450,9 +443,9 @@
                 badgeBg = 'bg-orange-600';
                 borderCls = 'border-orange-500';
             } else if (type.includes('Public Safety') || type.includes('Facility')) {
-                headerBg = 'bg-amber-600';
-                badgeBg = 'bg-amber-600';
-                borderCls = 'border-amber-500';
+                headerBg = 'bg-blue-600';
+                badgeBg = 'bg-blue-600';
+                borderCls = 'border-blue-600';
             }
 
             if (perimeter) {
@@ -1035,6 +1028,7 @@
         setInterval(updateLiveNDRRMOClock, 1000);
 
         let lastClinicSignature = null;
+        let lastActiveSignature = null;
 
         // Without this a dead server looks like "no alerts". Show a banner after 3 failed polls in a row.
         let pollFailures = 0;
@@ -1087,6 +1081,14 @@
                             window.location.reload();
                         }
                         lastClinicSignature = data.clinic_signature;
+                    }
+
+                    // Keep the dashboard's Active Alerts list current: reload when an incident appears, changes status or closes
+                    if (data.active_signature !== undefined && document.getElementById('active-alerts-list')) {
+                        if (lastActiveSignature !== null && data.active_signature !== lastActiveSignature) {
+                            window.location.reload();
+                        }
+                        lastActiveSignature = data.active_signature;
                     }
 
                     // Auto-sync emergency modal & audio siren with all pending incidents

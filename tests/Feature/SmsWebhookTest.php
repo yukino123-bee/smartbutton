@@ -38,3 +38,17 @@ test('webhook still reads the old format and ignores a duplicate', function () {
     expect(Incident::count())->toBe(1)
         ->and((bool) Incident::first()->need_clinic)->toBeTrue();
 });
+
+test('an alert re-sent after an SMS-only period keeps its real press time', function () {
+    $device = makeDevice('DEV-LATE-01');
+
+    $this->postJson('/api/emergency', [
+        'device_id' => $device->device_code,
+        'emergency_category' => Incident::TYPE_CRITICAL,
+        'age_seconds' => 600,
+    ])->assertSuccessful();
+
+    $incident = Incident::latest('id')->first();
+    expect($incident->reported_at->diffInSeconds(now(), true))->toBeBetween(598, 605)
+        ->and($incident->remarks)->toContain('synced later');
+});

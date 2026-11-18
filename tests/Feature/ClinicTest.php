@@ -51,6 +51,12 @@ test('clinic staff can acknowledge and resolve incidents', function () {
     $this->actingAs($user)
         ->post("/clinic/incidents/{$incident->id}/resolve")
         ->assertRedirect();
+    expect($incident->fresh()->clinic_status)->not->toBe('Resolved');
+
+    $this->actingAs($user)->post("/clinic/incidents/{$incident->id}/dispatch")->assertRedirect();
+    $this->actingAs($user)
+        ->post("/clinic/incidents/{$incident->id}/resolve")
+        ->assertRedirect();
 
     expect($incident->fresh()->clinic_status)->toBe('Resolved');
     expect($incident->fresh()->clinic_resolved_at)->not->toBeNull();
@@ -59,8 +65,7 @@ test('clinic staff can acknowledge and resolve incidents', function () {
     $incident->refresh();
     expect($incident->status)->toBe('Pending')
         ->and($incident->resolved_at)->toBeNull()
-        ->and($incident->acknowledged_at)->toBeNull()
-        ->and(Notification::where('incident_id', $incident->id)->where('recipient', 'DRRMO')->exists())->toBeFalse();
+        ->and($incident->acknowledged_at)->toBeNull();
 });
 
 test('resolving an already resolved incident is idempotent', function () {
@@ -208,7 +213,7 @@ test('deleting an alert on the clinic side only hides it from the clinic', funct
         ->and(Incident::active()->whereKey($incident->id)->exists())->toBeTrue();
 });
 
-test('drrmo resolving a medical emergency also resolves it on the clinic side', function () {
+test('drrmo resolving a medical emergency does not change the clinic status', function () {
     $device = Device::create([
         'device_code' => 'CLN-006',
         'building' => 'Health Center',
@@ -222,6 +227,7 @@ test('drrmo resolving a medical emergency also resolves it on the clinic side', 
         'need_clinic' => true,
         'status' => 'Acknowledged',
         'clinic_status' => 'Acknowledged',
+        'clinic_dispatched_at' => now(),
         'reported_at' => now(),
     ]);
 
@@ -231,16 +237,8 @@ test('drrmo resolving a medical emergency also resolves it on the clinic side', 
 
     $incident->refresh();
     expect($incident->status)->toBe('Resolved')
-        ->and($incident->clinic_status)->toBe('Resolved')
-        ->and($incident->clinic_resolved_at)->not->toBeNull()
-        ->and($incident->clinic_resolution_type)->toBe('Resolved')
-        ->and(Incident::clinicVisible()->clinicActive()->whereKey($incident->id)->exists())->toBeFalse()
-        ->and(Incident::clinicVisible()->clinicResolved()->whereKey($incident->id)->exists())->toBeTrue();
-
-    $this->actingAs(User::factory()->create(['role' => 'Clinic']))
-        ->get('/clinic/logs')
-        ->assertSuccessful()
-        ->assertDontSee(route('clinic.incidents.resolve', $incident), false);
+        ->and($incident->clinic_status)->toBe('Acknowledged')
+        ->and($incident->clinic_resolved_at)->toBeNull();
 });
 
 test('drrmo resolving does not overwrite an incident the clinic already resolved', function () {
@@ -320,4 +318,43 @@ test('clinic dispatch notifies DRRMO without changing the DRRMO incident', funct
 
     // Once dispatched it no longer pops up as an unhandled alert on the Clinic HUD.
     $this->getJson('/clinic/stats-json')->assertJsonCount(0, 'pending_incidents');
+});
+
+test('clinic cannot resolve an incident that was never dispatched', function () {
+    $device = Device::create(['device_code' => 'CLN-ND', 'building' => 'Clinic', 'floor' => '1', 'room' => 'R', 'status' => 'active']);
+    $incident = Incident::create(['device_id' => $device->id, 'emergency_type' => Incident::TYPE_CRITICAL, 'status' => 'Pending', 'reported_at' => now()]);
+
+    $this->actingAs(User::factory()->create(['role' => 'Clinic']))
+        ->postJson("/clinic/incidents/{$incident->id}/resolve")->assertStatus(422);
+
+    expect($incident->fresh()->clinic_status)->not->toBe('Resolved');
+});
+
+test('clinic can delete a treated patient record from the patient directory', function () {
+    $device = Device::create(['device_code' => 'CLN-DEL', 'building' => 'Clinic', 'floor' => '1', 'room' => 'R', 'status' => 'active']);
+    $incident = Incident::create(['device_id' => $device->id, 'emergency_type' => Incident::TYPE_CRITICAL, 'status' => 'Pending', 'clinic_status' => 'Resolved', 'clinic_resolved_at' => now(), 'reported_at' => now()]);
+    $clinic = User::factory()->create(['role' => 'Clinic']);
+
+    $this->actingAs($clinic)->get('/clinic/patients')->assertSee("#MED-{$incident->id}");
+    $this->actingAs($clinic)->from('/clinic/patients')->delete("/clinic/alerts/{$incident->id}")->assertRedirect('/clinic/patients');
+
+    $this->actingAs($clinic)->get('/clinic/patients')->assertDontSee("#MED-{$incident->id}");
+    expect(Incident::find($incident->id))->not->toBeNull();
+});
+
+test('patient directory shows the patient record the clinic filled in', function () {
+    $device = Device::create(['device_code' => 'CLN-PR', 'building' => 'Clinic', 'floor' => '1', 'room' => 'R', 'status' => 'active']);
+    Incident::create(['device_id' => $device->id, 'emergency_type' => Incident::TYPE_CRITICAL, 'status' => 'Pending', 'reported_at' => now(), 'clinic_status' => 'Resolved', 'clinic_resolved_at' => now(),
+        'clinic_patient_name' => 'Juan Dela Cruz', 'clinic_patient_id_number' => '2024-0001', 'clinic_triage_level' => 'Red', 'clinic_treatment_summary' => 'Oxygen given', 'clinic_disposition' => 'Referred to hospital']);
+
+    $this->actingAs(User::factory()->create(['role' => 'Clinic']))->get('/clinic/patients')
+        ->assertSee('Juan Dela Cruz')->assertSee('2024-0001')->assertSee('Red')->assertSee('Oxygen given')->assertSee('Referred to hospital');
+});
+
+test('clinic reports page renders the metrics, status and triage breakdown', function () {
+    $device = Device::create(['device_code' => 'CLN-RP', 'building' => 'Gym', 'floor' => '1', 'room' => 'R', 'status' => 'active']);
+    Incident::create(['device_id' => $device->id, 'emergency_type' => Incident::TYPE_MEDICAL, 'status' => 'Pending', 'reported_at' => now(), 'need_clinic' => true, 'clinic_status' => 'Resolved', 'clinic_resolved_at' => now(), 'clinic_triage_level' => 'Yellow']);
+
+    $this->actingAs(User::factory()->create(['role' => 'Clinic']))->get('/clinic/reports')
+        ->assertOk()->assertSee('Response status')->assertSee('Treated by triage level')->assertSee('1 case')->assertSee('Gym');
 });

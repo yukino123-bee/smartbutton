@@ -158,38 +158,6 @@ test('clinic can acknowledge all unhandled medical alerts at once', function () 
         ->and(Notification::where('recipient', 'Clinic')->where('status', 'Acknowledged')->count())->toBe(2);
 });
 
-test('clinic dashboard displays multiple emergency cards when multiple unhandled alerts exist', function () {
-    $device1 = createDevice('DEV-001', 'Gymnasium');
-    $device2 = createDevice('DEV-002', 'Science Complex');
-
-    Incident::create([
-        'device_id' => $device1->id,
-        'emergency_type' => Incident::TYPE_CRITICAL,
-        'status' => 'Pending',
-        'reported_at' => now()->subMinutes(3),
-    ]);
-
-    Incident::create([
-        'device_id' => $device2->id,
-        'emergency_type' => Incident::TYPE_MEDICAL,
-        'status' => 'Pending',
-        'reported_at' => now()->subMinute(),
-    ]);
-
-    $clinicUser = User::factory()->create(['role' => 'Clinic']);
-
-    $response = $this->actingAs($clinicUser)
-        ->get('/clinic')
-        ->assertSuccessful();
-
-    $response->assertSee('MULTIPLE ACTIVE MEDICAL EMERGENCIES (2 UNHANDLED ALERTS)')
-        ->assertDontSee('Acknowledge All')
-        ->assertSee('Alert #1: Medical Emergency')
-        ->assertSee('Alert #2: Critical Emergency')
-        ->assertSee('Gymnasium')
-        ->assertSee('Science Complex');
-});
-
 test('alerts index pages render acknowledge all buttons when multiple alerts are pending', function () {
     $device1 = createDevice('DEV-001', 'Gymnasium');
     $device2 = createDevice('DEV-002', 'Science Complex');

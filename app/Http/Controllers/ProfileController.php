@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
 {
     public function show(Request $request)
     {
         $user = $request->user();
+
         return view('profile', compact('user'));
     }
 
@@ -20,7 +20,7 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'fullname' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:users,username,' . $user->id],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username,'.$user->id],
         ]);
 
         $user->update($validated);

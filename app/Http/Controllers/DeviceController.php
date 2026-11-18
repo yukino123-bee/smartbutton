@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Device;
+use Illuminate\Http\Request;
 
 class DeviceController extends Controller
 {
     public function index()
     {
         $devices = Device::all();
+
         return response()->json($devices);
     }
 
@@ -25,6 +26,7 @@ class DeviceController extends Controller
         ]);
 
         $device = Device::create($validated);
+
         return response()->json($device, 201);
     }
 
@@ -40,12 +42,14 @@ class DeviceController extends Controller
         ]);
 
         $device->update($validated);
+
         return response()->json($device);
     }
 
     public function destroy(Device $device)
     {
         $device->delete();
+
         return response()->json(null, 204);
     }
 }

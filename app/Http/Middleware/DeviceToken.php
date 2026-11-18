@@ -16,6 +16,9 @@ class DeviceToken
     {
         $expected = (string) config('services.device.token');
 
+        // Fail closed in production: an unset token must not leave the alert API open to anyone.
+        abort_if($expected === '' && app()->isProduction(), 503, 'Device API token is not configured.');
+
         if ($expected !== '' && ! hash_equals($expected, (string) $request->header('X-Device-Token'))) {
             abort(401, 'Invalid device token.');
         }
